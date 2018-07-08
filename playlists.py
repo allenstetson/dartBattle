@@ -121,9 +121,11 @@ class Arctic(object):
             'https://s3.amazonaws.com/dart-battle-resources/scenarios/arctic/events/zeroEliminations/event_Arctic_{:02d}_ZeroEliminations_HalfDamage_Team_00.mp3',
         ]
 
+        self.inCount = "https://s3.amazonaws.com/dart-battle-resources/common/inCount_Any_00_YourBattleBegins_Any_00.mp3"
         self.soundtrack = "https://s3.amazonaws.com/dart-battle-resources/sndtrk_Arctic_Music_Sfx_{}s"
-        self.outtro = "https://s3.amazonaws.com/dart-battle-resources/tail_NoTeam.mp3"
-        self.outtroTeams = "https://s3.amazonaws.com/dart-battle-resources/tail_Team.mp3"
+        self.outCount = "https://s3.amazonaws.com/dart-battle-resources/scenarios/arctic/outCounts/outCount_Arctic_00_YourBattleEnds_Any_00.mp3"
+        self.outtro = "https://s3.amazonaws.com/dart-battle-resources/scenarios/arctic/outtros/outtro_Arctic_00_CeaseFire_NoTeam_00.mp3"
+        self.outtroTeams = "https://s3.amazonaws.com/dart-battle-resources/scenarios/arctic/outtros/outtro_Arctic_00_CeaseFire_Team_00.mp3"
 
     # -------------------------------------------------------------------------
     # PROPERTIES
@@ -179,11 +181,12 @@ class Arctic(object):
         tails = [
             "https://s3.amazonaws.com/dart-battle-resources/common/common_Any_00_Tail_RateUsA_Any_00.mp3",
             # NoneTypes for the chance that no Tail takes place.
-            None,
-            None,
-            None
+            # None,
+            # None,
+            # None
         ]
         return random.choice(tails)
+
     # -------------------------------------------------------------------------
     # PUBLIC METHODS
     # -------------------------------------------------------------------------
@@ -232,6 +235,7 @@ class NoEvents01(object):
 
     def getIntro(self, rank=None, variant=None):
         return (None, None)
+
 
 """
         # TODO: Handle SFX, Music preferences, rank
