@@ -194,13 +194,15 @@ class ScenePlaylist(object):
     @property
     def inCountdown(self):
         """The countdown to the start of the battle; second track."""
-        # if self.name == "Arctic":
+        if self.name == "Arctic":
+            return playlists.Arctic().inCount
         return None
 
     @property
     def outCountdown(self):
         """The countdown to the end of the battle. "Battle ends in 3, 2, 1." """
-        # if self.name == "Arctic":
+        if self.name == "Arctic":
+            return playlists.Arctic().outCount
         return None
 
     @property
@@ -208,8 +210,10 @@ class ScenePlaylist(object):
         """The cease fire notification, end of battle instructions."""
         if self.name == "Arctic":
             if self.usingTeams:
+                print("Outtro is using teams. Returning team.")
                 return playlists.Arctic().outtroTeams
             else:
+                print("Outtro is NOT using teams. Returning NoTeam.")
                 return playlists.Arctic().outtro
         elif self.name == "NoEvents01":
             if self.usingTeams:
@@ -421,18 +425,21 @@ class ScenePlaylist(object):
                 trackNum,
                 EventCategories.OutCount.value
             )
+            trackNum += 1
 
         if self.outtro:
             newToken += "_{:02d}.{:02d}".format(
                 trackNum,
                 EventCategories.Outtro.value
             )
+            trackNum += 1
 
         if self.tail:
             newToken += "_{:02d}.{:02d}".format(
                 trackNum,
                 EventCategories.Tail.value
             )
+
 
         return newToken
 
@@ -662,7 +669,6 @@ class ScenePlaylist(object):
         print("Current track is {}".format(trackNum))
         currentTrack = None
         for track in playlist:
-            print("  {} v {}".format(track, trackNum))
             if track.startswith(trackNum):
                 currentTrack = track
                 break
@@ -682,6 +688,7 @@ class ScenePlaylist(object):
         elif int(trackType) == EventCategories.Outtro.value:
             return self.outtro
         elif int(trackType) == EventCategories.Tail.value:
+            print("Returning Tail of {}".format(self.tail))
             return self.tail
         elif int(trackType) == EventCategories.Soundtrack.value:
             path = "https://s3.amazonaws.com/dart-battle-resources/"
