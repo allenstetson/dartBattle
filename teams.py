@@ -50,6 +50,7 @@ class PlayerRanks(enum.Enum):
 
 
 def assignTeamsandRoles(numTeams, availablePlayers):
+    # TODO: Look at session attrs to determine if special roles are unlocked.
     numPlayers = len(availablePlayers)
     playersPerTeam = int(numPlayers / numTeams)
     teams = {}
@@ -78,6 +79,7 @@ def assignTeamsandRoles(numTeams, availablePlayers):
             else:
                 role = random.choice(roles)
                 while role in ['any', 'none']:
+                    # TODO: Also check for special roles. If not unlocked, pick another.
                     role = random.choice(roles)
             playerRoles[teamNum].append("{:02d}".format(PlayerRoles[role].value))
             roles.remove(role)
@@ -86,14 +88,9 @@ def assignTeamsandRoles(numTeams, availablePlayers):
     return teams, playerRoles
 
 
-def clearTeamsIntent(request, session):
-    if not "attributes" in session:
-        sessionAttributes = database.GetSessionFromDB(session)
-    else:
-        sessionAttributes = session['attributes']
-
-    sessionAttributes['usingTeams'] = False
-    database.UpdateRecordTeams(sessionAttributes)
+def clearTeamsIntent(session):
+    session.usingTeams = False
+    database.updateRecordTeams(session.attributes)
     speech = "Ok. "
     speech += "<audio src=\"https://s3.amazonaws.com/dart-battle-resources/choiceMusic.mp3\" /> "
     speech += "Team information has been cleared. What's next? Start a battle? More options? Exit? "
@@ -103,7 +100,7 @@ def clearTeamsIntent(request, session):
 
     return {
         "version": responses.VERSION,
-        "sessionAttributes": sessionAttributes,
+        "sessionAttributes": session.attributes,
         "response": {
             "outputSpeech": {
                 "type": "SSML",
@@ -123,139 +120,7 @@ def clearTeamsIntent(request, session):
     }
 
 
-def clearVictoryIntent(request, session):
-    speech = ""
-    if not "attributes" in session:
-        sessionAttributes = database.GetSessionFromDB(session)
-    else:
-        sessionAttributes = session['attributes']
-
-    dialogState = request['dialogState']
-    if dialogState in ["STARTED", "IN_PROGRESS"]:
-        return responses.continueDialog(sessionAttributes)
-    elif dialogState == 'COMPLETED':
-        sessionAttributes = session['attributes']
-    playerName = request['intent']['slots']['PLAYER']['value']
-    if playerName.lower() in ["no", "stop", "cancel", "nope"]:
-        speech += "Ok, canceling the request to clear all victories. "
-    elif playerName.lower() in ["yes", "please", "continue", "proceed"]:
-        database.ClearRecordVictory(sessionAttributes)
-        speech += "All victories have been cleared for all players. "
-    else:
-        database.ClearRecordVictory(sessionAttributes, victor=playerName)
-        speech += "Victories for player {} have been cleared. ".format(playerName)
-    text = speech
-    speech += "How else may I assist? Start a battle? More options? Exit? "
-    title = "Clear Victories"
-    return {
-        "version": responses.VERSION,
-        "sessionAttributes": sessionAttributes,
-        "response": {
-            "outputSpeech": {
-                "type": "SSML",
-                "ssml": "<speak>" + speech + "</speak>"
-            },
-            "card": {
-                "type": "Standard",
-                "title": title,
-                "text": text,
-                "image": {
-                    "smallImageUrl": "https://s3.amazonaws.com/dart-battle-resources/dartBattle_victory_720x480.jpg",
-                    "largeImageUrl": "https://s3.amazonaws.com/dart-battle-resources/dartBattle_victory_1200x800.jpg"
-                }
-            },
-            "shouldEndSession": False
-        }
-    }
-
-
-def countVictories(victories):
-    now = datetime.datetime.now()
-    lifeVix = {}
-    todayVix = {}
-    for victor in victories:
-        lifeTime = len(victories[victor])
-        if lifeTime == 0:
-            continue
-        today = ([x for x in victories[victor] if (now - datetime.datetime.strptime(x, "%Y.%m.%d %H:%M:%S")).days < 1])
-        if not lifeTime in lifeVix:
-            lifeVix[lifeTime] = []
-        lifeVix[lifeTime].append(victor)
-        numToday = len(today)
-        if not numToday:
-            continue
-        if not numToday in todayVix:
-            todayVix[numToday] = []
-        todayVix[numToday].append(victor)
-    return todayVix, lifeVix
-
-
-def shuffleTeamsIntent(request, session):
-    """
-                "teams": {
-                "1": {
-                    "George": "captain",
-                    "player 4": "special_forces_operative",
-                    "player 3": "pilot"
-                },
-                "2": {
-                    "player 2": "heavy_weapons",
-                    "player 5": "captain"
-                }
-            },
-
-    :param request:
-    :param session:
-    :return:
-    """
-    if not "attributes" in session:
-        sessionAttributes = database.GetSessionFromDB(session)
-    else:
-        sessionAttributes = session['attributes']
-
-    if not "teams" in sessionAttributes:
-        speech = "I would shuffle the teams, but no teams have been recently set up."
-        text = "No current teams."
-    else:
-        speech = "Shuffling teams and roles... "
-        teamNums = sessionAttributes['teams'].keys()
-        playerNames = []
-        for num in teamNums:
-            playerNames.extend(list(sessionAttributes['teams'][num].keys()))
-        numTeams = len(teamNums)
-        teams, playerRoles = assignTeamsandRoles(numTeams, playerNames)
-        sessionAttributes['playerRoles'] = playerRoles
-        sessionAttributes['teams'] = teams
-        success = database.UpdateRecordTeams(sessionAttributes)
-
-        roleSpeech = ReciteTeamRoles(teams)
-        speech += roleSpeech
-    text = speech
-    speech += "What next? Start a battle? More options? Exit? "
-    title = "Shuffle Teams"
-    return {
-        "version": responses.VERSION,
-        "sessionAttributes": sessionAttributes,
-        "response": {
-            "outputSpeech": {
-                "type": "SSML",
-                "ssml": "<speak>" + speech + "</speak>"
-            },
-            "card": {
-                "type": "Standard",
-                "title": title,
-                "text": text,
-                "image": {
-                    "smallImageUrl": "https://s3.amazonaws.com/dart-battle-resources/dartBattle_ST_720x480.jpg",
-                    "largeImageUrl": "https://s3.amazonaws.com/dart-battle-resources/dartBattle_SUT_1200x800.jpg"
-                }
-            },
-            "shouldEndSession": False
-        }
-    }
-
-
-def reciteTeamsIntent(request, session):
+def reciteTeamsIntent(session):
     """
     What are the teams?
     What teams are there?
@@ -266,17 +131,14 @@ def reciteTeamsIntent(request, session):
     :param session:
     :return:
     """
-    if not "attributes" in session:
-        sessionAttributes = database.GetSessionFromDB(session)
-    else:
-        sessionAttributes = session['attributes']
+    sessionAttributes = session['attributes']
 
-    if not sessionAttributes['usingTeams']:
+    if not session.usingTeams:
         logging.info("Recite teams invoked but teams are not enabled.")
         speech = "No teams are currently set up. "
     else:
         teams = sessionAttributes['teams']
-        speech = ReciteTeamRoles(teams)
+        speech = reciteTeamRoles(teams)
         if not speech:
             logging.info("Recite teams invoked but no team members found.")
             speech = "No teams are currently set up. "
@@ -307,7 +169,7 @@ def reciteTeamsIntent(request, session):
     }
 
 
-def ReciteTeamRoles(teams):
+def reciteTeamRoles(teams):
     speech = ""
     for teamNum in teams.keys():
         speech += "Team {}. ".format(teamNum)
@@ -317,151 +179,9 @@ def ReciteTeamRoles(teams):
     return speech
 
 
-def reciteVictoriesIntent(request, session):  #TODO: Support single player request (place, numVix)
-    if not "attributes" in session:
-        sessionAttributes = database.GetSessionFromDB(session)
-    else:
-        sessionAttributes = session['attributes']
-
-    victories = database.GetVictoriesFromDB(sessionAttributes)
-    (today, lifetime) = countVictories(victories)
-    speech = ""
-    text = ""
-    if not today:
-        speech += "No victories are recorded for today. "
-        text = "Today: No Victories"
-    else:
-        numToday = sum(map(len, today.values()))
-        if numToday > 3:
-            numToday = 3
-        if numToday == 1:
-            speech += "The top player of today is "
-        else:
-            speech += "The top {} players of today are ".format(numToday)
-        text += "Today: *"
-        numReported = 0
-        for numVix in sorted(today, reverse=True):
-            if numReported == numToday:
-                break
-            for victor in today[numVix]:
-                wordElim = "elimination"
-                if numVix > 1:
-                    wordElim += "s"
-                speech += "{} with {} {}. ".format(victor, numVix, wordElim)
-                text += "{} ({})\n".format(victor.title(), numVix)
-                numReported += 1
-    if not lifetime:
-        speech += "There are no victories recorded at all. "
-        text += 'No Victories!\nTry: "Record a victory"'
-    else:
-        numLifetime = sum(map(len, lifetime.values()))
-        if numLifetime > 3:
-            numLifetime = 3
-        if numLifetime == 1:
-            speech += "The top player of all time is "
-        else:
-            speech += "The top {} players of all time are ".format(numLifetime)
-        text += "All Time: *"
-        numReported = 0
-        for numVix in sorted(lifetime, reverse=True):
-            if numReported == numLifetime:
-                break
-            for victor in lifetime[numVix]:
-                wordElim = "elimination"
-                if numVix > 1:
-                    wordElim += "s"
-                speech += "{} with {} {}. ".format(victor, numVix, wordElim)
-                text += "{} ({})\n".format(victor, numVix)
-                numReported += 1
-                if numReported == numLifetime:
-                    break
-
-    speech += "What next? Start a battle? More options? Exit? "
-    title = "Victories"
-
-    return {
-        "version": responses.VERSION,
-        "sessionAttributes": sessionAttributes,
-        "response": {
-            "outputSpeech": {
-                "type": "SSML",
-                "ssml": "<speak>" + speech + "</speak>"
-            },
-            "card": {
-                "type": "Standard",
-                "title": title,
-                "text": text,
-                "image": {
-                    "smallImageUrl": "https://s3.amazonaws.com/dart-battle-resources/dartBattle_victory_720x480.jpg",
-                    "largeImageUrl": "https://s3.amazonaws.com/dart-battle-resources/dartBattle_victory_1200x800.jpg"
-                }
-            },
-            "shouldEndSession": False
-        }
-    }
-
-
-def recordVictoryIntent(request, session):
-    speech = ""
-    if not "attributes" in session:
-        sessionAttributes = database.GetSessionFromDB(session)
-    else:
-        sessionAttributes = session['attributes']
-
-    dialogState = request['dialogState']
-    if dialogState in ["STARTED", "IN_PROGRESS"]:
-        return responses.continueDialog(sessionAttributes)
-    elif dialogState == 'COMPLETED':
-        sessionAttributes = session['attributes']
-    if sessionAttributes['numBattles'] == "0":
-        speech += "You must first complete a battle in order to record a victory. "
-        text = "Victories come after hard-fought battles."
-    else:
-        victorName = request['intent']['slots']['VICTOR']['value']
-        (success, vicToday, vicTotal) = database.UpdateRecordVictory(sessionAttributes, victorName)
-        speech += "Okay. Recorded a victory for {}. ".format(victorName)
-        if vicToday == 1:
-            vicToday = "1 victory"
-        else:
-            vicToday = "{} victories".format(vicToday)
-        if vicTotal == 1:
-            vicTotal = "1 lifetime victory"
-        else:
-            vicTotal = "{} lifetime victories".format(vicTotal)
-        speech += "{} has {} today, and {}. ".format(victorName, vicToday, vicTotal)
-        text = "Victory recorded for {}.\n".format(victorName.title())
-        text += "{} has {} today, and {}. ".format(victorName.title(), vicToday, vicTotal)
-    speech += "What next? Start a battle? More options? "
-
-    title = "Record a Victory"
-
-    return {
-        "version": responses.VERSION,
-        "sessionAttributes": sessionAttributes,
-        "response": {
-            "outputSpeech": {
-                "type": "SSML",
-                "ssml": "<speak>" + speech + "</speak>"
-            },
-            "card": {
-                "type": "Standard",
-                "title": title,
-                "text": text,
-                "image": {
-                    "smallImageUrl": "https://s3.amazonaws.com/dart-battle-resources/dartBattle_victory_720x480.jpg",
-                    "largeImageUrl": "https://s3.amazonaws.com/dart-battle-resources/dartBattle_victory_1200x800.jpg"
-                }
-            },
-            "shouldEndSession": False
-        }
-    }
-
 
 def setupTeamsIntent(request, session):
-    if not "attributes" in session:
-        sessionAttributes = database.GetSessionFromDB(session)
-    else:
-        sessionAttributes = session['attributes']
+    sessionAttributes = session['attributes']
 
     dialogState = request['dialogState']
     if dialogState in ["STARTED", "IN_PROGRESS"]:
@@ -522,14 +242,75 @@ def setupTeamsIntent(request, session):
     teams, playerRoles = assignTeamsandRoles(numTeams, [allPlayers[x]['name'] for x in allPlayers.keys()])
     sessionAttributes['playerRoles'] = playerRoles
     sessionAttributes['teams'] = teams
-    database.UpdateRecordTeams(sessionAttributes)
+    database.updateRecordTeams(sessionAttributes)
 
-    roleSpeech = ReciteTeamRoles(teams)
+    roleSpeech = reciteTeamRoles(teams)
     speech += roleSpeech
     speech += "How shall I proceed? Start a battle? More options? "
 
     text = roleSpeech
     title = "Setup Teams"
+    return {
+        "version": responses.VERSION,
+        "sessionAttributes": sessionAttributes,
+        "response": {
+            "outputSpeech": {
+                "type": "SSML",
+                "ssml": "<speak>" + speech + "</speak>"
+            },
+            "card": {
+                "type": "Standard",
+                "title": title,
+                "text": text,
+                "image": {
+                    "smallImageUrl": "https://s3.amazonaws.com/dart-battle-resources/dartBattle_ST_720x480.jpg",
+                    "largeImageUrl": "https://s3.amazonaws.com/dart-battle-resources/dartBattle_SUT_1200x800.jpg"
+                }
+            },
+            "shouldEndSession": False
+        }
+    }
+
+def shuffleTeamsIntent(session):
+    """
+                "teams": {
+                "1": {
+                    "George": "captain",
+                    "player 4": "special_forces_operative",
+                    "player 3": "pilot"
+                },
+                "2": {
+                    "player 2": "heavy_weapons",
+                    "player 5": "captain"
+                }
+            },
+
+    :param request:
+    :param session:
+    :return:
+    """
+    sessionAttributes = session.attributes
+
+    if not "teams" in sessionAttributes:
+        speech = "I would shuffle the teams, but no teams have been recently set up."
+        text = "No current teams."
+    else:
+        speech = "Shuffling teams and roles... "
+        teamNums = sessionAttributes['teams'].keys()
+        playerNames = []
+        for num in teamNums:
+            playerNames.extend(list(sessionAttributes['teams'][num].keys()))
+        numTeams = len(teamNums)
+        teams, playerRoles = assignTeamsandRoles(numTeams, playerNames)
+        sessionAttributes['playerRoles'] = playerRoles
+        sessionAttributes['teams'] = teams
+        database.updateRecordTeams(sessionAttributes)
+
+        roleSpeech = reciteTeamRoles(teams)
+        speech += roleSpeech
+        text = speech
+    speech += "What next? Start a battle? More options? Exit? "
+    title = "Shuffle Teams"
     return {
         "version": responses.VERSION,
         "sessionAttributes": sessionAttributes,

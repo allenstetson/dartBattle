@@ -3,37 +3,38 @@ Dart Battle
 
 """
 import random
-
-import responses
-import battle
-import database
-import teams
 import logging
+
+from . import battle
+from . import database
+from . import responses
+from . import session
+from . import teams
+from . import victories
 
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
 
+
 # =============================================================================
 # MAIN HANDLER
 # =============================================================================
-
 def lambda_handler(event, context):
     """ Route the incoming request based on type (LaunchRequest, IntentRequest,
     etc.) The JSON body of the request is provided in the event parameter.
     """
-    #Prevent someone else from configuring a skill that sends requests to this:
+    # Prevent someone else from configuring a skill that sends requests to this:
     if 'session' in event:
         if (event['session']['application']['applicationId'] !=
                  "amzn1.ask.skill.d1311184-0f57-46e8-ab59-879027130a28"):
-             raise ValueError("Invalid Application ID")
+            raise ValueError("Invalid Application ID")
 
         if event['session']['new']:
-            on_session_started({'requestId': event['request']['requestId']},
-                           event['session'])
+            on_session_started({'requestId': event['request']['requestId']}, event['session'])
 
     if 'request' in event:
         if event['request']['type'] == "LaunchRequest":
-            return on_launch(event['request'], event['session'])
+            return on_launch(event)
         elif event['request']['type'] == "IntentRequest":
             if event['request']['intent']['name'] in ["AMAZON.PauseIntent", "AMAZON.StopIntent"]:
                 return playback_stop(event)
@@ -50,10 +51,11 @@ def lambda_handler(event, context):
 def on_intent(event):
     """ Called when the user specifies an intent for this skill """
 
-    intent_request = event['request']
-    session = event['session']
-    print("on_intent requestId=" + intent_request['requestId'] +
-          ", sessionId=" + session['sessionId'])
+    intent_request = event["request"]
+    sessionInfo = session.DartBattleSession(event["session"])
+    event["session"] = sessionInfo
+    print("on_intent requestId=" + intent_request["requestId"] +
+          ", sessionId=" + sessionInfo["sessionId"])
 
     intent = intent_request['intent']
     intent_name = intent_request['intent']['name']
@@ -61,13 +63,13 @@ def on_intent(event):
     # Dispatch to your skill's intent handlers
     # BATTLE
     if intent_name == "StartBattleStandardIntent":
-        return battle.startBattleStandardIntent(intent, session)
+        return battle.startBattleStandardIntent(intent, sessionInfo)
     elif intent_name == "StartBattleDurationIntent":
-        return battle.startBattleDurationIntent(intent, session)
+        return battle.startBattleDurationIntent(intent, sessionInfo)
 
     # OPTIONS/HELP
     elif intent_name == "MoreOptionsIntent":
-        return responses.getOptionsResponse(session)
+        return responses.getOptionsResponse(sessionInfo)
     elif intent_name == "TurnOffSettingIntent":
         return responses.turnOffSettingsResponse(event)
     elif intent_name == "TurnOnSettingIntent":
@@ -79,46 +81,45 @@ def on_intent(event):
 
     # RANKS
     elif intent_name == "RankQueryIntent":
-        return responses.getRankResponse(session)
+        return responses.getRankResponse(sessionInfo)
 
     # RULES
     elif intent_name == "HowToPlayIntent":
-        return responses.howToPlayResponse(session)
+        return responses.howToPlayResponse()
 
     # TEAMS
     elif intent_name == "SetupTeamsIntent":
-        return teams.setupTeamsIntent(intent_request, session)
+        return teams.setupTeamsIntent(intent_request, sessionInfo)
     elif intent_name == "ReciteTeamsIntent":
-        return teams.reciteTeamsIntent(intent_request, session)
+        return teams.reciteTeamsIntent(sessionInfo)
     elif intent_name == "ClearTeamsIntent":
-        return teams.clearTeamsIntent(intent_request, session)
+        return teams.clearTeamsIntent(sessionInfo)
     elif intent_name == "ShuffleTeamsIntent":
-        return teams.shuffleTeamsIntent(intent, session)
+        return teams.shuffleTeamsIntent(sessionInfo)
 
     # VICTORIES
     elif intent_name == "ClearVictoryIntent":
-        return teams.clearVictoryIntent(intent_request, session)
+        return victories.clearVictoryIntent(intent_request, sessionInfo)
     elif intent_name == "RecordVictoryIntent":
-        return teams.recordVictoryIntent(intent_request, session)
+        return victories.recordVictoryIntent(intent_request, sessionInfo)
     elif intent_name == "ReciteVictoriesIntent":
-        return teams.reciteVictoriesIntent(intent_request, session)
+        return victories.reciteVictoriesIntent(sessionInfo)
 
     # STANDARD
     elif intent_name == "AMAZON.HelpIntent":
-        return responses.getOptionsResponse(session)
+        return responses.getOptionsResponse(sessionInfo)
     elif intent_name == "AMAZON.CancelIntent" or intent_name == "AMAZON.StopIntent":
         return on_session_end_request(event)
 
     # AUDIO
     elif intent_name == "AMAZON.ResumeIntent":
-        return on_playback_resume(session)
+        return on_playback_resume(sessionInfo)
     elif intent_name in [
         "AMAZON.LoopOffIntent",
         "AMAZON.LoopOnIntent",
         "AMAZON.RepeatIntent",
         "AMAZON.ShuffleOffIntent",
         "AMAZON.ShuffleOnIntent"
-
         ]:
         return {
             'version': '1.0',
@@ -128,24 +129,25 @@ def on_intent(event):
             }
         }
     elif intent_name == "AMAZON.NextIntent":
-        logger.info("NextIntent received: {} -- session: {}".format(intent_request, session))
-        return battle.skipToNextAudioPlayback(session)
+        logger.info("NextIntent received: {} -- session: {}".format(intent_request, sessionInfo))
+        return battle.skipToNextAudioPlayback(sessionInfo)
     elif intent_name == "AMAZON.PreviousIntent":
-        return battle.reverseAudioPlayback(session)
+        return battle.reverseAudioPlayback(sessionInfo)
     elif intent_name == "AMAZON.StartOverIntent":
-        return battle.restartAudioPlayback(session)
+        return battle.restartAudioPlayback(sessionInfo)
     # --
     else:
         raise ValueError("Invalid intent: {}".format(intent_name))
 
 
-def on_launch(launch_request, session):
+def on_launch(event):
     """ Called when the user launches the skill without specifying what they
     want
     """
+    sessionInfo = session.DartBattleSession(event['session'])
     logger.info('received on_launch call')
-    #return responses.getTestResponse(session)
-    return responses.getWelcomeResponse(session)
+    # return responses.getTestResponse(sessionInfo)
+    return responses.getWelcomeResponse(sessionInfo)
 
 
 def on_playback_nearly_finished(event):
@@ -154,8 +156,8 @@ def on_playback_nearly_finished(event):
     return battle.continueAudioPlayback(event, prevToken)
 
 
-def on_playback_resume(session):
-    sessionAttributes = database.GetSessionFromDB(session)
+def on_playback_resume(sessionInfo):
+    sessionAttributes = database.getSessionFromDB(sessionInfo)
     token = sessionAttributes.get('currentToken')
     offsetInMilliseconds = sessionAttributes.get('offsetInMilliseconds', "0")
     playlist = battle.ScenePlaylist('arctic', sessionAttributes)
@@ -190,16 +192,16 @@ def on_session_ended(event):
     Is not called when the skill returns should_end_session=true
     """
     session_ended_request = event['request']
-    session = event['session']
+    sessionInfo = event['session']
     print("on_session_ended requestId=" + session_ended_request['requestId'] +
-          ", sessionId=" + session['sessionId'])
+          ", sessionId=" + sessionInfo['sessionId'])
     # add cleanup logic here
 
 
-def on_session_started(session_started_request, session):
+def on_session_started(session_started_request, sessionInfo):
     """ Called when the session starts """
     print("on_session_started requestId=" + session_started_request['requestId']
-          + ", sessionId=" + session['sessionId'])
+          + ", sessionId=" + sessionInfo['sessionId'])
 
 
 def on_session_end_request(event):
@@ -210,7 +212,7 @@ def on_session_end_request(event):
 # FUNCTIONS
 # =============================================================================
 def playback_stop(event):
-    sessionAttributes = database.GetSessionFromDB(event['session'])
+    sessionAttributes = database.getSessionFromDB(event['session'])
     speeches = [
         "Standing down.",
         "Of course.",
@@ -232,7 +234,7 @@ def playback_stop(event):
         }
     sessionAttributes['currentToken'] = event['context']['AudioPlayer']['token']
     sessionAttributes['offsetInMilliseconds'] = event['context']['AudioPlayer']['offsetInMilliseconds']
-    database.UpdateRecordToken(sessionAttributes)
+    database.updateRecordToken(sessionAttributes)
     return {
         'version': '1.0',
         'response': {
