@@ -21,7 +21,7 @@ def isActive():
     return DB_ACTIVE
 
 
-def ClearRecordVictory(sessionAttributes, victor=None):
+def clearRecordVictory(sessionAttributes, victor=None):
     dynamodb = boto3.resource(
         'dynamodb',
         region_name='us-east-1',
@@ -65,7 +65,7 @@ def ClearRecordVictory(sessionAttributes, victor=None):
         return False
 
 
-def GetDefaultSessionAttrs(userId):
+def getDefaultSessionAttrs(userId):
     lastRun = datetime.datetime.now().strftime("%Y.%m.%d %H:%M:%S")
     sessionAttributes = {
         "dateCreated": lastRun,
@@ -86,7 +86,7 @@ def GetDefaultSessionAttrs(userId):
     return sessionAttributes
 
 
-def GetSessionFromDB(session):
+def getSessionFromDB(session):
         dynamodb = boto3.resource(
             'dynamodb',
             region_name='us-east-1',
@@ -113,7 +113,7 @@ def GetSessionFromDB(session):
             newUser = True
         if newUser:
             logger.info("get_item for userId failed, new user.")
-            sessionAttributes = GetDefaultSessionAttrs(myId)
+            sessionAttributes = getDefaultSessionAttrs(myId)
             table.put_item(Item=sessionAttributes)
         else:
             logger.info("get_item for userId succeeded.")
@@ -161,10 +161,11 @@ def GetSessionFromDB(session):
                 "usingEvents": usingEvents,
                 "usingTeams": usingTeams
             }
-        return sessionAttributes
+        session["attributes"] = sessionAttributes
+        return session
 
 
-def GetVictoriesFromDB(sessionAttributes):
+def getVictoriesFromDB(sessionAttributes):
     dynamodb = boto3.resource(
         'dynamodb',
         region_name='us-east-1',
@@ -218,7 +219,7 @@ def updateRecordProtocol(sessionAttributes):
         return False
 
 
-def UpdateRecordDuration(sessionAttributes):
+def updateRecordDuration(sessionAttributes):
     dynamodb = boto3.resource(
         'dynamodb',
         region_name='us-east-1',
@@ -244,7 +245,7 @@ def UpdateRecordDuration(sessionAttributes):
         return False
 
 
-def UpdateRecordTeams(sessionAttributes):
+def updateRecordTeams(sessionAttributes):
     dynamodb = boto3.resource(
         'dynamodb',
         region_name='us-east-1',
@@ -272,7 +273,7 @@ def UpdateRecordTeams(sessionAttributes):
         return False
 
 
-def UpdateRecordToken(sessionAttributes):
+def updateRecordToken(sessionAttributes):
     if 'offsetInMilliseconds' in sessionAttributes:
         offsetInMilliseconds = str(sessionAttributes['offsetInMilliseconds'])
     else:
@@ -303,7 +304,7 @@ def UpdateRecordToken(sessionAttributes):
         return False
 
 
-def UpdateRecordVictory(sessionAttributes, victor):
+def updateRecordVictory(sessionAttributes, victor):
     dynamodb = boto3.resource(
         'dynamodb',
         region_name='us-east-1',
@@ -353,7 +354,7 @@ def UpdateRecordVictory(sessionAttributes, victor):
         return (False, None, None)
 
 
-def UpdateRecord(sessionAttributes):
+def updateRecord(sessionAttributes):
     dynamodb = boto3.resource(
         'dynamodb',
         region_name='us-east-1',
@@ -387,7 +388,7 @@ def UpdateRecord(sessionAttributes):
         logger.error(e.response['Error']['Message'])
         return False
 
-def UpdateToggleEvents(sessionAttributes, enabled):
+def updateToggleEvents(sessionAttributes, enabled):
     if enabled:
         enabled = "True"
     else:
@@ -418,7 +419,7 @@ def UpdateToggleEvents(sessionAttributes, enabled):
         return False
 
 
-def CheckForPromotion(sessionAttributes):
+def checkForPromotion(sessionAttributes):
     logger.info("Checking for promotion.")
     # TODO: centralize this:
     rankRequirements = {
@@ -441,7 +442,7 @@ def CheckForPromotion(sessionAttributes):
     if int(numBattles) > rankRequirements[currentRank] and \
             int(numBattles) >= rankRequirements[nextRankNum]:
         sessionAttributes['playerRank'] = nextRankNum
-        UpdateRecord(sessionAttributes)
+        updateRecord(sessionAttributes)
         logger.info("Promotion to rank {} is earned!".format(nextRankNum))
         return (True, nextRankNum)
     return (False, currentRank)

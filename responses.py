@@ -3,25 +3,26 @@ responses.py
 Contains the responses to intents.
 
 """
-VERSION = '0.0.3'
-
 import datetime
 import logging
 import random
 
-import database
-import playlists
-import teams
+from . import database
+from . import playlists
+from . import teams
+
+VERSION = '0.0.3'
 
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
+
 
 # =============================================================================
 # GENERIC RESPONSES
 # =============================================================================
 def continueDialog(sessionAttributes):
     global VERSION
-    message = {}
+    message = dict()
     message['shouldEndSession'] = False
     message['directives'] = [{'type': 'Dialog.Delegate'}]
     return {
@@ -30,6 +31,7 @@ def continueDialog(sessionAttributes):
         'response': message
     }
 
+
 def enableProtocol(event):
     request = event['request']
     session = event['session']
@@ -37,12 +39,7 @@ def enableProtocol(event):
     text = ""
     title = ""
     duplicate = False
-    # Load attrs
-    if not database.isActive():
-        logger.info("Dynamo DB is NOT active.")
-        sessionAttributes = database.GetDefaultSessionAttrs(session['user']['userId'])
-    else:
-        sessionAttributes = database.GetSessionFromDB(session)
+    sessionAttributes = session["attributes"]
     if 'slots' in request['intent'] and 'PROTOCOLNAME' in request['intent']['slots']:
         protocolName = request['intent']['slots']['PROTOCOLNAME']['value']
     else:
@@ -59,13 +56,13 @@ def enableProtocol(event):
             value = datetime.datetime.strftime(datetime.datetime.now(), "%m/%d/%Y")
             protocolCodes[protocolName] = value
             sessionAttributes['protocolCodes'] = protocolCodes
-            success = database.updateRecordProtocol(sessionAttributes)
+            database.updateRecordProtocol(sessionAttributes)
 
             # Do protocol-specific things here
             numBattles = int(sessionAttributes['numBattles'])
             numBattles += 5
             sessionAttributes['numBattles'] = str(numBattles)
-            database.UpdateRecord(sessionAttributes)
+            database.updateRecord(sessionAttributes)
 
             # Report Success
             speech += "5 battles have been added to your total, getting you closer to the next rank promotion. "
@@ -97,9 +94,9 @@ def enableProtocol(event):
         }
     }
 
+
 def getTestResponse(session):
     speech = "Perimeter compromised. Defenses will be breached in 5, 4, 3, 2, 1. "
-    #speech += "General, you have an incoming transmission. "
     speech = '<audio src="https://s3.amazonaws.com/dart-battle-resources/scenarios/arctic/events/pairUp/event_Arctic_09_PairUp_Yeti_Any_00.mp3" /> '
 
     return {
@@ -113,14 +110,12 @@ def getTestResponse(session):
         }
     }
 
+
 # =============================================================================
 # SPECIFIC USER RESPONSES
 # =============================================================================
 def getOptionsResponse(session):
-    if not "attributes" in session:
-        sessionAttributes = database.GetSessionFromDB(session)
-    else:
-        sessionAttributes = session['attributes']
+    sessionAttributes = session['attributes']
 
     if 'playerRank' in sessionAttributes:
         playerRank = sessionAttributes['playerRank']
@@ -176,18 +171,15 @@ def getOptionsResponse(session):
         }
     }
 
-def getRankResponse(session):
-    if not "attributes" in session:
-        sessionAttributes = database.GetSessionFromDB(session)
-    else:
-        sessionAttributes = session['attributes']
 
+def getRankResponse(session):
+    sessionAttributes = session['attributes']
     playerRank = sessionAttributes.get('playerRank', '00')
     playerRankName = teams.PlayerRanks(int(playerRank)).name.replace("_", " ")
     nextRankName = teams.PlayerRanks(int(playerRank)+1).name.replace("_", " ")
     # TODO: Account for General, where there is no next rank!
     numBattles = sessionAttributes.get('numBattles', 0)
-        # TODO: centralize this:
+    # TODO: centralize this:
     rankRequirements = {
         0: 0,
         1: 1,
@@ -213,7 +205,6 @@ def getRankResponse(session):
         text += "{} battles until {}.".format(battlesRemaining, nextRankName)
     speech += "What would you like next? Start a battle? Exit?"
 
-
     return {
         "version": VERSION,
         "sessionAttributes": sessionAttributes,
@@ -235,16 +226,10 @@ def getRankResponse(session):
         }
     }
 
+
 def getWelcomeResponse(session):
     global VERSION
-    speech = ""
-
-    # Load attrs
-    if not database.isActive():
-        logger.info("Dynamo DB is NOT active.")
-        sessionAttributes = database.GetDefaultSessionAttrs(session['user']['userId'])
-    else:
-        sessionAttributes = database.GetSessionFromDB(session)
+    sessionAttributes = session['attributes']
 
     # __FORMAT:__
     # Music
@@ -253,14 +238,14 @@ def getWelcomeResponse(session):
     # You've been promoted to...
     # You can say / Would you like to
 
-    (isNewRank, rankNum) = database.CheckForPromotion(sessionAttributes)
+    (isNewRank, rankNum) = database.checkForPromotion(sessionAttributes)
 
     # -------------------------------------------------------------------------
     # Determine welcome
     # -------------------------------------------------------------------------
     if sessionAttributes['recentSession'] == "True":
         title = "Welcome Back"
-        #TODO: "I'm here for you, troops/soldier.", "Resuming Dart Battle, protocol Igloo/Tango", "Welcome back.", "On alert.", "Monitoring enemy activity."
+        # TODO: "I'm here for you, troops/soldier.", "Resuming Dart Battle, protocol Igloo/Tango", "Welcome back.", "On alert.", "Monitoring enemy activity."
         if sessionAttributes['usingTeams'] == "True":
             tracks = [
                 "https://s3.amazonaws.com/dart-battle-resources/common/common_Any_00_Greeting_QuickA_Team_00.mp3",
@@ -277,7 +262,7 @@ def getWelcomeResponse(session):
             welcomeTracks = [random.choice(tracks)]
     else:
         title = "Welcome, Soldier"
-        #TODO: "Dart Battle mission instantiated.", "Attention! Codename Dart Battle ready for orders.", "Dart Battle Protocol ready for commands."
+        # TODO: "Dart Battle mission instantiated.", "Attention! Codename Dart Battle ready for orders.", "Dart Battle Protocol ready for commands."
         if sessionAttributes['usingTeams'] == "True":
             tracks = [
                 "https://s3.amazonaws.com/dart-battle-resources/common/common_Any_00_Greeting_StandardA_Team_00.mp3",
@@ -371,7 +356,7 @@ def getWelcomeResponse(session):
         'sessionAttributes': sessionAttributes,
         'response': {
             "directive": {
-               "header": {
+                "header": {
                     "namespace": "AudioPlayer",
                     "name": "ClearQueue",
                     "messageId": "{{STRING}}",
@@ -407,8 +392,8 @@ def getWelcomeResponse(session):
         }
     }
 
-def howToPlayResponse(session):
-    print("Playing how to play.")
+
+def howToPlayResponse():
     text = "- Use foam-based weaponry, score eliminations.\n"
     text += "- No head shots or point blank shots.\n"
     text += "- Listen for special events!\n"
@@ -446,21 +431,18 @@ def howToPlayResponse(session):
     }
     return response
 
+
 def toggleSettingsResponse(event, enabled):
-    request = event['request']
-    session = event['session']
-    # Load attrs
-    if not database.isActive():
-        logger.info("Dynamo DB is NOT active.")
-        sessionAttributes = database.GetDefaultSessionAttrs(session['user']['userId'])
-    else:
-        sessionAttributes = database.GetSessionFromDB(session)
+    request = event["request"]
+    session = event["session"]
+    sessionAttributes = session["attributes"]
 
     dialogState = request['dialogState']
     if dialogState in ["STARTED", "IN_PROGRESS"]:
         return continueDialog(sessionAttributes)
     elif dialogState == 'COMPLETED':
-        sessionAttributes = session.get('attributes', database.GetDefaultSessionAttrs(session['user']['userId']))
+        # sessionAttributes = session.get('attributes', database.getDefaultSessionAttrs(session['user']['userId']))
+        pass
     attrName = request['intent']['slots']['ATTRNAME']['value']
 
     speech = ""
@@ -470,7 +452,7 @@ def toggleSettingsResponse(event, enabled):
             speech += "Events enabled. "
         else:
             speech += "Events disabled. Your battles will have no events until re-enabled. "
-        success = database.UpdateToggleEvents(sessionAttributes, enabled)
+        success = database.updateToggleEvents(sessionAttributes, enabled)
         if success:
             if enabled:
                 sessionAttributes['usingEvents'] = "True"

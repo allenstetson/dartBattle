@@ -921,11 +921,7 @@ def startBattleDurationIntent(intent, session):
             Response dict as required by Alexa API.
 
     """
-    if not "attributes" in session:
-        logger.warning("No attributes received in session for startBattleStandardIntent")
-        sessionAttributes = database.GetSessionFromDB(session)
-    else:
-        sessionAttributes = session['attributes']
+    sessionAttributes = session['attributes']
 
     if 'slots' in intent and 'DURATION' in intent['slots']:
         duration = intent['slots']['DURATION']['value']
@@ -933,7 +929,7 @@ def startBattleDurationIntent(intent, session):
         if duration < 120:
             duration = 120
         sessionAttributes['battleDuration'] = str(duration)
-        database.UpdateRecordDuration(sessionAttributes)
+        database.updateRecordDuration(sessionAttributes)
         response = startBattleStandardIntent(intent, session, duration=duration)
         return response
 
@@ -959,11 +955,7 @@ def startBattleStandardIntent(intent, session, duration=None):
 
     """
     speech = ""
-    if not "attributes" in session:
-        logger.warning("No attributes received in session for startBattleStandardIntent")
-        sessionAttributes = database.GetSessionFromDB(session)
-    else:
-        sessionAttributes = session['attributes']
+    sessionAttributes = session['attributes']
 
     if not duration:
         if 'battleDuration' in sessionAttributes:
@@ -989,7 +981,7 @@ def startBattleStandardIntent(intent, session, duration=None):
     speech += "<audio src=\"https://s3.amazonaws.com/dart-battle-resources/choiceMusic.mp3\" /> "
 
     if database.isActive():
-        database.UpdateRecord(sessionAttributes)
+        database.updateRecord(sessionAttributes)
 
     promo = playlist.getPromo()
     if promo:
@@ -1048,13 +1040,13 @@ def continueAudioPlayback(session, prevToken):
     # Default values (not really used) #TODO: Clean up MasterPlaylist init.
     duration = 120
     userId = session['context']['System']['user']['userId']
-    sessionAttributes = database.GetDefaultSessionAttrs(userId)
+    sessionAttributes = database.getDefaultSessionAttrs(userId)
     playBehavior = "ENQUEUE"
     playlist = MasterPlaylist(duration, sessionAttributes)
     (nextToken, nextTrack) = playlist.getNextFromToken(prevToken)
     sessionAttributes['currentToken'] = nextToken
     if nextToken:
-        database.UpdateRecordToken(sessionAttributes)
+        database.updateRecordToken(sessionAttributes)
     response = {
         "version": responses.VERSION,
         "response": {
@@ -1081,7 +1073,7 @@ def continueAudioPlayback(session, prevToken):
 def reverseAudioPlayback(session):
     """Triggered when user asks for next track, plays previous."""
     # Request was triggered by a user asking for Previous track.
-    sessionAttributes = database.GetSessionFromDB(session)
+    sessionAttributes = database.getSessionFromDB(session)
     duration = int(sessionAttributes['battleDuration'])
     # currentToken is always one ahead of the one that's playing.
     currentToken = sessionAttributes['currentToken']
@@ -1089,7 +1081,7 @@ def reverseAudioPlayback(session):
     (previousToken, previousTrack) = masterPlaylist.getPreviousFromToken(currentToken)
     playBehavior = "REPLACE_ALL"
     sessionAttributes['currentToken'] = previousToken
-    database.UpdateRecordToken(sessionAttributes)
+    database.updateRecordToken(sessionAttributes)
     # TODO: Handle lack of next file gracefully (None, None)
     response = {
         "version": responses.VERSION,
@@ -1114,13 +1106,13 @@ def reverseAudioPlayback(session):
 
 
 def restartAudioPlayback(session):
-    sessionAttributes = database.GetSessionFromDB(session)
+    sessionAttributes = database.getSessionFromDB(session)
     currentToken = sessionAttributes['currentToken']
     duration = int(sessionAttributes['battleDuration'])
     playlist = MasterPlaylist(duration, sessionAttributes)
     (firstToken, firstTrack) = playlist.getFirstTrackFromToken(currentToken)
     sessionAttributes['currentToken'] = firstToken
-    database.UpdateRecordToken(sessionAttributes)
+    database.updateRecordToken(sessionAttributes)
     return {
         "version": responses.VERSION,
         "response": {
@@ -1144,7 +1136,7 @@ def restartAudioPlayback(session):
 def skipToNextAudioPlayback(session):
     """Triggered when user asks for next track, plays next."""
     # Request was triggered by a user asking for Next track.
-    sessionAttributes = database.GetSessionFromDB(session)
+    sessionAttributes = database.getSessionFromDB(session)
     duration = int(sessionAttributes['battleDuration'])
     # currentToken is always one ahead of the one that's playing,
     # courtesy of playbackNearlyFinished; just return the recorded token:
@@ -1153,7 +1145,7 @@ def skipToNextAudioPlayback(session):
     generic = ScenePlaylist('generic', sessionAttributes)
     nextTrack = generic.getTrackFromToken(nextToken)  # TODO: Make this a classmethod so no args are required
     sessionAttributes['currentToken'] = nextToken
-    database.UpdateRecordToken(sessionAttributes)
+    database.updateRecordToken(sessionAttributes)
     # TODO: Handle lack of next file gracefully (None, None)
     response = {
         "version": responses.VERSION,
