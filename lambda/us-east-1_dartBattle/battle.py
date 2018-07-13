@@ -51,7 +51,7 @@ class Scenarios(enum.Enum):
     """The major scenarios available; used for tokens and playlist generation."""
     NoEvents01 = 0
     Arctic = 1
-    OldWest = 2
+    Prospector = 2
     # Battlefield = 2
     # Forest = 3
     # Island = 4
@@ -81,7 +81,7 @@ class ScenePlaylist(object):
         N/A
 
     """
-    def __init__(self, name, sessionAttributes):
+    def __init__(self, sessionAttributes, name=None):
         self._availableEvents = None
         self._protectedCategories = [
             EventCategories.Intro,
@@ -91,12 +91,18 @@ class ScenePlaylist(object):
             EventCategories.Outtro,
             EventCategories.Tail
             ]
+        if not name:
+            name, playlist = random.choice(self.availablePlaylists).key()
+            self.name = name
+            self._playlist = playlist
+        else:
+            self.name = name
+
         self._randomEvents = []
         self.eventsChosen = {}
         self._intro = ""
         self._introVariant = ""
         self._playerRank = None
-        self.name = name
         self.sessionAttributes = sessionAttributes
         self.useSfx = 1
         self.useSoundtrack = 1
@@ -126,11 +132,9 @@ class ScenePlaylist(object):
             return self._availableEvents
 
         # Determine valid list
-        if self.name == "Arctic":
-            tracklist = playlists.Arctic().getEventsForRank(self.playerRank)
-        else:
-            tracklist = []
+        tracklist = self.playlist.getEventsForRank(self.playerRank)
 
+        # TODO: Think about moving this logic into the Playlist
         available = []
         for trackPath in tracklist:
             track = trackPath[:-4]  # remove ".mp3"
@@ -172,53 +176,49 @@ class ScenePlaylist(object):
         return list(cats)
 
     @property
+    def availablePlaylists(self):
+        allPlaylists = {
+            "Arctic": playlists.Arctic(),
+            "NoEvents01": playlists.NoEvents01(),
+            "Prospector": playlists.Prospector()
+        }
+        return [(x, allPlaylists[x]) for x in allPlaylists.keys() if allPlaylists[x].isActive(self.sessionAttributes)]
+
+    @property
     def intro(self):
         """The introductory track; first track."""
         if self._intro:
             return self._intro
-        if self.name == "Arctic":
-            (self._introVariant, self._intro) = self.getIntro()
-            return self._intro
-        return None
+        (self._introVariant, self._intro) = self.getIntro()
+        return self._intro
 
     @property
     def introVariant(self):
         """The introductory track variant (A-Z)."""
         if self._introVariant:
             return self._introVariant
-        if self.name == "Arctic":
-            self._introVariant, self._intro = self.getIntro()
-            return self._introVariant
+        self._introVariant, self._intro = self.getIntro()
+        return self._introVariant
 
     @property
     def inCountdown(self):
         """The countdown to the start of the battle; second track."""
-        if self.name == "Arctic":
-            return playlists.Arctic().inCount
-        return None
+        return self.playlist.inCount
 
     @property
     def outCountdown(self):
         """The countdown to the end of the battle. "Battle ends in 3, 2, 1." """
-        if self.name == "Arctic":
-            return playlists.Arctic().outCount
-        return None
+        return self.playlist.outCount
 
     @property
     def outtro(self):
         """The cease fire notification, end of battle instructions."""
-        if self.name == "Arctic":
-            if self.usingTeams:
-                print("Outtro is using teams. Returning team.")
-                return playlists.Arctic().outtroTeams
-            else:
-                print("Outtro is NOT using teams. Returning NoTeam.")
-                return playlists.Arctic().outtro
-        elif self.name == "NoEvents01":
-            if self.usingTeams:
-                return playlists.NoEvents01().outtroTeams
-            else:
-                return playlists.NoEvents01().outtro
+        if self.usingTeams:
+            print("Outtro is using teams. Returning team.")
+            return self.playlist.outtroTeams
+        else:
+            print("Outtro is NOT using teams. Returning NoTeam.")
+            return self.playlist.outtro
 
     @property
     def playerRank(self):
@@ -236,11 +236,19 @@ class ScenePlaylist(object):
         self._playerRank = newVal
 
     @property
+    def playlist(self):
+        if self._playlist:
+            return self._playlist
+        match =[x[1] for x in self.availablePlaylists if x[0] == self.name]
+        if not match:
+            raise NameError("Name {} not found in available playlists.".format(self.name))
+        self._playlist = match[0]
+        return self._playlist
+
+    @property
     def promo(self):
         """The countdown to the start of the battle; second track."""
-        if self.name == "Arctic":
-            return playlists.Arctic().promo
-        return None
+        return self.playlist.promo
 
     @property
     def roles(self):
@@ -255,17 +263,12 @@ class ScenePlaylist(object):
     @property
     def soundtrack(self):
         """The generic soundtrack for the battle, prior to duration formatting."""
-        if self.name == "Arctic":
-            return playlists.Arctic().soundtrack
-        elif self.name == "NoEvents01":
-            return playlists.NoEvents01().soundtrack
+        return self.playlist.soundtrack
 
     @property
     def tail(self):
         """Very last thing to play; useful for advertising & announcements."""
-        if self.name == "Arctic":
-            return playlists.Arctic().tail
-        return None
+        return self.playlist.tail
 
     @property
     def usingEvents(self):
@@ -419,7 +422,7 @@ class ScenePlaylist(object):
                 3:event14, 4:sndtrk30s, 5:outtro)
 
         """
-        print("------------ building {} ---------------".format(self.name))
+        # print("------------ building {} ---------------".format(self.name))
         numEventsChosen = 0
         trackNum = 1
 
@@ -538,16 +541,7 @@ class ScenePlaylist(object):
         return newToken, filename
 
     def getIntro(self, variant=None):
-        if not variant:
-            if self.name == "Arctic":
-                return playlists.Arctic().getIntro(rank=self.playerRank)
-            elif self.name == "NoEvents01":
-                return playlists.NoEvents01().getIntro(rank=self.playerRank)
-        else:
-            if self.name == "Arctic":
-                return playlists.Arctic().getIntro(rank=self.playerRank, variant=variant)
-            elif self.name == "NoEvents01":
-                return playlists.NoEvents01().getIntro(rank=self.playerRank, variant=variant)
+        return self.playlist.getIntro(rank=self.playerRank, variant=variant)
 
     def getNextFromToken(self, token):
         """Given a string token, determine the next track to play.
@@ -653,9 +647,9 @@ class ScenePlaylist(object):
         trackNum = token.split("_")[3]
         playlist = token.split("_")[5:]
         print("Token is {}".format(token))
-        print("Session Info is {}".format(sessionInfo))
-        print("Track Info is {}".format(trackNum))
-        print("Playlist is {}".format(playlist))
+        # print("Session Info is {}".format(sessionInfo))
+        # print("Track Info is {}".format(trackNum))
+        # print("Playlist is {}".format(playlist))
 
         (playerRank, scenarioEnum, teams, sfx, soundtrack) = sessionInfo.split(".")
         scenarioName = Scenarios(int(scenarioEnum)).name
@@ -689,7 +683,8 @@ class ScenePlaylist(object):
             print("Returning Tail of {}".format(self.tail))
             return self.tail
         elif int(trackType) == EventCategories.Soundtrack.value:
-            path = "https://s3.amazonaws.com/dart-battle-resources/"
+            # TODO: ALLEN LEFT OFF HERE: Need to access self.playlist.soundtrack - maybe make that a method with sessionAttribute logic
+            path = "https://s3.amazonaws.com/dart-battle-resources/sndtrk"
             duration = currentTrack.split(".")[2]
             if int(sfx) == 1:
                 sfx = "Sfx"
@@ -775,8 +770,8 @@ class MasterPlaylist(object):
         self.duration = duration
         self.scene = None
         self.sessionAttributes = sessionAttributes
-        arctic = ScenePlaylist('Arctic', sessionAttributes)
-        noEvents01 = ScenePlaylist('NoEvents01', sessionAttributes)
+        arctic = ScenePlaylist(sessionAttributes, name='Arctic')
+        noEvents01 = ScenePlaylist(sessionAttributes, name='NoEvents01')
         # TODO: Check for entitlements:
         self.scenes = {'Arctic': arctic}
         self.scenesNoEvents = {'NoEvents01': noEvents01}
@@ -930,21 +925,18 @@ def startBattleDurationIntent(intent, session):
             duration = 120
         sessionAttributes['battleDuration'] = str(duration)
         database.updateRecordDuration(sessionAttributes)
-        response = startBattleStandardIntent(intent, session, duration=duration)
+        response = startBattleStandardIntent(session, duration=duration)
         return response
 
 
-def startBattleStandardIntent(intent, session, duration=None):
+def startBattleStandardIntent(session, duration=None):
     """Triggered when a user asks for a battle, comply; may specify duration.
 
     Args:
-        intent : (dict)
-            Intent data as provided by Alexa API, with slot for duration.
-
         session : (dict)
             Session data as provided by Alexa API.
 
-        duration=None : (int)
+        duration : (int)
             Number of seconds requested by user as the duration of the battle.
 
     Raises:
@@ -1142,7 +1134,7 @@ def skipToNextAudioPlayback(session):
     # courtesy of playbackNearlyFinished; just return the recorded token:
     nextToken = sessionAttributes['currentToken']
     playBehavior = "REPLACE_ALL"
-    generic = ScenePlaylist('generic', sessionAttributes)
+    generic = ScenePlaylist(sessionAttributes)
     nextTrack = generic.getTrackFromToken(nextToken)  # TODO: Make this a classmethod so no args are required
     sessionAttributes['currentToken'] = nextToken
     database.updateRecordToken(sessionAttributes)

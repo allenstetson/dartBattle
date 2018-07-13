@@ -67,7 +67,7 @@ def on_intent(event):
     # Dispatch to your skill's intent handlers
     # BATTLE
     if intent_name == "StartBattleStandardIntent":
-        return battle.startBattleStandardIntent(intent, sessionInfo)
+        return battle.startBattleStandardIntent(sessionInfo)
     elif intent_name == "StartBattleDurationIntent":
         return battle.startBattleDurationIntent(intent, sessionInfo)
 
