@@ -12,11 +12,11 @@ import logging
 # DartBattle imports:
 import database
 import playlists
-import responses
 import teams
 
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
+
 
 class EventCategories(enum.Enum):
     """The category types for soundtrack events, used for tokens."""
@@ -63,7 +63,6 @@ class Scenarios(enum.Enum):
     # Warehouse = 10
 
 
-
 class ScenePlaylist(object):
     """
     Obj representing playlist for battle scenes with logic to determine the
@@ -84,7 +83,6 @@ class ScenePlaylist(object):
     """
     def __init__(self, name, sessionAttributes):
         self._availableEvents = None
-        #self._playlist = {}
         self._protectedCategories = [
             EventCategories.Intro,
             EventCategories.InCount,
@@ -104,9 +102,9 @@ class ScenePlaylist(object):
         self.useSoundtrack = 1
         self.variant = "standard"
 
-    #--------------------------------------------------------------------------
+    # -------------------------------------------------------------------------
     # Properties
-    #--------------------------------------------------------------------------
+    # -------------------------------------------------------------------------
     @property
     def availableEvents(self):
         """Determines and returns the events appropriate for the Scenario,
@@ -150,7 +148,6 @@ class ScenePlaylist(object):
         # print("{} are valid tracks.".format(len(available)))
         self._availableEvents = available
         return available
-
 
     @property
     def availableEventCategories(self):
@@ -233,6 +230,7 @@ class ScenePlaylist(object):
         else:
             self._playerRank = '00'
         return self._playerRank
+
     @playerRank.setter
     def playerRank(self, newVal):
         self._playerRank = newVal
@@ -285,9 +283,9 @@ class ScenePlaylist(object):
             return True
         return False
 
-    #--------------------------------------------------------------------------
+    # -------------------------------------------------------------------------
     # Private methods
-    #--------------------------------------------------------------------------
+    # -------------------------------------------------------------------------
     def _getPatternForDuration(self, duration):
         """Given a time duration, returns a pattern of events and sndtrk to fit.
 
@@ -312,11 +310,11 @@ class ScenePlaylist(object):
         if numAvailableEvents:
             while (duration - (30 * numAvailableEvents)) / numAvailableEvents < (numAvailableEvents * 30):
                 numAvailableEvents -= 1
-        #Now we have the proper num of availableEvents.
+        # Now we have the proper num of availableEvents.
         durationWithoutEvents = duration - (30 * numAvailableEvents)
         segmentLength = int(durationWithoutEvents / (numAvailableEvents+1)/30) * 30
         segmentLength = segmentLength or 30
-        if segmentLength > 120: #120s is the longest clip that we have
+        if segmentLength > 120:  # 120s is the longest clip that we have
             segmentLength = 120
         pattern = []
         eventsUsed = 0
@@ -337,9 +335,9 @@ class ScenePlaylist(object):
             pattern.append(duration)
         return pattern
 
-    #--------------------------------------------------------------------------
+    # -------------------------------------------------------------------------
     # Public methods
-    #--------------------------------------------------------------------------
+    # -------------------------------------------------------------------------
     def buildPlaylist(self, duration):
         """Given a duration, this builds a playlist string token.
 
@@ -386,7 +384,6 @@ class ScenePlaylist(object):
         else:
             soundtrack = 0
         newToken += "{}.{}_track_01_playlist".format(sfx, soundtrack)
-
 
         # -- INTRO --
         if self.intro:
@@ -441,7 +438,6 @@ class ScenePlaylist(object):
                 trackNum,
                 EventCategories.Tail.value
             )
-
 
         return newToken
 
@@ -538,8 +534,8 @@ class ScenePlaylist(object):
         newToken += tail
         filename = self.getTrackFromToken(newToken)
         if not filename:
-            return (None, None)
-        return (newToken, filename)
+            return None, None
+        return newToken, filename
 
     def getIntro(self, variant=None):
         if not variant:
@@ -584,8 +580,8 @@ class ScenePlaylist(object):
         newToken += tail
         filename = self.getTrackFromToken(newToken)
         if not filename:
-            return (None, None)
-        return (newToken, filename)
+            return None, None
+        return newToken, filename
 
     def getPrevFromToken(self, token, double=True):
         """Given a string token, determine the previous track.
@@ -597,7 +593,7 @@ class ScenePlaylist(object):
                 rank02, arctic01, sfx1, sndtrk1, current track01, 1:intro, 2:sndtrk90s,
                 3:event14, 4:sndtrk30s, 5:outtro)
 
-            double=True : (bool)
+            double : (bool)
                 The reported token is always the next one in the queue, meaning it is one track ahead
                 of the actual current track. In order to fetch previous track, we must subtrack TWO
                 from the current token, not just one.
@@ -633,11 +629,11 @@ class ScenePlaylist(object):
             filename = self.getTrackFromToken(newToken)
         if not filename:
             filename = self.getTrackFromToken(token)
-            return (token, filename)
-        return (newToken, filename)
+            return token, filename
+        return newToken, filename
 
     def getTrackFromToken(self, token):
-        '''Given a token like
+        """Given a token like
         "session_10.1.1_track_01_playlist_01.00.A_02.02.120_03.05.Avalanche.00_04.02.120_05.03.IceBreak.00_06.02.120_07.02.120_0",
         retrieve track like 'https://s3.amazonaws.com/dart-battle-resources/event_Arctic_10_OneToOne_Intel_Team_07.mp3'
 
@@ -652,7 +648,7 @@ class ScenePlaylist(object):
             str
                 URL to the requested track.
 
-        '''
+        """
         sessionInfo = token.split("_")[1]
         trackNum = token.split("_")[3]
         playlist = token.split("_")[5:]
@@ -704,7 +700,7 @@ class ScenePlaylist(object):
             else:
                 soundtrack = "NoMusic"
             if scenarioName == "NoEvents01":
-                scenarioName = "Arctic" # Reusing sndtrk from Arctic to save storage space
+                scenarioName = "Arctic"  # Reusing sndtrk from Arctic to save storage space
             filename = "sndtrk_{}_{}_{}_{}s.mp3".format(
                 scenarioName,
                 soundtrack,
@@ -713,7 +709,7 @@ class ScenePlaylist(object):
             )
             return path + filename
 
-        #Looks like we have an event
+        # Looks like we have an event
         filename = 'event'
         filename += '_{}'.format(scenarioName)
         filename += '_{}'.format(playerRank)
@@ -726,7 +722,7 @@ class ScenePlaylist(object):
             filename += '_NoTeam'
         roles = currentTrack.split(".")[3:]
         filename += '_{}'.format(".".join(roles))
-        filename+= '.mp3'
+        filename += '.mp3'
 
         if scenarioName == "Arctic":
             tracklist = playlists.Arctic().events
@@ -734,8 +730,9 @@ class ScenePlaylist(object):
             return "https://s3.amazonaws.com/dart-battle-resources/errorBattle_01.mp3"
 
         matchingTracks = [x for x in tracklist if x.endswith(filename)]
+        zeroFilename = ""
         if not matchingTracks:
-            #Maybe it's an 'Any' type:
+            # Maybe it's an 'Any' type:
             filename = filename.replace('_NoTeam_', '_Any_')
             filename = filename.replace('_Team_', '_Any_')
             matchingTracks = [x for x in tracklist if x.endswith(filename)]
@@ -748,19 +745,20 @@ class ScenePlaylist(object):
             zeroFilename += "_".join(filename.split("_")[3:])
             matchingTracks = [x for x in tracklist if x.endswith(zeroFilename)]
             if not matchingTracks:
-                #Maybe team specific
+                # Maybe team specific
                 if teams == '1':
                     token = 'Team'
                 else:
                     token = 'NoTeam'
                 zeroFilename = zeroFilename.replace("_Any_", "_{}_".format(token))
                 matchingTracks = [x for x in tracklist if x.endswith(zeroFilename)]
-        #TODO: The above is ATROCIOUS. Split into methods that can be called, no duplicate code!
+        # TODO: The above is ATROCIOUS. Split into methods that can be called, no duplicate code!
         if not matchingTracks:
             # raise ValueError("No track named {} in track list".format(filename))
             print("No track named {} or {} in track list".format(filename, zeroFilename))
             return "https://s3.amazonaws.com/dart-battle-resources/errorBattle_01.mp3"
         return matchingTracks[0]
+
 
 class MasterPlaylist(object):
     """Playlist obj serving as the broker between requestor and a scene or other playlist.
@@ -815,10 +813,10 @@ class MasterPlaylist(object):
             sceneObj = self.scenes[self.scene]
 
         token = sceneObj.buildPlaylist(self.duration)
-        #print("Token received: {}".format(token))
+        # print("Token received: {}".format(token))
         track = sceneObj.getTrackFromToken(token)
-        #print("Track determined: {}".format(track))
-        return (token, track)
+        # print("Track determined: {}".format(track))
+        return token, track
 
     def getFirstTrackFromToken(self, token):
         """Given a playlist token, extract the first track and return its URL.
@@ -846,7 +844,7 @@ class MasterPlaylist(object):
         except KeyError:
             sceneObj = self.scenesNoEvents[scenarioName]
         (firstToken, firstTrack) = sceneObj.getFirstTrackFromToken(token)
-        return (firstToken, firstTrack)
+        return firstToken, firstTrack
 
     def getNextFromToken(self, prevToken):
         """Given a playlist token, extract the next track and return its URL.
@@ -935,6 +933,7 @@ def startBattleDurationIntent(intent, session):
         response = startBattleStandardIntent(intent, session, duration=duration)
         return response
 
+
 def startBattleStandardIntent(intent, session, duration=None):
     """Triggered when a user asks for a battle, comply; may specify duration.
 
@@ -999,7 +998,7 @@ def startBattleStandardIntent(intent, session, duration=None):
         text = "{} minute {} {} battle commencing. ".format(durMin, sceneName, isTeam)
         speech += text
     title = "Start a Battle"
-    output =  {
+    output = {
         "version": os.environ['VERSION'],
         "sessionAttributes": sessionAttributes,
         "response": {
@@ -1059,7 +1058,7 @@ def continueAudioPlayback(session, prevToken):
                     "audioItem": {
                         "stream": {
                             "token": nextToken,
-                            "expectedPreviousToken" : prevToken,
+                            "expectedPreviousToken": prevToken,
                             "url": nextTrack,
                             "offsetInMilliseconds": 0
                         }
@@ -1139,7 +1138,6 @@ def skipToNextAudioPlayback(session):
     """Triggered when user asks for next track, plays next."""
     # Request was triggered by a user asking for Next track.
     sessionAttributes = database.getSessionFromDB(session)
-    duration = int(sessionAttributes['battleDuration'])
     # currentToken is always one ahead of the one that's playing,
     # courtesy of playbackNearlyFinished; just return the recorded token:
     nextToken = sessionAttributes['currentToken']
