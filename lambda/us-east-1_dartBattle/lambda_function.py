@@ -2,16 +2,19 @@
 Dart Battle
 
 """
-import random
+# Std Lib imports:
 import logging
+import os
+import random
 
-from . import battle
-from . import database
-from . import rank
-from . import responses
-from . import session
-from . import teams
-from . import victories
+# DartBattle imports:
+import battle
+import database
+import rank
+import responses
+import session
+import teams
+import victories
 
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
@@ -164,7 +167,7 @@ def on_playback_resume(sessionInfo):
     playlist = battle.ScenePlaylist('arctic', sessionAttributes)
     track = playlist.getTrackFromToken(token)
     output = {
-        "version": responses.VERSION,
+        "version": os.environ['VERSION'],
         "sessionAttributes": sessionAttributes,
         "response": {
             "directives": [
@@ -224,7 +227,7 @@ def playback_stop(event):
     if not 'AudioPlayer' in event['context'] or not 'token' in event['context']['AudioPlayer']:
         # No audio currently playing.
         return {
-            "version": responses.VERSION,
+            "version": os.environ['VERSION'],
             "response": {
                 "outputSpeech": {
                     "type": "SSML",

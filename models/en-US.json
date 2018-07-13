@@ -1,0 +1,502 @@
+{
+  "interactionModel": {
+    "languageModel": {
+      "invocationName": "dart battle",
+      "intents": [
+        {
+          "name": "AMAZON.CancelIntent",
+          "samples": []
+        },
+        {
+          "name": "AMAZON.HelpIntent",
+          "samples": []
+        },
+        {
+          "name": "AMAZON.PauseIntent",
+          "samples": []
+        },
+        {
+          "name": "AMAZON.ResumeIntent",
+          "samples": []
+        },
+        {
+          "name": "AMAZON.StopIntent",
+          "samples": []
+        },
+        {
+          "name": "ClearTeamsIntent",
+          "samples": [
+            "Clear the teams",
+            "Delete the teams"
+          ]
+        },
+        {
+          "name": "ClearVictoryIntent",
+          "slots": [
+            {
+              "name": "PLAYER",
+              "type": "AMAZON.US_FIRST_NAME"
+            }
+          ],
+          "samples": [
+            "Clear all victories",
+            "Delete all victories",
+            "Delete victories for {PLAYER}",
+            "Clear victories for {PLAYER}"
+          ]
+        },
+        {
+          "name": "ReciteTeamsIntent",
+          "samples": [
+            "Tell me the teams",
+            "What are the teams",
+            "What teams do we have",
+            "What teams are there"
+          ]
+        },
+        {
+          "name": "ReciteVictoriesIntent",
+          "samples": [
+            "Tell me my victories",
+            "Tell me the victories"
+          ]
+        },
+        {
+          "name": "RecordVictoryIntent",
+          "slots": [
+            {
+              "name": "VICTOR",
+              "type": "AMAZON.US_FIRST_NAME",
+              "samples": [
+                "{VICTOR}",
+                "The name is {VICTOR}",
+                "Record a victory for {VICTOR}"
+              ]
+            }
+          ],
+          "samples": [
+            "Record a victory for {VICTOR}",
+            "Record a victory"
+          ]
+        },
+        {
+          "name": "SetupTeamsIntent",
+          "slots": [
+            {
+              "name": "TEAMNUM",
+              "type": "AMAZON.NUMBER",
+              "samples": [
+                "{TEAMNUM}",
+                "There are {TEAMNUM} teams",
+                "I want {TEAMNUM} teams",
+                "{TEAMNUM} teams"
+              ]
+            },
+            {
+              "name": "PLAYERNUM",
+              "type": "AMAZON.NUMBER",
+              "samples": [
+                "There are {PLAYERNUM} players",
+                "There are {PLAYERNUM} players in total",
+                "{PLAYERNUM}",
+                "{PLAYERNUM} players"
+              ]
+            },
+            {
+              "name": "PLAYERONE",
+              "type": "AMAZON.US_FIRST_NAME",
+              "samples": [
+                "{PLAYERONE} {PLAYERTWO}",
+                "The player names are {PLAYERONE} {PLAYERTWO}",
+                "Names are {PLAYERONE} {PLAYERTWO}"
+              ]
+            },
+            {
+              "name": "PLAYERTWO",
+              "type": "AMAZON.US_FIRST_NAME"
+            },
+            {
+              "name": "PLAYERTHREE",
+              "type": "AMAZON.US_FIRST_NAME"
+            },
+            {
+              "name": "PLAYERFOUR",
+              "type": "AMAZON.US_FIRST_NAME"
+            },
+            {
+              "name": "PLAYERFIVE",
+              "type": "AMAZON.US_FIRST_NAME"
+            },
+            {
+              "name": "PLAYERSIX",
+              "type": "AMAZON.US_FIRST_NAME"
+            },
+            {
+              "name": "PLAYERSEVEN",
+              "type": "AMAZON.US_FIRST_NAME"
+            },
+            {
+              "name": "PLAYEREIGHT",
+              "type": "AMAZON.US_FIRST_NAME"
+            },
+            {
+              "name": "PLAYERNINE",
+              "type": "AMAZON.US_FIRST_NAME"
+            },
+            {
+              "name": "PLAYERTEN",
+              "type": "AMAZON.US_FIRST_NAME"
+            },
+            {
+              "name": "PLAYERELEVEN",
+              "type": "AMAZON.US_FIRST_NAME"
+            },
+            {
+              "name": "PLAYERTWELVE",
+              "type": "AMAZON.US_FIRST_NAME"
+            }
+          ],
+          "samples": [
+            "Setup teams",
+            "build teams",
+            "define teams",
+            "Setup {TEAMNUM} Teams with {PLAYERNUM} players named {PLAYERONE} {PLAYERTWO} {PLAYERTHREE} {PLAYERFOUR} {PLAYERFIVE} {PLAYERSIX} {PLAYERSEVEN} {PLAYEREIGHT} {PLAYERNINE} {PLAYERTEN} {PLAYERELEVEN} {PLAYERTWELVE}"
+          ]
+        },
+        {
+          "name": "ShuffleTeamsIntent",
+          "samples": [
+            "Shuffle teams",
+            "Shuffle players"
+          ]
+        },
+        {
+          "name": "StartBattleDurationIntent",
+          "slots": [
+            {
+              "name": "DURATION",
+              "type": "AMAZON.NUMBER"
+            }
+          ],
+          "samples": [
+            "Start a {DURATION} minute battle.",
+            "Start battle that is {DURATION} minutes.",
+            "Start battle that is {DURATION} minutes long.",
+            "Start a new {DURATION} minute battle."
+          ]
+        },
+        {
+          "name": "StartBattleStandardIntent",
+          "samples": [
+            "Start Battle",
+            "Begin battle",
+            "Start a new battle"
+          ]
+        },
+        {
+          "name": "MoreOptionsIntent",
+          "samples": [
+            "Tell me more options",
+            "More Options"
+          ]
+        },
+        {
+          "name": "HowToPlayIntent",
+          "samples": [
+            "How do I play"
+          ]
+        },
+        {
+          "name": "RankQueryIntent",
+          "samples": [
+            "What is my rank",
+            "What rank am I"
+          ]
+        },
+        {
+          "name": "TurnOffSettingIntent",
+          "slots": [
+            {
+              "name": "ATTRNAME",
+              "type": "AMAZON.CreativeWorkType",
+              "samples": [
+                "soundtrack",
+                "noises",
+                "effects",
+                "sound effects",
+                "music",
+                "random events",
+                "events"
+              ]
+            }
+          ],
+          "samples": [
+            "Turn off {ATTRNAME}"
+          ]
+        },
+        {
+          "name": "TurnOnSettingIntent",
+          "slots": [
+            {
+              "name": "ATTRNAME",
+              "type": "AMAZON.CreativeWorkType"
+            }
+          ],
+          "samples": [
+            "Turn on {ATTRNAME}"
+          ]
+        },
+        {
+          "name": "EnableProtocolIntent",
+          "slots": [
+            {
+              "name": "PROTOCOLNAME",
+              "type": "AMAZON.Book"
+            }
+          ],
+          "samples": [
+            "Enable protocol {PROTOCOLNAME}"
+          ]
+        }
+      ]
+    },
+    "dialog": {
+      "intents": [
+        {
+          "name": "ClearVictoryIntent",
+          "confirmationRequired": false,
+          "slots": [
+            {
+              "name": "PLAYER",
+              "type": "AMAZON.US_FIRST_NAME",
+              "elicitationRequired": true,
+              "confirmationRequired": false,
+              "prompts": {
+                "elicitation": "Elicit.Intent-ClearVictoryIntent.IntentSlot-PLAYER"
+              }
+            }
+          ]
+        },
+        {
+          "name": "RecordVictoryIntent",
+          "confirmationRequired": false,
+          "slots": [
+            {
+              "name": "VICTOR",
+              "type": "AMAZON.US_FIRST_NAME",
+              "elicitationRequired": true,
+              "confirmationRequired": true,
+              "prompts": {
+                "confirmation": "Confirm.Slot.1313153800649.1239721858086",
+                "elicitation": "Elicit.Intent-RecordVictoryIntent.IntentSlot-VICTOR"
+              }
+            }
+          ]
+        },
+        {
+          "name": "SetupTeamsIntent",
+          "confirmationRequired": false,
+          "slots": [
+            {
+              "name": "TEAMNUM",
+              "type": "AMAZON.NUMBER",
+              "elicitationRequired": true,
+              "confirmationRequired": false,
+              "prompts": {
+                "elicitation": "Elicit.Intent-SetupTeamsIntent.IntentSlot-TEAMNUM"
+              }
+            },
+            {
+              "name": "PLAYERNUM",
+              "type": "AMAZON.NUMBER",
+              "elicitationRequired": true,
+              "confirmationRequired": false,
+              "prompts": {
+                "elicitation": "Elicit.Intent-SetupTeamsIntent.IntentSlot-PLAYERNUM"
+              }
+            },
+            {
+              "name": "PLAYERONE",
+              "type": "AMAZON.US_FIRST_NAME",
+              "elicitationRequired": true,
+              "confirmationRequired": false,
+              "prompts": {
+                "elicitation": "Elicit.Intent-SetupTeamsIntent.IntentSlot-PLAYERONE"
+              }
+            },
+            {
+              "name": "PLAYERTWO",
+              "type": "AMAZON.US_FIRST_NAME",
+              "elicitationRequired": false,
+              "confirmationRequired": false
+            },
+            {
+              "name": "PLAYERTHREE",
+              "type": "AMAZON.US_FIRST_NAME",
+              "elicitationRequired": false,
+              "confirmationRequired": false
+            },
+            {
+              "name": "PLAYERFOUR",
+              "type": "AMAZON.US_FIRST_NAME",
+              "elicitationRequired": false,
+              "confirmationRequired": false
+            },
+            {
+              "name": "PLAYERFIVE",
+              "type": "AMAZON.US_FIRST_NAME",
+              "elicitationRequired": false,
+              "confirmationRequired": false
+            },
+            {
+              "name": "PLAYERSIX",
+              "type": "AMAZON.US_FIRST_NAME",
+              "elicitationRequired": false,
+              "confirmationRequired": false
+            },
+            {
+              "name": "PLAYERSEVEN",
+              "type": "AMAZON.US_FIRST_NAME",
+              "elicitationRequired": false,
+              "confirmationRequired": false
+            },
+            {
+              "name": "PLAYEREIGHT",
+              "type": "AMAZON.US_FIRST_NAME",
+              "elicitationRequired": false,
+              "confirmationRequired": false
+            },
+            {
+              "name": "PLAYERNINE",
+              "type": "AMAZON.US_FIRST_NAME",
+              "elicitationRequired": false,
+              "confirmationRequired": false
+            },
+            {
+              "name": "PLAYERTEN",
+              "type": "AMAZON.US_FIRST_NAME",
+              "elicitationRequired": false,
+              "confirmationRequired": false
+            },
+            {
+              "name": "PLAYERELEVEN",
+              "type": "AMAZON.US_FIRST_NAME",
+              "elicitationRequired": false,
+              "confirmationRequired": false
+            },
+            {
+              "name": "PLAYERTWELVE",
+              "type": "AMAZON.US_FIRST_NAME",
+              "elicitationRequired": false,
+              "confirmationRequired": false
+            }
+          ]
+        },
+        {
+          "name": "TurnOffSettingIntent",
+          "confirmationRequired": false,
+          "slots": [
+            {
+              "name": "ATTRNAME",
+              "type": "AMAZON.CreativeWorkType",
+              "elicitationRequired": true,
+              "confirmationRequired": false,
+              "prompts": {
+                "elicitation": "Elicit.Slot.831889963196.902136400704"
+              }
+            }
+          ]
+        },
+        {
+          "name": "TurnOnSettingIntent",
+          "confirmationRequired": false,
+          "slots": [
+            {
+              "name": "ATTRNAME",
+              "type": "AMAZON.CreativeWorkType",
+              "elicitationRequired": true,
+              "confirmationRequired": false,
+              "prompts": {
+                "elicitation": "Elicit.Slot.1075203769530.1143323593569"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    "prompts": [
+      {
+        "id": "Elicit.Intent-ClearVictoryIntent.IntentSlot-PLAYER",
+        "variations": [
+          {
+            "type": "PlainText",
+            "value": "Do you really want to clear all lifetime victories for all players?"
+          }
+        ]
+      },
+      {
+        "id": "Elicit.Intent-RecordVictoryIntent.IntentSlot-VICTOR",
+        "variations": [
+          {
+            "type": "PlainText",
+            "value": "Say the first name of the player or team for whom you'd like to record a victory."
+          }
+        ]
+      },
+      {
+        "id": "Elicit.Intent-SetupTeamsIntent.IntentSlot-TEAMNUM",
+        "variations": [
+          {
+            "type": "PlainText",
+            "value": "How many teams will be playing?"
+          }
+        ]
+      },
+      {
+        "id": "Elicit.Intent-SetupTeamsIntent.IntentSlot-PLAYERNUM",
+        "variations": [
+          {
+            "type": "PlainText",
+            "value": "How many total players will be battling?"
+          }
+        ]
+      },
+      {
+        "id": "Elicit.Intent-SetupTeamsIntent.IntentSlot-PLAYERONE",
+        "variations": [
+          {
+            "type": "PlainText",
+            "value": "State the first name of all players."
+          }
+        ]
+      },
+      {
+        "id": "Confirm.Slot.1313153800649.1239721858086",
+        "variations": [
+          {
+            "type": "PlainText",
+            "value": "I heard the name {VICTOR} , is that correct?"
+          }
+        ]
+      },
+      {
+        "id": "Elicit.Slot.831889963196.902136400704",
+        "variations": [
+          {
+            "type": "PlainText",
+            "value": "What did you want to turn off?"
+          }
+        ]
+      },
+      {
+        "id": "Elicit.Slot.1075203769530.1143323593569",
+        "variations": [
+          {
+            "type": "PlainText",
+            "value": "What did you want to turn on"
+          }
+        ]
+      }
+    ]
+  }
+}

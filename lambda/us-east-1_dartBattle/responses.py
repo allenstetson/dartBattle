@@ -3,16 +3,16 @@ responses.py
 Contains the responses to intents.
 
 """
-import datetime
+# Std Lib imports:
+import os
 import logging
 import random
 
-from . import database
-from . import playlists
-from . import rank
-from . import teams
-
-VERSION = '0.0.3'
+# DartBattle imports:
+import database
+import playlists
+import rank
+import teams
 
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
@@ -22,12 +22,11 @@ logger.setLevel(logging.INFO)
 # GENERIC RESPONSES
 # =============================================================================
 def continueDialog(sessionAttributes):
-    global VERSION
     message = dict()
     message['shouldEndSession'] = False
     message['directives'] = [{'type': 'Dialog.Delegate'}]
     return {
-        'version': VERSION,
+        'version': os.environ['VERSION'],
         'sessionAttributes': sessionAttributes,
         'response': message
     }
@@ -38,7 +37,7 @@ def getTestResponse(session):
     speech = '<audio src="https://s3.amazonaws.com/dart-battle-resources/scenarios/arctic/events/pairUp/event_Arctic_09_PairUp_Yeti_Any_00.mp3" /> '
 
     return {
-        "version": VERSION,
+        "version": os.environ['VERSION'],
         "response": {
             "outputSpeech": {
                 "type": "SSML",
@@ -89,7 +88,7 @@ def getOptionsResponse(session):
     text += "How do I play?, More Options."
 
     return {
-        "version": VERSION,
+        "version": os.environ['VERSION'],
         "sessionAttributes": sessionAttributes,
         "response": {
             "outputSpeech": {
@@ -111,7 +110,6 @@ def getOptionsResponse(session):
 
 
 def getWelcomeResponse(session):
-    global VERSION
     sessionAttributes = session['attributes']
 
     # __FORMAT:__
@@ -235,7 +233,7 @@ def getWelcomeResponse(session):
     # that is not understood, they will be prompted again with this text.
     repromptText = "Try saying: Start Battle, Setup Teams, or More Options."
     return {
-        'version': VERSION,
+        'version': os.environ['VERSION'],
         'sessionAttributes': sessionAttributes,
         'response': {
             "directive": {
@@ -286,7 +284,7 @@ def howToPlayResponse():
     text += "- Settle disputes in a friendly manner.\n"
     text += " - HAVE FUN"
     response = {
-        "version": VERSION,
+        "version": os.environ['VERSION'],
         "response": {
             "card": {
                 "type": "Standard",
@@ -350,7 +348,7 @@ def toggleSettingsResponse(event, enabled):
     speech += "What next? "
 
     return {
-        "version": VERSION,
+        "version": os.environ['VERSION'],
         "sessionAttributes": sessionAttributes,
         "response": {
             "outputSpeech": {

@@ -1,4 +1,5 @@
-from . import database
+# DartBattle imports:
+import database
 
 
 class DartBattleSession(dict):

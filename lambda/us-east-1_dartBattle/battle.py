@@ -3,11 +3,13 @@ battle.py
 
 Battle Intents and Configurations
 """
+# Std Lib imports
 import os
 import enum
 import random
 import logging
 
+# DartBattle imports:
 import database
 import playlists
 import responses
@@ -998,7 +1000,7 @@ def startBattleStandardIntent(intent, session, duration=None):
         speech += text
     title = "Start a Battle"
     output =  {
-        "version": responses.VERSION,
+        "version": os.environ['VERSION'],
         "sessionAttributes": sessionAttributes,
         "response": {
             "directives": [
@@ -1048,7 +1050,7 @@ def continueAudioPlayback(session, prevToken):
     if nextToken:
         database.updateRecordToken(sessionAttributes)
     response = {
-        "version": responses.VERSION,
+        "version": os.environ['VERSION'],
         "response": {
             "directives": [
                 {
@@ -1084,7 +1086,7 @@ def reverseAudioPlayback(session):
     database.updateRecordToken(sessionAttributes)
     # TODO: Handle lack of next file gracefully (None, None)
     response = {
-        "version": responses.VERSION,
+        "version": os.environ['VERSION'],
         "response": {
             "directives": [
                 {
@@ -1114,7 +1116,7 @@ def restartAudioPlayback(session):
     sessionAttributes['currentToken'] = firstToken
     database.updateRecordToken(sessionAttributes)
     return {
-        "version": responses.VERSION,
+        "version": os.environ['VERSION'],
         "response": {
             "directives": [
                 {
@@ -1148,7 +1150,7 @@ def skipToNextAudioPlayback(session):
     database.updateRecordToken(sessionAttributes)
     # TODO: Handle lack of next file gracefully (None, None)
     response = {
-        "version": responses.VERSION,
+        "version": os.environ['VERSION'],
         "response": {
             "directives": [
                 {

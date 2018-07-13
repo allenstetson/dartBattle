@@ -1,10 +1,12 @@
+# Std lib imports:
 import logging
+import os
 
-from . import database
-from . import responses
-from . import teams
+# DartBattle imports:
+import database
+import responses
+import teams
 
-VERSION = responses.VERSION
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
 
@@ -25,6 +27,7 @@ rankRequirements = {
 
 
 def getRankResponse(session):
+    global rankRequirements
     sessionAttributes = session['attributes']
     playerRank = sessionAttributes.get('playerRank', '00')
     playerRankName = teams.PlayerRanks(int(playerRank)).name.replace("_", " ")
@@ -43,7 +46,7 @@ def getRankResponse(session):
     speech += "What would you like next? Start a battle? Exit?"
 
     return {
-        "version": VERSION,
+        "version": os.environ['VERSION'],
         "sessionAttributes": sessionAttributes,
         "response": {
             "outputSpeech": {
@@ -65,15 +68,15 @@ def getRankResponse(session):
 
 
 def checkForPromotion(sessionAttributes):
+    global rankRequirements
     logger.info("Checking for promotion.")
     # TODO: centralize this:
-    currentRank = sessionAttributes['playerRank']
+    currentRank = int(sessionAttributes['playerRank'])
     numBattles = sessionAttributes['numBattles']
-    nextRankNum = "{:02d}".format(int(currentRank) + 1)
     if int(numBattles) > rankRequirements[currentRank] and \
-            int(numBattles) >= rankRequirements[nextRankNum]:
-        sessionAttributes['playerRank'] = nextRankNum
+            int(numBattles) >= rankRequirements[currentRank + 1]:
+        sessionAttributes['playerRank'] = "{:02d}".format(currentRank + 1)
         database.updateRecord(sessionAttributes)
-        logger.info("Promotion to rank {} is earned!".format(nextRankNum))
-        return True, nextRankNum
+        logger.info("Promotion to rank {} is earned!".format(currentRank + 1))
+        return True, currentRank + 1
     return False, currentRank

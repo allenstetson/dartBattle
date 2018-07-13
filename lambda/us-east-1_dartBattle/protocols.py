@@ -1,9 +1,9 @@
+# Std Lib imports:
 import datetime
+import os
 
-from . import database
-from . import responses
-
-VERSION = responses.VERSION
+# DartBattle imports:
+import database
 
 
 def enableProtocol(event):
@@ -29,7 +29,7 @@ def enableProtocol(event):
         text = protocol.text
     speech += "What next? Start a battle? More options? "
     return {
-        "version": VERSION,
+        "version": os.environ['VERSION'],
         "sessionAttributes": sessionAttributes,
         "response": {
             "outputSpeech": {

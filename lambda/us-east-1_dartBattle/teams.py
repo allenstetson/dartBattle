@@ -3,11 +3,13 @@ teams.py
 
 Functions relating to teams and team setup.
 """
-import datetime
+# Std lib imports:
 import enum
 import logging
+import os
 import random
 
+# DartBattle imports:
 import database
 import responses
 
@@ -99,7 +101,7 @@ def clearTeamsIntent(session):
     text = "Teams have been cleared."
 
     return {
-        "version": responses.VERSION,
+        "version": os.environ['VERSION'],
         "sessionAttributes": session.attributes,
         "response": {
             "outputSpeech": {
@@ -148,7 +150,7 @@ def reciteTeamsIntent(session):
     speech += "What next? Start a battle? More options? Exit? "
     title = "Teams"
     return {
-        "version": responses.VERSION,
+        "version": os.environ['VERSION'],
         "sessionAttributes": sessionAttributes,
         "response": {
             "outputSpeech": {
@@ -251,7 +253,7 @@ def setupTeamsIntent(request, session):
     text = roleSpeech
     title = "Setup Teams"
     return {
-        "version": responses.VERSION,
+        "version": os.environ['VERSION'],
         "sessionAttributes": sessionAttributes,
         "response": {
             "outputSpeech": {
@@ -312,7 +314,7 @@ def shuffleTeamsIntent(session):
     speech += "What next? Start a battle? More options? Exit? "
     title = "Shuffle Teams"
     return {
-        "version": responses.VERSION,
+        "version": os.environ['VERSION'],
         "sessionAttributes": sessionAttributes,
         "response": {
             "outputSpeech": {
