@@ -3,107 +3,41 @@ responses.py
 Contains the responses to intents.
 
 """
-VERSION = '0.0.3'
-
-import datetime
+# Std Lib imports:
+import os
 import logging
 import random
 
+# DartBattle imports:
 import database
 import playlists
+import rank
 import teams
 
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
 
+
 # =============================================================================
 # GENERIC RESPONSES
 # =============================================================================
 def continueDialog(sessionAttributes):
-    global VERSION
-    message = {}
+    message = dict()
     message['shouldEndSession'] = False
     message['directives'] = [{'type': 'Dialog.Delegate'}]
     return {
-        'version': VERSION,
+        'version': os.environ['VERSION'],
         'sessionAttributes': sessionAttributes,
         'response': message
     }
 
-def enableProtocol(event):
-    request = event['request']
-    session = event['session']
-    speech = ""
-    text = ""
-    title = ""
-    duplicate = False
-    # Load attrs
-    if not database.isActive():
-        logger.info("Dynamo DB is NOT active.")
-        sessionAttributes = database.GetDefaultSessionAttrs(session['user']['userId'])
-    else:
-        sessionAttributes = database.GetSessionFromDB(session)
-    if 'slots' in request['intent'] and 'PROTOCOLNAME' in request['intent']['slots']:
-        protocolName = request['intent']['slots']['PROTOCOLNAME']['value']
-    else:
-        protocolName = None
-
-    if protocolName == "silver sparrow":
-        speech += "Enabling Protocol: Silver Sparrow. "
-        protocolCodes = sessionAttributes.get('protocolCodes', {})
-        # Check for Duplicate Entry:
-        if protocolName in protocolCodes and protocolCodes[protocolName] != "False":
-            duplicate = True
-        else:
-            # Update DB to Reflect Protocol Usage:
-            value = datetime.datetime.strftime(datetime.datetime.now(), "%m/%d/%Y")
-            protocolCodes[protocolName] = value
-            sessionAttributes['protocolCodes'] = protocolCodes
-            success = database.updateRecordProtocol(sessionAttributes)
-
-            # Do protocol-specific things here
-            numBattles = int(sessionAttributes['numBattles'])
-            numBattles += 5
-            sessionAttributes['numBattles'] = str(numBattles)
-            database.UpdateRecord(sessionAttributes)
-
-            # Report Success
-            speech += "5 battles have been added to your total, getting you closer to the next rank promotion. "
-            title += "Protocol Silver Sparrow: enabled"
-            text += "+5 battles toward rank advancement"
-    else:
-        speech += "That protocol has not been programmed into the system. "
-    if duplicate:
-        speech += "Protocol {} has already been enabled and cannot be enabled again. ".format(protocolName)
-    speech += "What next? Start a battle? More options? "
-    return {
-        "version": VERSION,
-        "sessionAttributes": sessionAttributes,
-        "response": {
-            "outputSpeech": {
-                "type": "SSML",
-                "ssml": "<speak>" + speech + "</speak>"
-            },
-            "card": {
-                "type": "Standard",
-                "title": title,
-                "text": text,
-                "image": {
-                    "smallImageUrl": "https://s3.amazonaws.com/dart-battle-resources/dartBattle_MO_720x480.jpg",
-                    "largeImageUrl": "https://s3.amazonaws.com/dart-battle-resources/dartBattle_MO_1200x800.jpg"
-                }
-            },
-            "shouldEndSession": False
-        }
-    }
 
 def getTestResponse(session):
     speech = "Perimeter compromised. Defenses will be breached in 5, 4, 3, 2, 1. "
-    #speech += "General, you have an incoming transmission. "
     speech = '<audio src="https://s3.amazonaws.com/dart-battle-resources/scenarios/arctic/events/pairUp/event_Arctic_09_PairUp_Yeti_Any_00.mp3" /> '
 
     return {
-        "version": VERSION,
+        "version": os.environ['VERSION'],
         "response": {
             "outputSpeech": {
                 "type": "SSML",
@@ -113,14 +47,12 @@ def getTestResponse(session):
         }
     }
 
+
 # =============================================================================
 # SPECIFIC USER RESPONSES
 # =============================================================================
 def getOptionsResponse(session):
-    if not "attributes" in session:
-        sessionAttributes = database.GetSessionFromDB(session)
-    else:
-        sessionAttributes = session['attributes']
+    sessionAttributes = session['attributes']
 
     if 'playerRank' in sessionAttributes:
         playerRank = sessionAttributes['playerRank']
@@ -156,7 +88,7 @@ def getOptionsResponse(session):
     text += "How do I play?, More Options."
 
     return {
-        "version": VERSION,
+        "version": os.environ['VERSION'],
         "sessionAttributes": sessionAttributes,
         "response": {
             "outputSpeech": {
@@ -176,75 +108,9 @@ def getOptionsResponse(session):
         }
     }
 
-def getRankResponse(session):
-    if not "attributes" in session:
-        sessionAttributes = database.GetSessionFromDB(session)
-    else:
-        sessionAttributes = session['attributes']
-
-    playerRank = sessionAttributes.get('playerRank', '00')
-    playerRankName = teams.PlayerRanks(int(playerRank)).name.replace("_", " ")
-    nextRankName = teams.PlayerRanks(int(playerRank)+1).name.replace("_", " ")
-    # TODO: Account for General, where there is no next rank!
-    numBattles = sessionAttributes.get('numBattles', 0)
-        # TODO: centralize this:
-    rankRequirements = {
-        0: 0,
-        1: 1,
-        2: 5,
-        3: 15,
-        4: 30,
-        5: 60,
-        6: 100,
-        7: 140,
-        8: 175,
-        9: 200,
-        10: 250,
-        11: 300,
-    }
-    speech = "You are currently a {}.".format(playerRankName)
-    text = "Rank: {}, {} battles.\n".format(playerRankName.title(), numBattles)
-    if numBattles:
-        battlesRemaining = rankRequirements[int(playerRank)+1] - int(numBattles)
-        speech = "You have battled {} times, ".format(numBattles)
-        speech += "and your current rank is {}. ".format(playerRankName)
-        speech += "You have {} battles remaining ".format(battlesRemaining)
-        speech += "until you reach the rank of {}. ".format(nextRankName)
-        text += "{} battles until {}.".format(battlesRemaining, nextRankName)
-    speech += "What would you like next? Start a battle? Exit?"
-
-
-    return {
-        "version": VERSION,
-        "sessionAttributes": sessionAttributes,
-        "response": {
-            "outputSpeech": {
-                "type": "SSML",
-                "ssml": "<speak>" + speech + "</speak>"
-            },
-            "card": {
-                "type": "Standard",
-                "title": "What is my rank?",
-                "text": text,
-                "image": {
-                    "smallImageUrl": "https://s3.amazonaws.com/dart-battle-resources/dartBattle_HTP_720x480.jpg",
-                    "largeImageUrl": "https://s3.amazonaws.com/dart-battle-resources/dartBattle_HTP_1200x800.jpg"
-                }
-            },
-            "shouldEndSession": False
-        }
-    }
 
 def getWelcomeResponse(session):
-    global VERSION
-    speech = ""
-
-    # Load attrs
-    if not database.isActive():
-        logger.info("Dynamo DB is NOT active.")
-        sessionAttributes = database.GetDefaultSessionAttrs(session['user']['userId'])
-    else:
-        sessionAttributes = database.GetSessionFromDB(session)
+    sessionAttributes = session['attributes']
 
     # __FORMAT:__
     # Music
@@ -253,14 +119,14 @@ def getWelcomeResponse(session):
     # You've been promoted to...
     # You can say / Would you like to
 
-    (isNewRank, rankNum) = database.CheckForPromotion(sessionAttributes)
+    (isNewRank, rankNum) = rank.checkForPromotion(sessionAttributes)
 
     # -------------------------------------------------------------------------
     # Determine welcome
     # -------------------------------------------------------------------------
     if sessionAttributes['recentSession'] == "True":
         title = "Welcome Back"
-        #TODO: "I'm here for you, troops/soldier.", "Resuming Dart Battle, protocol Igloo/Tango", "Welcome back.", "On alert.", "Monitoring enemy activity."
+        # TODO: "I'm here for you, troops/soldier.", "Resuming Dart Battle, protocol Igloo/Tango", "Welcome back.", "On alert.", "Monitoring enemy activity."
         if sessionAttributes['usingTeams'] == "True":
             tracks = [
                 "https://s3.amazonaws.com/dart-battle-resources/common/common_Any_00_Greeting_QuickA_Team_00.mp3",
@@ -277,7 +143,7 @@ def getWelcomeResponse(session):
             welcomeTracks = [random.choice(tracks)]
     else:
         title = "Welcome, Soldier"
-        #TODO: "Dart Battle mission instantiated.", "Attention! Codename Dart Battle ready for orders.", "Dart Battle Protocol ready for commands."
+        # TODO: "Dart Battle mission instantiated.", "Attention! Codename Dart Battle ready for orders.", "Dart Battle Protocol ready for commands."
         if sessionAttributes['usingTeams'] == "True":
             tracks = [
                 "https://s3.amazonaws.com/dart-battle-resources/common/common_Any_00_Greeting_StandardA_Team_00.mp3",
@@ -367,11 +233,11 @@ def getWelcomeResponse(session):
     # that is not understood, they will be prompted again with this text.
     repromptText = "Try saying: Start Battle, Setup Teams, or More Options."
     return {
-        'version': VERSION,
+        'version': os.environ['VERSION'],
         'sessionAttributes': sessionAttributes,
         'response': {
             "directive": {
-               "header": {
+                "header": {
                     "namespace": "AudioPlayer",
                     "name": "ClearQueue",
                     "messageId": "{{STRING}}",
@@ -407,8 +273,8 @@ def getWelcomeResponse(session):
         }
     }
 
-def howToPlayResponse(session):
-    print("Playing how to play.")
+
+def howToPlayResponse():
     text = "- Use foam-based weaponry, score eliminations.\n"
     text += "- No head shots or point blank shots.\n"
     text += "- Listen for special events!\n"
@@ -418,7 +284,7 @@ def howToPlayResponse(session):
     text += "- Settle disputes in a friendly manner.\n"
     text += " - HAVE FUN"
     response = {
-        "version": VERSION,
+        "version": os.environ['VERSION'],
         "response": {
             "card": {
                 "type": "Standard",
@@ -446,21 +312,18 @@ def howToPlayResponse(session):
     }
     return response
 
+
 def toggleSettingsResponse(event, enabled):
-    request = event['request']
-    session = event['session']
-    # Load attrs
-    if not database.isActive():
-        logger.info("Dynamo DB is NOT active.")
-        sessionAttributes = database.GetDefaultSessionAttrs(session['user']['userId'])
-    else:
-        sessionAttributes = database.GetSessionFromDB(session)
+    request = event["request"]
+    session = event["session"]
+    sessionAttributes = session["attributes"]
 
     dialogState = request['dialogState']
     if dialogState in ["STARTED", "IN_PROGRESS"]:
         return continueDialog(sessionAttributes)
     elif dialogState == 'COMPLETED':
-        sessionAttributes = session.get('attributes', database.GetDefaultSessionAttrs(session['user']['userId']))
+        # sessionAttributes = session.get('attributes', database.getDefaultSessionAttrs(session['user']['userId']))
+        pass
     attrName = request['intent']['slots']['ATTRNAME']['value']
 
     speech = ""
@@ -470,7 +333,7 @@ def toggleSettingsResponse(event, enabled):
             speech += "Events enabled. "
         else:
             speech += "Events disabled. Your battles will have no events until re-enabled. "
-        success = database.UpdateToggleEvents(sessionAttributes, enabled)
+        success = database.updateToggleEvents(sessionAttributes, enabled)
         if success:
             if enabled:
                 sessionAttributes['usingEvents'] = "True"
@@ -485,7 +348,7 @@ def toggleSettingsResponse(event, enabled):
     speech += "What next? "
 
     return {
-        "version": VERSION,
+        "version": os.environ['VERSION'],
         "sessionAttributes": sessionAttributes,
         "response": {
             "outputSpeech": {

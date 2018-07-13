@@ -205,7 +205,7 @@ class Arctic(object):
         if not variant:
             randKey = random.choice(list(intros.keys()))
             randTrack = intros[randKey].format(int(rank))
-            return (randKey, randTrack)
+            return randKey, randTrack
         return variant, intros[variant].format(int(rank))
 
 
@@ -234,7 +234,7 @@ class NoEvents01(object):
         return None
 
     def getIntro(self, rank=None, variant=None):
-        return (None, None)
+        return None, None
 
 
 """
