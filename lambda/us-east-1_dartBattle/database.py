@@ -1,16 +1,17 @@
+# Std lib imports:
 import datetime
 import logging
 
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
 
-logger.info('Allen: Attempting import DB.')
+logger.info('Attempting import DB.')
 try:
     from boto3.dynamodb.conditions import Key, Attr
     from botocore.exceptions import ClientError
     import boto3
     DB_ACTIVE = True
-    #DB_ACTIVE = False #THIS DISABLES DB WHILE IT IS UNSTABLE. COMENT FOR TESTING.
+    # DB_ACTIVE = False #THIS DISABLES DB WHILE IT IS UNSTABLE. COMMENT FOR TESTING.
     logger.info('DB Import successful')
 except ImportError:
     logger.info("DB Import failed. Falling back to defaults.")
@@ -21,7 +22,7 @@ def isActive():
     return DB_ACTIVE
 
 
-def ClearRecordVictory(sessionAttributes, victor=None):
+def clearRecordVictory(sessionAttributes, victor=None):
     dynamodb = boto3.resource(
         'dynamodb',
         region_name='us-east-1',
@@ -41,9 +42,9 @@ def ClearRecordVictory(sessionAttributes, victor=None):
         except ClientError as e:
             logger.info("ClientError received!")
             logger.error(e.response['Error']['Message'])
-            return (False, None, None)
+            return False, None, None
         if not 'Item' in response:
-            return (False, None, None)
+            return False, None, None
         victories = response['Item']['victories']
         victories[victor] = []
     else:
@@ -65,7 +66,7 @@ def ClearRecordVictory(sessionAttributes, victor=None):
         return False
 
 
-def GetDefaultSessionAttrs(userId):
+def getDefaultSessionAttrs(userId):
     lastRun = datetime.datetime.now().strftime("%Y.%m.%d %H:%M:%S")
     sessionAttributes = {
         "dateCreated": lastRun,
@@ -86,7 +87,7 @@ def GetDefaultSessionAttrs(userId):
     return sessionAttributes
 
 
-def GetSessionFromDB(session):
+def getSessionFromDB(session):
         dynamodb = boto3.resource(
             'dynamodb',
             region_name='us-east-1',
@@ -95,6 +96,7 @@ def GetSessionFromDB(session):
         myId = session['user']['userId']
         table = dynamodb.Table('DartBattle')
         logger.info("Attempting to retrieve item for user ID {}.".format(myId))
+        item = None
         try:
             response = table.get_item(
                 TableName="DartBattle",
@@ -113,7 +115,7 @@ def GetSessionFromDB(session):
             newUser = True
         if newUser:
             logger.info("get_item for userId failed, new user.")
-            sessionAttributes = GetDefaultSessionAttrs(myId)
+            sessionAttributes = getDefaultSessionAttrs(myId)
             table.put_item(Item=sessionAttributes)
         else:
             logger.info("get_item for userId succeeded.")
@@ -139,14 +141,14 @@ def GetSessionFromDB(session):
                 usingTeams = "False"
                 roles = []
 
-            #New Attrs:
+            # New Attrs:
             offsetInMilliseconds = item.get('offsetInMilliseconds', "0")
             usingEvents = item.get('usingEvents', "True")
             protocolCodes = item.get('protocolCodes', {})
 
             sessionAttributes = {
                 "battleDuration": item['battleDuration'],
-                "currentToken" : item['currentToken'],
+                "currentToken": item['currentToken'],
                 "lastRun": now.strftime("%Y.%m.%d %H:%M:%S"),
                 "numBattles": item['numBattles'],
                 "offsetInMilliseconds": offsetInMilliseconds,
@@ -161,10 +163,11 @@ def GetSessionFromDB(session):
                 "usingEvents": usingEvents,
                 "usingTeams": usingTeams
             }
-        return sessionAttributes
+        session["attributes"] = sessionAttributes
+        return session
 
 
-def GetVictoriesFromDB(sessionAttributes):
+def getVictoriesFromDB(sessionAttributes):
     dynamodb = boto3.resource(
         'dynamodb',
         region_name='us-east-1',
@@ -218,7 +221,7 @@ def updateRecordProtocol(sessionAttributes):
         return False
 
 
-def UpdateRecordDuration(sessionAttributes):
+def updateRecordDuration(sessionAttributes):
     dynamodb = boto3.resource(
         'dynamodb',
         region_name='us-east-1',
@@ -244,7 +247,7 @@ def UpdateRecordDuration(sessionAttributes):
         return False
 
 
-def UpdateRecordTeams(sessionAttributes):
+def updateRecordTeams(sessionAttributes):
     dynamodb = boto3.resource(
         'dynamodb',
         region_name='us-east-1',
@@ -272,7 +275,7 @@ def UpdateRecordTeams(sessionAttributes):
         return False
 
 
-def UpdateRecordToken(sessionAttributes):
+def updateRecordToken(sessionAttributes):
     if 'offsetInMilliseconds' in sessionAttributes:
         offsetInMilliseconds = str(sessionAttributes['offsetInMilliseconds'])
     else:
@@ -303,7 +306,7 @@ def UpdateRecordToken(sessionAttributes):
         return False
 
 
-def UpdateRecordVictory(sessionAttributes, victor):
+def updateRecordVictory(sessionAttributes, victor):
     dynamodb = boto3.resource(
         'dynamodb',
         region_name='us-east-1',
@@ -322,9 +325,9 @@ def UpdateRecordVictory(sessionAttributes, victor):
     except ClientError as e:
         logger.info("ClientError received!")
         logger.error(e.response['Error']['Message'])
-        return (False, None, None)
+        return False, None, None
     if not 'Item' in response:
-        return (False, None, None)
+        return False, None, None
     victories = response['Item']['victories']
     now = datetime.datetime.now().strftime("%Y.%m.%d %H:%M:%S")
     if not victor in victories:
@@ -346,14 +349,14 @@ def UpdateRecordVictory(sessionAttributes, victor):
             then = datetime.datetime.strptime(vicDate, "%Y.%m.%d %H:%M:%S")
             if (datetime.datetime.now() - then).days < 1:
                 vicToday += 1
-        return (True, vicToday, vicTotal)
+        return True, vicToday, vicTotal
     except ClientError as e:
         logger.info("ClientError received!")
         logger.error(e.response['Error']['Message'])
-        return (False, None, None)
+        return False, None, None
 
 
-def UpdateRecord(sessionAttributes):
+def updateRecord(sessionAttributes):
     dynamodb = boto3.resource(
         'dynamodb',
         region_name='us-east-1',
@@ -387,7 +390,8 @@ def UpdateRecord(sessionAttributes):
         logger.error(e.response['Error']['Message'])
         return False
 
-def UpdateToggleEvents(sessionAttributes, enabled):
+
+def updateToggleEvents(sessionAttributes, enabled):
     if enabled:
         enabled = "True"
     else:
@@ -416,32 +420,3 @@ def UpdateToggleEvents(sessionAttributes, enabled):
         logger.info("ClientError received!")
         logger.error(e.response['Error']['Message'])
         return False
-
-
-def CheckForPromotion(sessionAttributes):
-    logger.info("Checking for promotion.")
-    # TODO: centralize this:
-    rankRequirements = {
-        '00': 0,
-        '01': 1,
-        '02': 5,
-        '03': 15,
-        '04': 30,
-        '05': 60,
-        '06': 100,
-        '07': 140,
-        '08': 175,
-        '09': 200,
-        '10': 250,
-        '11': 300,
-    }
-    currentRank = sessionAttributes['playerRank']
-    numBattles = sessionAttributes['numBattles']
-    nextRankNum = "{:02d}".format(int(currentRank) + 1)
-    if int(numBattles) > rankRequirements[currentRank] and \
-            int(numBattles) >= rankRequirements[nextRankNum]:
-        sessionAttributes['playerRank'] = nextRankNum
-        UpdateRecord(sessionAttributes)
-        logger.info("Promotion to rank {} is earned!".format(nextRankNum))
-        return (True, nextRankNum)
-    return (False, currentRank)

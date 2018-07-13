@@ -1,0 +1,37 @@
+{
+  "manifest": {
+    "publishingInformation": {
+      "locales": {
+        "en-US": {
+          "examplePhrases": [],
+          "keywords": [],
+          "name": "Dart Battle",
+          "smallIconUri": "https://s3.amazonaws.com/CAPS-SSE/echo_developer/d313/1123cef1cf024c5bbb1f4626374c1f4a/APP_ICON?versionId=YYc7W5RHgzgRzMhgPNlmYsJ8iFPrZ4gH&AWSAccessKeyId=AKIAIEYXX6DHY7O4XWMA&Expires=1531539085&Signature=F89tOhmV%2Bplri7D6WKqVxWOxPR8%3D",
+          "largeIconUri": "https://s3.amazonaws.com/CAPS-SSE/echo_developer/f823/fe665dd04848497e81d921131ead0a35/APP_ICON_LARGE?versionId=V5dKa9M8_y1kRbrrkp8wmR6r8Kzu_03n&AWSAccessKeyId=AKIAIEYXX6DHY7O4XWMA&Expires=1531539085&Signature=uwd6q%2FwBmvyseFyq8btwtD76hg4%3D"
+        }
+      },
+      "isAvailableWorldwide": true,
+      "distributionCountries": []
+    },
+    "apis": {
+      "custom": {
+        "endpoint": {
+          "sourceDir": ".\\lambda\\us-east-1_dartBattle"
+        },
+        "interfaces": [
+          {
+            "type": "AUDIO_PLAYER"
+          }
+        ],
+        "regions": {
+          "NA": {
+            "endpoint": {
+              "sourceDir": ".\\lambda\\us-east-1_dartBattle"
+            }
+          }
+        }
+      }
+    },
+    "manifestVersion": "1.0"
+  }
+}

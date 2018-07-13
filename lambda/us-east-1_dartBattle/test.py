@@ -454,7 +454,7 @@ def test_teams_countVictories():
 
 def test_teams_reciteTeamRoles():
     print("running test_teams_reciteTeamRoles...")
-    speech = str(teams.ReciteTeamRoles(data_teams_ReciteTeamRoles))
+    speech = str(teams.reciteTeamRoles(data_teams_ReciteTeamRoles))
     expected = "Team 1. Riley is your scout. Owen is your communications specialist. " +\
     "Jonah is your captain. Team 2. ralph is your special forces operative. " +\
     "Hannah is your captain. Asher is your communications specialist. "
