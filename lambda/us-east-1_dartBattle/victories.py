@@ -1,7 +1,10 @@
+# Std Lib imports:
 import datetime
+import os
 
-from . import database
-from . import responses
+# DartBattle imports:
+import database
+import responses
 
 
 def clearVictoryIntent(request, session):
@@ -26,7 +29,7 @@ def clearVictoryIntent(request, session):
     speech += "How else may I assist? Start a battle? More options? Exit? "
     title = "Clear Victories"
     return {
-        "version": responses.VERSION,
+        "version": os.environ['VERSION'],
         "sessionAttributes": sessionAttributes,
         "response": {
             "outputSpeech": {
@@ -127,7 +130,7 @@ def reciteVictoriesIntent(session):  # TODO: Support single player request (plac
     title = "Victories"
 
     return {
-        "version": responses.VERSION,
+        "version": os.environ['VERSION'],
         "sessionAttributes": sessionAttributes,
         "response": {
             "outputSpeech": {
@@ -180,7 +183,7 @@ def recordVictoryIntent(request, session):
     title = "Record a Victory"
 
     return {
-        "version": responses.VERSION,
+        "version": os.environ['VERSION'],
         "sessionAttributes": sessionAttributes,
         "response": {
             "outputSpeech": {
