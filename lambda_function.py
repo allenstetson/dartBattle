@@ -7,6 +7,7 @@ import logging
 
 from . import battle
 from . import database
+from . import rank
 from . import responses
 from . import session
 from . import teams
@@ -81,7 +82,7 @@ def on_intent(event):
 
     # RANKS
     elif intent_name == "RankQueryIntent":
-        return responses.getRankResponse(sessionInfo)
+        return rank.getRankResponse(sessionInfo)
 
     # RULES
     elif intent_name == "HowToPlayIntent":
@@ -162,7 +163,7 @@ def on_playback_resume(sessionInfo):
     offsetInMilliseconds = sessionAttributes.get('offsetInMilliseconds', "0")
     playlist = battle.ScenePlaylist('arctic', sessionAttributes)
     track = playlist.getTrackFromToken(token)
-    output =  {
+    output = {
         "version": responses.VERSION,
         "sessionAttributes": sessionAttributes,
         "response": {

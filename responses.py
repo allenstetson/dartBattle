@@ -9,6 +9,7 @@ import random
 
 from . import database
 from . import playlists
+from . import rank
 from . import teams
 
 VERSION = '0.0.3'
@@ -29,69 +30,6 @@ def continueDialog(sessionAttributes):
         'version': VERSION,
         'sessionAttributes': sessionAttributes,
         'response': message
-    }
-
-
-def enableProtocol(event):
-    request = event['request']
-    session = event['session']
-    speech = ""
-    text = ""
-    title = ""
-    duplicate = False
-    sessionAttributes = session["attributes"]
-    if 'slots' in request['intent'] and 'PROTOCOLNAME' in request['intent']['slots']:
-        protocolName = request['intent']['slots']['PROTOCOLNAME']['value']
-    else:
-        protocolName = None
-
-    if protocolName == "silver sparrow":
-        speech += "Enabling Protocol: Silver Sparrow. "
-        protocolCodes = sessionAttributes.get('protocolCodes', {})
-        # Check for Duplicate Entry:
-        if protocolName in protocolCodes and protocolCodes[protocolName] != "False":
-            duplicate = True
-        else:
-            # Update DB to Reflect Protocol Usage:
-            value = datetime.datetime.strftime(datetime.datetime.now(), "%m/%d/%Y")
-            protocolCodes[protocolName] = value
-            sessionAttributes['protocolCodes'] = protocolCodes
-            database.updateRecordProtocol(sessionAttributes)
-
-            # Do protocol-specific things here
-            numBattles = int(sessionAttributes['numBattles'])
-            numBattles += 5
-            sessionAttributes['numBattles'] = str(numBattles)
-            database.updateRecord(sessionAttributes)
-
-            # Report Success
-            speech += "5 battles have been added to your total, getting you closer to the next rank promotion. "
-            title += "Protocol Silver Sparrow: enabled"
-            text += "+5 battles toward rank advancement"
-    else:
-        speech += "That protocol has not been programmed into the system. "
-    if duplicate:
-        speech += "Protocol {} has already been enabled and cannot be enabled again. ".format(protocolName)
-    speech += "What next? Start a battle? More options? "
-    return {
-        "version": VERSION,
-        "sessionAttributes": sessionAttributes,
-        "response": {
-            "outputSpeech": {
-                "type": "SSML",
-                "ssml": "<speak>" + speech + "</speak>"
-            },
-            "card": {
-                "type": "Standard",
-                "title": title,
-                "text": text,
-                "image": {
-                    "smallImageUrl": "https://s3.amazonaws.com/dart-battle-resources/dartBattle_MO_720x480.jpg",
-                    "largeImageUrl": "https://s3.amazonaws.com/dart-battle-resources/dartBattle_MO_1200x800.jpg"
-                }
-            },
-            "shouldEndSession": False
-        }
     }
 
 
@@ -172,61 +110,6 @@ def getOptionsResponse(session):
     }
 
 
-def getRankResponse(session):
-    sessionAttributes = session['attributes']
-    playerRank = sessionAttributes.get('playerRank', '00')
-    playerRankName = teams.PlayerRanks(int(playerRank)).name.replace("_", " ")
-    nextRankName = teams.PlayerRanks(int(playerRank)+1).name.replace("_", " ")
-    # TODO: Account for General, where there is no next rank!
-    numBattles = sessionAttributes.get('numBattles', 0)
-    # TODO: centralize this:
-    rankRequirements = {
-        0: 0,
-        1: 1,
-        2: 5,
-        3: 15,
-        4: 30,
-        5: 60,
-        6: 100,
-        7: 140,
-        8: 175,
-        9: 200,
-        10: 250,
-        11: 300,
-    }
-    speech = "You are currently a {}.".format(playerRankName)
-    text = "Rank: {}, {} battles.\n".format(playerRankName.title(), numBattles)
-    if numBattles:
-        battlesRemaining = rankRequirements[int(playerRank)+1] - int(numBattles)
-        speech = "You have battled {} times, ".format(numBattles)
-        speech += "and your current rank is {}. ".format(playerRankName)
-        speech += "You have {} battles remaining ".format(battlesRemaining)
-        speech += "until you reach the rank of {}. ".format(nextRankName)
-        text += "{} battles until {}.".format(battlesRemaining, nextRankName)
-    speech += "What would you like next? Start a battle? Exit?"
-
-    return {
-        "version": VERSION,
-        "sessionAttributes": sessionAttributes,
-        "response": {
-            "outputSpeech": {
-                "type": "SSML",
-                "ssml": "<speak>" + speech + "</speak>"
-            },
-            "card": {
-                "type": "Standard",
-                "title": "What is my rank?",
-                "text": text,
-                "image": {
-                    "smallImageUrl": "https://s3.amazonaws.com/dart-battle-resources/dartBattle_HTP_720x480.jpg",
-                    "largeImageUrl": "https://s3.amazonaws.com/dart-battle-resources/dartBattle_HTP_1200x800.jpg"
-                }
-            },
-            "shouldEndSession": False
-        }
-    }
-
-
 def getWelcomeResponse(session):
     global VERSION
     sessionAttributes = session['attributes']
@@ -238,7 +121,7 @@ def getWelcomeResponse(session):
     # You've been promoted to...
     # You can say / Would you like to
 
-    (isNewRank, rankNum) = database.checkForPromotion(sessionAttributes)
+    (isNewRank, rankNum) = rank.checkForPromotion(sessionAttributes)
 
     # -------------------------------------------------------------------------
     # Determine welcome
