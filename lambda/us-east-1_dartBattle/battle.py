@@ -286,6 +286,69 @@ class ScenePlaylist(object):
     # -------------------------------------------------------------------------
     # Private methods
     # -------------------------------------------------------------------------
+    def _chooseEvent(self):
+        """
+        Randomly select event track, ensure a unique choice, ensure
+        compatibility with session, keep track of events chosen, generate token
+        of [category.title.roles].
+
+        Track should be named
+        event_[Scene]_[Rank]_[Category]_[Title]_[Team]_[Roles].mp3
+        ( event_Arctic_09_ExclusiveShot_DugIn_Team_05 )
+
+        Args:
+            N/A
+
+        Raises:
+            N/A
+
+        Returns:
+            str
+                An appropriate event token which can be mapped to a file.
+                ("session_02.01.1.1_track_01_playlist_01.00_02.02.90_03.14_04.02.30_05.22",
+                rank02, arctic01, sfx1, sndtrk1, current track01, 1:intro, 2:sndtrk90s,
+                3:event14, 4:sndtrk30s, 5:outtro)
+
+
+        """
+        tracklist = self.availableEvents
+        track = os.path.basename(random.choice(tracklist))
+
+        # remove ".mp3":
+        track = track[:-4]
+        category = track.split("_")[3]
+        title = track.split("_")[4]
+        roles = track.split("_")[6].split(".")
+
+        # Generate token
+        token = "{}.{}.{}".format(
+            "{:02d}".format(EventCategories[category].value),
+            title,
+            "".join(roles)
+        )
+
+        # Ensure Unique
+        if category in self.eventsChosen:
+            # We've already used this category.
+            if not len(self.eventsChosen.keys()) == len(self.availableEventCategories):
+                # There are still more options, pick a new one
+                token = self._chooseEvent()
+                return token
+            else:
+                # Nuts we ran out of categories. Are there other tracks within
+                # this category that we can use?
+                if token in self.eventsChosen[category]:
+                    token = self._chooseEvent()
+                    return token
+        else:
+            print("Category {} is new.".format(category))
+
+        # Keep track of choice
+        if not category in self.eventsChosen:
+            self.eventsChosen[category] = []
+        self.eventsChosen[category].append(token)
+        return token
+
     def _getPatternForDuration(self, duration):
         """Given a time duration, returns a pattern of events and sndtrk to fit.
 
@@ -408,7 +471,7 @@ class ScenePlaylist(object):
         for item in pattern:
             if item == 'e':
                 # --- event ---
-                newToken += "_{:02d}.{}".format(trackNum, self.chooseEvent())
+                newToken += "_{:02d}.{}".format(trackNum, self._chooseEvent())
                 numEventsChosen += 1
             else:
                 # --- soundtrack ---
@@ -440,69 +503,6 @@ class ScenePlaylist(object):
             )
 
         return newToken
-
-    def chooseEvent(self):
-        """
-        Randomly select event track, ensure a unique choice, ensure
-        compatibility with session, keep track of events chosen, generate token
-        of [category.title.roles].
-
-        Track should be named
-        event_[Scene]_[Rank]_[Category]_[Title]_[Team]_[Roles].mp3
-        ( event_Arctic_09_ExclusiveShot_DugIn_Team_05 )
-
-        Args:
-            N/A
-
-        Raises:
-            N/A
-
-        Returns:
-            str
-                An appropriate event token which can be mapped to a file.
-                ("session_02.01.1.1_track_01_playlist_01.00_02.02.90_03.14_04.02.30_05.22",
-                rank02, arctic01, sfx1, sndtrk1, current track01, 1:intro, 2:sndtrk90s,
-                3:event14, 4:sndtrk30s, 5:outtro)
-
-
-        """
-        tracklist = self.availableEvents
-        track = os.path.basename(random.choice(tracklist))
-
-        # remove ".mp3":
-        track = track[:-4]
-        category = track.split("_")[3]
-        title = track.split("_")[4]
-        roles = track.split("_")[6].split(".")
-
-        # Generate token
-        token = "{}.{}.{}".format(
-            "{:02d}".format(EventCategories[category].value),
-            title,
-            "".join(roles)
-        )
-
-        # Ensure Unique
-        if category in self.eventsChosen:
-            # We've already used this category.
-            if not len(self.eventsChosen.keys()) == len(self.availableEventCategories):
-                # There are still more options, pick a new one
-                token = self.chooseEvent()
-                return token
-            else:
-                # Nuts we ran out of categories. Are there other tracks within
-                # this category that we can use?
-                if token in self.eventsChosen[category]:
-                    token = self.chooseEvent()
-                    return token
-        else:
-            print("Category {} is new.".format(category))
-
-        # Keep track of choice
-        if not category in self.eventsChosen:
-            self.eventsChosen[category] = []
-        self.eventsChosen[category].append(token)
-        return token
 
     def getFirstTrackFromToken(self, token):
         """Given a string token, determine the first track to play.
