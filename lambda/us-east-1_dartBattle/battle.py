@@ -63,7 +63,7 @@ class Scenarios(enum.Enum):
     # Warehouse = 10
 
 
-class ScenePlaylist(object):
+class Scenario(object):
     """
     Obj representing playlist for battle scenes with logic to determine the
     pattern for given durations, and for choosing appropriate events based on
@@ -244,6 +244,10 @@ class ScenePlaylist(object):
             raise NameError("Name {} not found in available playlists.".format(self.name))
         self._playlist = match[0]
         return self._playlist
+
+    @property
+    def prettyName(self):
+        return self.playlist.prettyName
 
     @property
     def promo(self):
@@ -683,219 +687,34 @@ class ScenePlaylist(object):
             print("Returning Tail of {}".format(self.tail))
             return self.tail
         elif int(trackType) == EventCategories.Soundtrack.value:
-            # TODO: ALLEN LEFT OFF HERE: Need to access self.playlist.soundtrack - maybe make that a method with sessionAttribute logic
-            path = "https://s3.amazonaws.com/dart-battle-resources/sndtrk"
+            path = self.playlist.soundtrack
             duration = currentTrack.split(".")[2]
-            if int(sfx) == 1:
-                sfx = "Sfx"
-            else:
-                sfx = "NoSfx"
-            if int(soundtrack) == 1:
-                soundtrack = "Music"
-            else:
-                soundtrack = "NoMusic"
-            if scenarioName == "NoEvents01":
-                scenarioName = "Arctic"  # Reusing sndtrk from Arctic to save storage space
-            filename = "sndtrk_{}_{}_{}_{}s.mp3".format(
-                scenarioName,
-                soundtrack,
-                sfx,
-                duration
-            )
-            return path + filename
+            path = path.format(duration)
+            if int(sfx) == 0:
+                path = path.replace("Sfx", "NoSfx")
+            if int(soundtrack) == 0:
+                path = path.replace("Music", "NoMusic")
+            return path
 
         # Looks like we have an event
-        filename = 'event'
-        filename += '_{}'.format(scenarioName)
-        filename += '_{}'.format(playerRank)
-        filename += '_{}'.format([x.name for x in EventCategories if x.value == int(trackType)][0])
-        trackTitle = currentTrack.split(".")[2]
-        filename += '_{}'.format(trackTitle)
         if teams == '1':
-            filename += '_Team'
+            teamToken = 'Team'
         else:
-            filename += '_NoTeam'
+            teamToken = 'NoTeam'
         roles = currentTrack.split(".")[3:]
-        filename += '_{}'.format(".".join(roles))
-        filename += '.mp3'
-
-        if scenarioName == "Arctic":
-            tracklist = playlists.Arctic().events
-        else:
+        roles = ".".join(roles)
+        kwargs = {
+            "rank": playerRank,
+            "eventCategory": [x.name for x in EventCategories if x.value == int(trackType)][0],
+            "eventTitle": currentTrack.split(".")[2],
+            "teamToken": teamToken,
+            "roles": roles
+        }
+        track = self.playlist.getEventWithProperties(**kwargs)
+        if not track:
             return "https://s3.amazonaws.com/dart-battle-resources/errorBattle_01.mp3"
 
-        matchingTracks = [x for x in tracklist if x.endswith(filename)]
-        zeroFilename = ""
-        if not matchingTracks:
-            # Maybe it's an 'Any' type:
-            filename = filename.replace('_NoTeam_', '_Any_')
-            filename = filename.replace('_Team_', '_Any_')
-            matchingTracks = [x for x in tracklist if x.endswith(filename)]
-        if not matchingTracks:
-            # Maybe it's an Any rank
-            # event_Arctic_04_TagFeature_AirstrikeCancel_Any_02.mp3
-            zeroFilename = filename.split("_")[0]
-            zeroFilename += "_{}".format(filename.split("_")[1])
-            zeroFilename += "_00_"
-            zeroFilename += "_".join(filename.split("_")[3:])
-            matchingTracks = [x for x in tracklist if x.endswith(zeroFilename)]
-            if not matchingTracks:
-                # Maybe team specific
-                if teams == '1':
-                    token = 'Team'
-                else:
-                    token = 'NoTeam'
-                zeroFilename = zeroFilename.replace("_Any_", "_{}_".format(token))
-                matchingTracks = [x for x in tracklist if x.endswith(zeroFilename)]
-        # TODO: The above is ATROCIOUS. Split into methods that can be called, no duplicate code!
-        if not matchingTracks:
-            # raise ValueError("No track named {} in track list".format(filename))
-            print("No track named {} or {} in track list".format(filename, zeroFilename))
-            return "https://s3.amazonaws.com/dart-battle-resources/errorBattle_01.mp3"
-        return matchingTracks[0]
-
-
-class MasterPlaylist(object):
-    """Playlist obj serving as the broker between requestor and a scene or other playlist.
-
-    Args:
-        duration : (int)
-            The duration in minutes of the requested playlist.
-
-        sessionAttributes : (dict)
-            Session attributes served by Alexa API.
-
-    """
-    def __init__(self, duration, sessionAttributes):
-        self.duration = duration
-        self.scene = None
-        self.sessionAttributes = sessionAttributes
-        arctic = ScenePlaylist(sessionAttributes, name='Arctic')
-        noEvents01 = ScenePlaylist(sessionAttributes, name='NoEvents01')
-        # TODO: Check for entitlements:
-        self.scenes = {'Arctic': arctic}
-        self.scenesNoEvents = {'NoEvents01': noEvents01}
-
-    def getPromo(self):
-        """Pulls up a promotional track, should one exist."""
-        return self.scenes[self.scene].promo
-
-    def getIntroAudio(self):
-        """Generates a playlist token, extracts the intro.
-        Args:
-            N/A
-
-        Raises:
-            N/A
-
-        Returns:
-            str
-                The token representing the playlist that was generated.
-
-            str
-                The URL to the intro audio track.
-
-        """
-        self.scene = random.choice(list(self.scenes.keys()))
-        # TODO: Check for SFX/Music
-        # Check to see if user has events enabled:
-        usingEvents = self.sessionAttributes.get("usingEvents", "True")
-        # print("-------- sessionAttr: --------------\n{}".format(self.sessionAttributes))
-        if usingEvents == "False":
-            self.scene = random.choice(list(self.scenesNoEvents.keys()))
-            sceneObj = self.scenesNoEvents[self.scene]
-        else:
-            sceneObj = self.scenes[self.scene]
-
-        token = sceneObj.buildPlaylist(self.duration)
-        # print("Token received: {}".format(token))
-        track = sceneObj.getTrackFromToken(token)
-        # print("Track determined: {}".format(track))
-        return token, track
-
-    def getFirstTrackFromToken(self, token):
-        """Given a playlist token, extract the first track and return its URL.
-
-        Args:
-            token : (str)
-                The playlist token to parse.
-
-        Raises:
-            N/A
-
-        Returns:
-            str
-                Token indicating that first track is current track.
-
-            str
-                URL to the first track.
-
-        """
-        sessionInfo = token.split("_")[1]
-        (playerRank, scenarioEnum, teams, sfx, soundtrack) = sessionInfo.split(".")
-        scenarioName = Scenarios(int(scenarioEnum)).name
-        try:
-            sceneObj = self.scenes[scenarioName]
-        except KeyError:
-            sceneObj = self.scenesNoEvents[scenarioName]
-        (firstToken, firstTrack) = sceneObj.getFirstTrackFromToken(token)
-        return firstToken, firstTrack
-
-    def getNextFromToken(self, prevToken):
-        """Given a playlist token, extract the next track and return its URL.
-
-        Args:
-            prevToken : (str)
-                The playlist token to parse.
-
-        Raises:
-            N/A
-
-        Returns:
-            str
-                Token indicating that next track is current track.
-
-            str
-                URL to the next track.
-
-        """
-        sessionInfo = prevToken.split("_")[1]
-        (playerRank, scenarioEnum, teams, sfx, soundtrack) = sessionInfo.split(".")
-        scenarioName = Scenarios(int(scenarioEnum)).name
-        try:
-            sceneObj = self.scenes[scenarioName]
-        except KeyError:
-            sceneObj = self.scenesNoEvents[scenarioName]
-        (nextToken, nextTrack) = sceneObj.getNextFromToken(prevToken)
-        return nextToken, nextTrack
-
-    def getPreviousFromToken(self, currToken):
-        """Given a playlist token, extract the previous track and return its URL.
-
-        Args:
-            currToken : (str)
-                The playlist token to parse.
-
-        Raises:
-            N/A
-
-        Returns:
-            str
-                Token indicating that previous track is current track.
-
-            str
-                URL to the previous track.
-
-        """
-        sessionInfo = currToken.split("_")[1]
-        (playerRank, scenarioEnum, teams, sfx, soundtrack) = sessionInfo.split(".")
-        scenarioName = Scenarios(int(scenarioEnum)).name
-        try:
-            sceneObj = self.scenes[scenarioName]
-        except KeyError:
-            sceneObj = self.scenesNoEvents[scenarioName]
-        (prevToken, prevTrack) = sceneObj.getPrevFromToken(currToken)
-        return prevToken, prevTrack
+        return track
 
 
 def startBattleDurationIntent(intent, session):
@@ -961,10 +780,12 @@ def startBattleStandardIntent(session, duration=None):
     if sessionAttributes['usingTeams'] == "True":
         isTeam = "team"
 
-    playlist = MasterPlaylist(duration, sessionAttributes)
-    (token, track) = playlist.getIntroAudio()
+    playlist = Scenario(sessionAttributes)
+    token = playlist.buildPlaylist(duration)
+    track = playlist.getTrackFromToken(token)
+
     durMin = int(duration/60)
-    sceneName = playlist.scene
+    sceneName = playlist.prettyName
     numBattles = int(sessionAttributes['numBattles'])
     numBattles += 1
     sessionAttributes['numBattles'] = str(numBattles)
@@ -1029,14 +850,16 @@ def startBattleStandardIntent(session, duration=None):
 
 def continueAudioPlayback(session, prevToken):
     """Triggered by PlaybackNearlyFinished event, plays next."""
-    # Request triggered by PlaybackNearlyFinished and has no active session.
-    # Default values (not really used) #TODO: Clean up MasterPlaylist init.
-    duration = 120
+    # Request triggered by PlaybackNearlyFinished and has no active session. Default is fine.
     userId = session['context']['System']['user']['userId']
     sessionAttributes = database.getDefaultSessionAttrs(userId)
     playBehavior = "ENQUEUE"
-    playlist = MasterPlaylist(duration, sessionAttributes)
-    (nextToken, nextTrack) = playlist.getNextFromToken(prevToken)
+
+    sessionInfo = prevToken.split("_")[1]
+    (playerRank, scenarioEnum, teams, sfx, soundtrack) = sessionInfo.split(".")
+    scenarioName = Scenarios(int(scenarioEnum)).name
+    (nextToken, nextTrack) = Scenario(sessionAttributes, name=scenarioName).getNextFromToken(prevToken)
+
     sessionAttributes['currentToken'] = nextToken
     if nextToken:
         database.updateRecordToken(sessionAttributes)
@@ -1059,7 +882,7 @@ def continueAudioPlayback(session, prevToken):
             ]
         }
     }
-    print("Continue Audio Finished, returning: {}".format(response))
+    # print("Continue Audio Finished, returning: {}".format(response))
     return response
 
 
@@ -1067,11 +890,14 @@ def reverseAudioPlayback(session):
     """Triggered when user asks for next track, plays previous."""
     # Request was triggered by a user asking for Previous track.
     sessionAttributes = database.getSessionFromDB(session)
-    duration = int(sessionAttributes['battleDuration'])
     # currentToken is always one ahead of the one that's playing.
     currentToken = sessionAttributes['currentToken']
-    masterPlaylist = MasterPlaylist(duration, sessionAttributes)
-    (previousToken, previousTrack) = masterPlaylist.getPreviousFromToken(currentToken)
+
+    sessionInfo = currentToken.split("_")[1]
+    (playerRank, scenarioEnum, teams, sfx, soundtrack) = sessionInfo.split(".")
+    scenarioName = Scenarios(int(scenarioEnum)).name
+    (previousToken, previousTrack) = Scenario(sessionAttributes, name=scenarioName).getPrevFromToken(currentToken)
+
     playBehavior = "REPLACE_ALL"
     sessionAttributes['currentToken'] = previousToken
     database.updateRecordToken(sessionAttributes)
@@ -1101,9 +927,11 @@ def reverseAudioPlayback(session):
 def restartAudioPlayback(session):
     sessionAttributes = database.getSessionFromDB(session)
     currentToken = sessionAttributes['currentToken']
-    duration = int(sessionAttributes['battleDuration'])
-    playlist = MasterPlaylist(duration, sessionAttributes)
-    (firstToken, firstTrack) = playlist.getFirstTrackFromToken(currentToken)
+
+    sessionInfo = currentToken.split("_")[1]
+    (playerRank, scenarioEnum, teams, sfx, soundtrack) = sessionInfo.split(".")
+    scenarioName = Scenarios(int(scenarioEnum)).name
+    (firstToken, firstTrack) = Scenario(sessionAttributes, name=scenarioName).getFirstTrackFromToken(currentToken)
     sessionAttributes['currentToken'] = firstToken
     database.updateRecordToken(sessionAttributes)
     return {
@@ -1134,7 +962,7 @@ def skipToNextAudioPlayback(session):
     # courtesy of playbackNearlyFinished; just return the recorded token:
     nextToken = sessionAttributes['currentToken']
     playBehavior = "REPLACE_ALL"
-    generic = ScenePlaylist(sessionAttributes)
+    generic = Scenario(sessionAttributes)
     nextTrack = generic.getTrackFromToken(nextToken)  # TODO: Make this a classmethod so no args are required
     sessionAttributes['currentToken'] = nextToken
     database.updateRecordToken(sessionAttributes)

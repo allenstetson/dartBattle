@@ -19,6 +19,7 @@ class Playlist(object):
         self.outCount = ""
         self.outtro = ""
         self.outtroTeams = ""
+        self.prettyName = "Default Playlist"
 
     # -------------------------------------------------------------------------
     # PROPERTIES
@@ -99,6 +100,66 @@ class Playlist(object):
             randTrack = intros[randKey].format(int(rank))
             return randKey, randTrack
         return variant, intros[variant].format(int(rank))
+
+    def _getEventsWithCategory(self, eventCategory, tracks=None):
+        tracks = tracks or self.getEventsForRank('00')
+        matches = [x for x in tracks if eventCategory in x]
+        return matches
+
+    def _getEventsWithRoles(self, roles, tracks=None):
+        tracks = tracks or self.getEventsForRank('00')
+        matches = [x for x in tracks if roles in x]
+        return matches
+
+    def _getEventsWithTeamToken(self, teamToken, tracks=None):
+        teamToken = "_{}_".format(teamToken)
+        tracks = tracks or self.getEventsForRank('00')
+        matches = [x for x in tracks if teamToken in x]
+        return matches
+
+    def _getEventsWithTitle(self, eventTitle, tracks=None):
+        tracks = tracks or self.getEventsForRank('00')
+        matches = [x for x in tracks if eventTitle in x]
+        return matches
+
+    def getEventWithProperties(self, rank=None, eventCategory=None, eventTitle=None, teamToken=None, roles=None):
+        rank = rank or '00'
+        def filterTracksWithRank(rank):
+            rankTracks = self.getEventsForRank(rank)
+
+            eventTracks = self._getEventsWithCategory(eventCategory, tracks=rankTracks)
+            if not eventTracks:
+                eventTracks = self._getEventsWithCategory(eventCategory)
+            if not eventTracks:
+                return None
+
+            titleTracks = self._getEventsWithTitle(eventTitle, tracks=eventTracks)
+            if not titleTracks:
+                return None
+
+            teamTokenEvents = self._getEventsWithTeamToken(teamToken, tracks=eventTracks)
+            if not teamTokenEvents:
+                teamTokenEvents = self._getEventsWithTeamToken("Any", eventTracks)
+            if not teamTokenEvents:
+                return None
+
+            finalSelections = self._getEventsWithRoles(roles, tracks=teamTokenEvents)
+            if not finalSelections:
+                return None
+
+            return finalSelections
+        selections = filterTracksWithRank(rank)
+        if not selections:
+            selections = filterTracksWithRank('00')
+        if not selections:
+            return None
+        if len(selections) > 1:
+            print("WARNING! More than one track matched getEventWithProperties:")
+            print("Properties: rank, {}; eventCategory, {}; eventTitle, {}; teamToken, {}; roles, {}".format(rank, eventCategory, eventTitle, teamToken, roles))
+            print("Tracks: {}".format(selections))
+            print("Using first one found.")
+        selection = selections[0]
+        return selection
 
     @staticmethod
     def isActive(sessionAttributes):
@@ -228,6 +289,7 @@ class Arctic(Playlist):
         self.outCount = "https://s3.amazonaws.com/dart-battle-resources/scenarios/arctic/outCounts/outCount_Arctic_00_YourBattleEnds_Any_00.mp3"
         self.outtro = "https://s3.amazonaws.com/dart-battle-resources/scenarios/arctic/outtros/outtro_Arctic_00_CeaseFire_NoTeam_00.mp3"
         self.outtroTeams = "https://s3.amazonaws.com/dart-battle-resources/scenarios/arctic/outtros/outtro_Arctic_00_CeaseFire_Team_00.mp3"
+        self.prettyName = "Arctic Defense"
 
     # -------------------------------------------------------------------------
     # PROPERTIES
@@ -261,6 +323,7 @@ class NoEvents01(Playlist):
         self.soundtrack = "https://s3.amazonaws.com/dart-battle-resources/sndtrk/sndtrk_Arctic_Music_Sfx_{}s.mp3"
         self.outtro = "https://s3.amazonaws.com/dart-battle-resources/tail_NoTeam.mp3"
         self.outtroTeams = "https://s3.amazonaws.com/dart-battle-resources/tail_Team.mp3"
+        self.prettyName = "NoEvents01"
 
     # -------------------------------------------------------------------------
     # PROPERTIES
@@ -301,6 +364,7 @@ class Prospector(Playlist):
         self.outCount = "https://s3.amazonaws.com/dart-battle-resources/scenarios/arctic/outCounts/outCount_Arctic_00_YourBattleEnds_Any_00.mp3"
         self.outtro = "https://s3.amazonaws.com/dart-battle-resources/scenarios/arctic/outtros/outtro_Arctic_00_CeaseFire_NoTeam_00.mp3"
         self.outtroTeams = "https://s3.amazonaws.com/dart-battle-resources/scenarios/arctic/outtros/outtro_Arctic_00_CeaseFire_Team_00.mp3"
+        self.prettyName = "Prospector's Predicament"
 
     @property
     def intro(self):
