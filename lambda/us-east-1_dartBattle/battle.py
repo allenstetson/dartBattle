@@ -82,6 +82,8 @@ class Scenario(object):
 
     """
     def __init__(self, sessionAttributes, name=None):
+        self.sessionAttributes = sessionAttributes
+
         self._availableEvents = None
         self._protectedCategories = [
             EventCategories.Intro,
@@ -92,18 +94,18 @@ class Scenario(object):
             EventCategories.Tail
             ]
         if not name:
-            name, playlist = random.choice(self.availablePlaylists).key()
+            name, playlist = random.choice(self.availablePlaylists)
             self.name = name
             self._playlist = playlist
         else:
             self.name = name
+            self._playlist = [x[1] for x in self.availablePlaylists if x[0] == name][0]
 
         self._randomEvents = []
         self.eventsChosen = {}
         self._intro = ""
         self._introVariant = ""
         self._playerRank = None
-        self.sessionAttributes = sessionAttributes
         self.useSfx = 1
         self.useSoundtrack = 1
         self.variant = "standard"
@@ -239,7 +241,7 @@ class Scenario(object):
     def playlist(self):
         if self._playlist:
             return self._playlist
-        match =[x[1] for x in self.availablePlaylists if x[0] == self.name]
+        match = [x[1] for x in self.availablePlaylists if x[0] == self.name]
         if not match:
             raise NameError("Name {} not found in available playlists.".format(self.name))
         self._playlist = match[0]
@@ -797,7 +799,7 @@ def startBattleStandardIntent(session, duration=None):
     if database.isActive():
         database.updateRecord(sessionAttributes)
 
-    promo = playlist.getPromo()
+    promo = playlist.promo
     if promo:
         speech += '<audio src="{}" /> '.format(promo)
 
@@ -889,7 +891,9 @@ def continueAudioPlayback(session, prevToken):
 def reverseAudioPlayback(session):
     """Triggered when user asks for next track, plays previous."""
     # Request was triggered by a user asking for Previous track.
-    sessionAttributes = database.getSessionFromDB(session)
+    session = database.getSessionFromDB(session)
+    sessionAttributes = session["attributes"]
+
     # currentToken is always one ahead of the one that's playing.
     currentToken = sessionAttributes['currentToken']
 
@@ -925,7 +929,9 @@ def reverseAudioPlayback(session):
 
 
 def restartAudioPlayback(session):
-    sessionAttributes = database.getSessionFromDB(session)
+    session = database.getSessionFromDB(session)
+    sessionAttributes = session["attributes"]
+
     currentToken = sessionAttributes['currentToken']
 
     sessionInfo = currentToken.split("_")[1]
@@ -957,7 +963,8 @@ def restartAudioPlayback(session):
 def skipToNextAudioPlayback(session):
     """Triggered when user asks for next track, plays next."""
     # Request was triggered by a user asking for Next track.
-    sessionAttributes = database.getSessionFromDB(session)
+    session = database.getSessionFromDB(session)
+    sessionAttributes = session["attributes"]
     # currentToken is always one ahead of the one that's playing,
     # courtesy of playbackNearlyFinished; just return the recorded token:
     nextToken = sessionAttributes['currentToken']

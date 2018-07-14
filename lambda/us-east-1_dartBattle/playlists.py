@@ -6,7 +6,8 @@ import random
 import rank
 
 def GetRankPromotionFile(rank):
-    rankFile = 'https://s3.amazonaws.com/dart-battle-resources/common/common_Any_{}_RankPromotion_Any_00.mp3'
+    rank = int(rank)
+    rankFile = 'https://s3.amazonaws.com/dart-battle-resources/common/common_Any_{:02d}_RankPromotion_Any_00.mp3'
     rankFile = rankFile.format(rank)
     return rankFile
 
@@ -137,9 +138,9 @@ class Playlist(object):
             if not titleTracks:
                 return None
 
-            teamTokenEvents = self._getEventsWithTeamToken(teamToken, tracks=eventTracks)
+            teamTokenEvents = self._getEventsWithTeamToken(teamToken, tracks=titleTracks)
             if not teamTokenEvents:
-                teamTokenEvents = self._getEventsWithTeamToken("Any", eventTracks)
+                teamTokenEvents = self._getEventsWithTeamToken("Any", titleTracks)
             if not teamTokenEvents:
                 return None
 
