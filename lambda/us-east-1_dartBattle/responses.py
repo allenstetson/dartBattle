@@ -80,7 +80,7 @@ def getOptionsResponse(session):
     text += "__BATTLES:__\n"
     text += "Start a battle, Start a _ minute battle.\n"
     text += "__RANK:__\n"
-    text += "What is my rank?\n"
+    text += "What rank am I?\n"
     text += "__VICTORIES:__\n"
     text += "Record a victory, Tell me the victories,\n"
     text += "Clear all victories, Clear victories for _.\n"
