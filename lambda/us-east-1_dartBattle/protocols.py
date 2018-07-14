@@ -28,8 +28,10 @@ def enableProtocol(event):
     else:
         protocolName = None
     registeredProtocols = [
+        ProtocolAboutFace(session),
+        ProtocolCrowsNest(session),
         ProtocolSilverSparrow(session),
-        ProtocolCrowsNest(session)
+        ProtocolStingray
     ]
 
     allNames = []
@@ -123,6 +125,59 @@ class DartBattleProtocol(object):
         return self._names or [self.name]
 
 
+class ProtocolAboutFace(DartBattleProtocol):
+    def __init__(self, session):
+        super(ProtocolAboutFace, self).__init__(session)
+        self.name = "about face"
+
+    def _run(self):
+        # Do protocol-specific things here
+        numBattles = int(self.sessionAttributes['numBattles'])
+        numBattles += 10
+        self.sessionAttributes['numBattles'] = str(numBattles)
+        database.updateRecord(self.sessionAttributes)
+
+        # Report Success
+        self.speech += "Thank you for taking the time to provide us with your valued feedback. "
+        self.speech += "10 battles have been added to your total, getting you closer to the next rank promotion. "
+        self.title += "Protocol About Face: enabled"
+        self.text += "+10 battles toward rank advancement"
+
+    def disable(self):
+        if not self.name in self.protocolCodes:
+            self.speech = "There is no protocol with that name which is enabled. "
+            self.title = "Protocols"
+            self.text = "Earn protocols by visiting http://dartbattle.fun and completing Special Objectives."
+        else:
+            self.speech = "Protocol {} is permanent and cannot be disabled. ".format(self.name)
+            self.title = "Protocol About Face: enabled (permanent)"
+            self.text = "This protocol was enabled on {} and cannot be disabled.".format(self.protocolCodes[self.name])
+
+
+class ProtocolCrowsNest(DartBattleProtocol):
+    def __init__(self, session):
+        super(ProtocolCrowsNest, self).__init__(session)
+        self.name = "crow's nest"
+        self._names = ["close nest", "crows nest", "crow's nest", "crowsnest"]
+
+    def _run(self):
+        self.speech += "Thank you for helping to spread the word about Dart Battle. "
+        self.speech += "COMSAT tactical greetings are now being added to the rotation of randomly selected greetings. "
+        self.title += "Protocol Crow's Nest: enabled"
+        self.text += "COMSAT Tactical greetings have been added to rotation."
+
+    def disable(self):
+        if not self.name in self.protocolCodes:
+            self.speech = "There is no protocol with that name which is enabled. "
+            self.title = "Protocols"
+            self.text = "Earn protocols by visiting http://dartbattle.fun and completing Special Objectives."
+        else:
+            self.speech = "Protocol {} now disabled. ".format(self.name)
+            self.title = "Protocol Crow's Nest: disabled"
+            self.text = "COMSAT tactical greetings are now removed from rotation."
+            self._updateDatabase(value="False")
+
+
 class ProtocolSilverSparrow(DartBattleProtocol):
     def __init__(self, session):
         super(ProtocolSilverSparrow, self).__init__(session)
@@ -151,17 +206,24 @@ class ProtocolSilverSparrow(DartBattleProtocol):
             self.text = "This protocol was enabled on {} and cannot be disabled.".format(self.protocolCodes[self.name])
 
 
-class ProtocolCrowsNest(DartBattleProtocol):
+class ProtocolStingray(DartBattleProtocol):
     def __init__(self, session):
-        super(ProtocolCrowsNest, self).__init__(session)
-        self.name = "crow's nest"
-        self._names = ["close nest", "crows nest", "crow's nest", "crowsnest"]
+        super(ProtocolStingray, self).__init__(session)
+        self.name = "stingray"
+        self._names = ["stingray", "sting ray"]
 
     def _run(self):
+        # Do protocol-specific things here
+        numBattles = int(self.sessionAttributes['numBattles'])
+        numBattles += 10
+        self.sessionAttributes['numBattles'] = str(numBattles)
+        database.updateRecord(self.sessionAttributes)
+
+        # Report Success
         self.speech += "Thank you for helping to spread the word about Dart Battle. "
-        self.speech += "COMSAT tactical greetings are now being added to the rotation of randomly selected greetings. "
-        self.title += "Protocol Crow's Nest: enabled"
-        self.text += "COMSAT Tactical greetings have been added to rotation."
+        self.speech += "10 battles have been added to your total, getting you closer to the next rank promotion. "
+        self.title += "Protocol Stingray: enabled"
+        self.text += "+10 battles toward rank advancement"
 
     def disable(self):
         if not self.name in self.protocolCodes:
@@ -169,7 +231,7 @@ class ProtocolCrowsNest(DartBattleProtocol):
             self.title = "Protocols"
             self.text = "Earn protocols by visiting http://dartbattle.fun and completing Special Objectives."
         else:
-            self.speech = "Protocol {} now disabled. ".format(self.name)
-            self.title = "Protocol Crow's Nest: disabled"
-            self.text = "COMSAT tactical greetings are now removed from rotation."
-            self._updateDatabase(value="False")
+            self.speech = "Protocol {} is permanent and cannot be disabled. ".format(self.name)
+            self.title = "Protocol About Face: enabled (permanent)"
+            self.text = "This protocol was enabled on {} and cannot be disabled.".format(self.protocolCodes[self.name])
+
