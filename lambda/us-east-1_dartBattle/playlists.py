@@ -1,14 +1,177 @@
+# std lib imports:
+import datetime
 import random
 
+# Dart Battle imports:
+import rank
 
 def GetRankPromotionFile(rank):
-    rankFile = 'https://s3.amazonaws.com/dart-battle-resources/common/common_Any_{}_RankPromotion_Any_00.mp3'
+    rank = int(rank)
+    rankFile = 'https://s3.amazonaws.com/dart-battle-resources/common/common_Any_{:02d}_RankPromotion_Any_00.mp3'
     rankFile = rankFile.format(rank)
     return rankFile
 
 
-class Arctic(object):
+class Playlist(object):
     def __init__(self):
+        self._events = []
+        self.inCount = "https://s3.amazonaws.com/dart-battle-resources/common/inCount_Any_00_YourBattleBegins_Any_00.mp3"
+        self.soundtrack = ""
+        self.outCount = ""
+        self.outtro = ""
+        self.outtroTeams = ""
+        self.prettyName = "Default Playlist"
+
+    # -------------------------------------------------------------------------
+    # PROPERTIES
+    # -------------------------------------------------------------------------
+    @property
+    def events(self):
+        allEvents = []
+        for event in self._events:
+            for i in range(len(rank.rankRequirements)):
+                allEvents.append(event.format(i))
+        return allEvents
+
+    @property
+    def intro(self):
+        intros = [
+            ""
+        ]
+        return random.choice(intros)
+
+    @property
+    def promo(self):
+        promos = [
+            "https://s3.amazonaws.com/dart-battle-resources/scenarios/promos/promo_Any_00_AudioDirectives_A.mp3",
+            "https://s3.amazonaws.com/dart-battle-resources/scenarios/promos/promo_Any_00_ClearTeams_A.mp3",
+            "https://s3.amazonaws.com/dart-battle-resources/scenarios/promos/promo_Any_00_DisableEvents_A.mp3",
+            "https://s3.amazonaws.com/dart-battle-resources/scenarios/promos/promo_Any_00_Facebook_A.mp3",
+            "https://s3.amazonaws.com/dart-battle-resources/scenarios/promos/promo_Any_00_HowDoIPlay_A.mp3",
+            "https://s3.amazonaws.com/dart-battle-resources/scenarios/promos/promo_Any_00_HowMoreScenarios_A.mp3",
+            "https://s3.amazonaws.com/dart-battle-resources/scenarios/promos/promo_Any_00_HowMoreScenarios_B.mp3",
+            "https://s3.amazonaws.com/dart-battle-resources/scenarios/promos/promo_Any_00_QuickTeamSetup_A.mp3",
+            "https://s3.amazonaws.com/dart-battle-resources/scenarios/promos/promo_Any_00_RankPromotion_A.mp3",
+            "https://s3.amazonaws.com/dart-battle-resources/scenarios/promos/promo_Any_00_RememberRoles_A.mp3",
+            "https://s3.amazonaws.com/dart-battle-resources/scenarios/promos/promo_Any_00_SafetyReminder_A.mp3",
+            "https://s3.amazonaws.com/dart-battle-resources/scenarios/promos/promo_Any_00_SafetyReminder_B.mp3",
+            "https://s3.amazonaws.com/dart-battle-resources/scenarios/promos/promo_Any_00_ShuffleTeams_A.mp3",
+            "https://s3.amazonaws.com/dart-battle-resources/scenarios/promos/promo_Any_00_TeamMode_A.mp3",
+            "https://s3.amazonaws.com/dart-battle-resources/scenarios/promos/promo_Any_00_VisualOutput_A.mp3",
+            # Duplicates for weighting
+            "https://s3.amazonaws.com/dart-battle-resources/scenarios/promos/promo_Any_00_Facebook_A.mp3",
+            "https://s3.amazonaws.com/dart-battle-resources/scenarios/promos/promo_Any_00_HowMoreScenarios_A.mp3",
+            "https://s3.amazonaws.com/dart-battle-resources/scenarios/promos/promo_Any_00_HowMoreScenarios_B.mp3",
+            # NoneTypes for the chance that no Promotion takes place.
+            None,
+            None,
+            None,
+            None,
+            None,
+        ]
+        return random.choice(promos)
+
+    @property
+    def tail(self):
+        tails = [
+            "https://s3.amazonaws.com/dart-battle-resources/common/common_Any_00_Tail_RateUsA_Any_00.mp3",
+            # NoneTypes for the chance that no Tail takes place.
+            None,
+            None,
+            None
+        ]
+        return random.choice(tails)
+
+    # -------------------------------------------------------------------------
+    # PUBLIC METHODS
+    # -------------------------------------------------------------------------
+    def getEventsForRank(self, rank):
+        allEvents = []
+        for event in self._events:
+            allEvents.append(event.format(int(rank)))
+        return allEvents
+
+    @staticmethod
+    def getIntro(rank=None, variant=None):
+        intros = {
+            "A": "",
+        }
+        if not variant:
+            randKey = random.choice(list(intros.keys()))
+            randTrack = intros[randKey].format(int(rank))
+            return randKey, randTrack
+        return variant, intros[variant].format(int(rank))
+
+    def _getEventsWithCategory(self, eventCategory, tracks=None):
+        tracks = tracks or self.getEventsForRank('00')
+        matches = [x for x in tracks if eventCategory in x]
+        return matches
+
+    def _getEventsWithRoles(self, roles, tracks=None):
+        tracks = tracks or self.getEventsForRank('00')
+        matches = [x for x in tracks if roles in x]
+        return matches
+
+    def _getEventsWithTeamToken(self, teamToken, tracks=None):
+        teamToken = "_{}_".format(teamToken)
+        tracks = tracks or self.getEventsForRank('00')
+        matches = [x for x in tracks if teamToken in x]
+        return matches
+
+    def _getEventsWithTitle(self, eventTitle, tracks=None):
+        tracks = tracks or self.getEventsForRank('00')
+        matches = [x for x in tracks if eventTitle in x]
+        return matches
+
+    def getEventWithProperties(self, rank=None, eventCategory=None, eventTitle=None, teamToken=None, roles=None):
+        rank = rank or '00'
+        def filterTracksWithRank(rank):
+            rankTracks = self.getEventsForRank(rank)
+
+            eventTracks = self._getEventsWithCategory(eventCategory, tracks=rankTracks)
+            if not eventTracks:
+                eventTracks = self._getEventsWithCategory(eventCategory)
+            if not eventTracks:
+                return None
+
+            titleTracks = self._getEventsWithTitle(eventTitle, tracks=eventTracks)
+            if not titleTracks:
+                return None
+
+            teamTokenEvents = self._getEventsWithTeamToken(teamToken, tracks=titleTracks)
+            if not teamTokenEvents:
+                teamTokenEvents = self._getEventsWithTeamToken("Any", titleTracks)
+            if not teamTokenEvents:
+                return None
+
+            finalSelections = self._getEventsWithRoles(roles, tracks=teamTokenEvents)
+            if not finalSelections:
+                return None
+
+            return finalSelections
+        selections = filterTracksWithRank(rank)
+        if not selections:
+            selections = filterTracksWithRank('00')
+        if not selections:
+            return None
+        if len(selections) > 1:
+            print("WARNING! More than one track matched getEventWithProperties:")
+            print("Properties: rank, {}; eventCategory, {}; eventTitle, {}; teamToken, {}; roles, {}".format(rank, eventCategory, eventTitle, teamToken, roles))
+            print("Tracks: {}".format(selections))
+            print("Using first one found.")
+        selection = selections[0]
+        return selection
+
+    @staticmethod
+    def isActive(sessionAttributes):
+        usingEvents = sessionAttributes.get("usingEvents", "True")
+        if usingEvents:
+            return True
+        return False
+
+class Arctic(Playlist):
+    def __init__(self):
+        super(Arctic, self).__init__()
         self._events = [
             'https://s3.amazonaws.com/dart-battle-resources/scenarios/arctic/events/ceaseFire/event_Arctic_{:02d}_CeaseFire_HeatSignature_Any_00.mp3',
             'https://s3.amazonaws.com/dart-battle-resources/scenarios/arctic/events/ceaseFire/event_Arctic_{:02d}_CeaseFire_IceBreak_Any_00.mp3',
@@ -121,23 +284,17 @@ class Arctic(object):
             'https://s3.amazonaws.com/dart-battle-resources/scenarios/arctic/events/zeroEliminations/event_Arctic_{:02d}_ZeroEliminations_HalfDamage_Team_00.mp3',
         ]
 
-        self.inCount = "https://s3.amazonaws.com/dart-battle-resources/common/inCount_Any_00_YourBattleBegins_Any_00.mp3"
-        self.soundtrack = "https://s3.amazonaws.com/dart-battle-resources/sndtrk_Arctic_Music_Sfx_{}s"
+        self.soundtrack = "https://s3.amazonaws.com/dart-battle-resources/sndtrk/sndtrk_Arctic_Music_Sfx_{}s.mp3"
+        self.soundtrackOnly = ""
+        self.soundtrackSfx = ""
         self.outCount = "https://s3.amazonaws.com/dart-battle-resources/scenarios/arctic/outCounts/outCount_Arctic_00_YourBattleEnds_Any_00.mp3"
         self.outtro = "https://s3.amazonaws.com/dart-battle-resources/scenarios/arctic/outtros/outtro_Arctic_00_CeaseFire_NoTeam_00.mp3"
         self.outtroTeams = "https://s3.amazonaws.com/dart-battle-resources/scenarios/arctic/outtros/outtro_Arctic_00_CeaseFire_Team_00.mp3"
+        self.prettyName = "Arctic Defense"
 
     # -------------------------------------------------------------------------
     # PROPERTIES
     # -------------------------------------------------------------------------
-    @property
-    def events(self):
-        allEvents = []
-        for event in self._events:
-            for i in range(12):
-                allEvents.append(event.format(i))
-        return allEvents
-
     @property
     def intro(self):
         intros = [
@@ -145,59 +302,11 @@ class Arctic(object):
         ]
         return random.choice(intros)
 
-    @property
-    def promo(self):
-        promos = [
-            "https://s3.amazonaws.com/dart-battle-resources/scenarios/promos/promo_Any_00_AudioDirectives_A.mp3",
-            "https://s3.amazonaws.com/dart-battle-resources/scenarios/promos/promo_Any_00_ClearTeams_A.mp3",
-            "https://s3.amazonaws.com/dart-battle-resources/scenarios/promos/promo_Any_00_DisableEvents_A.mp3",
-            "https://s3.amazonaws.com/dart-battle-resources/scenarios/promos/promo_Any_00_Facebook_A.mp3",
-            "https://s3.amazonaws.com/dart-battle-resources/scenarios/promos/promo_Any_00_HowDoIPlay_A.mp3",
-            "https://s3.amazonaws.com/dart-battle-resources/scenarios/promos/promo_Any_00_HowMoreScenarios_A.mp3",
-            "https://s3.amazonaws.com/dart-battle-resources/scenarios/promos/promo_Any_00_HowMoreScenarios_B.mp3",
-            "https://s3.amazonaws.com/dart-battle-resources/scenarios/promos/promo_Any_00_QuickTeamSetup_A.mp3",
-            "https://s3.amazonaws.com/dart-battle-resources/scenarios/promos/promo_Any_00_RankPromotion_A.mp3",
-            "https://s3.amazonaws.com/dart-battle-resources/scenarios/promos/promo_Any_00_RememberRoles_A.mp3",
-            "https://s3.amazonaws.com/dart-battle-resources/scenarios/promos/promo_Any_00_SafetyReminder_A.mp3",
-            "https://s3.amazonaws.com/dart-battle-resources/scenarios/promos/promo_Any_00_SafetyReminder_B.mp3",
-            "https://s3.amazonaws.com/dart-battle-resources/scenarios/promos/promo_Any_00_ShuffleTeams_A.mp3",
-            "https://s3.amazonaws.com/dart-battle-resources/scenarios/promos/promo_Any_00_TeamMode_A.mp3",
-            "https://s3.amazonaws.com/dart-battle-resources/scenarios/promos/promo_Any_00_VisualOutput_A.mp3",
-            # Duplicates for weighting
-            "https://s3.amazonaws.com/dart-battle-resources/scenarios/promos/promo_Any_00_Facebook_A.mp3",
-            "https://s3.amazonaws.com/dart-battle-resources/scenarios/promos/promo_Any_00_HowMoreScenarios_A.mp3",
-            "https://s3.amazonaws.com/dart-battle-resources/scenarios/promos/promo_Any_00_HowMoreScenarios_B.mp3",
-            # NoneTypes for the chance that no Promotion takes place.
-            None,
-            None,
-            None,
-            None,
-            None,
-        ]
-        return random.choice(promos)
-
-    @property
-    def tail(self):
-        tails = [
-            "https://s3.amazonaws.com/dart-battle-resources/common/common_Any_00_Tail_RateUsA_Any_00.mp3",
-            # NoneTypes for the chance that no Tail takes place.
-            # None,
-            # None,
-            # None
-        ]
-        return random.choice(tails)
-
     # -------------------------------------------------------------------------
     # PUBLIC METHODS
     # -------------------------------------------------------------------------
-
-    def getEventsForRank(self, rank):
-        allEvents = []
-        for event in self._events:
-            allEvents.append(event.format(int(rank)))
-        return allEvents
-
-    def getIntro(self, rank=None, variant=None):
+    @staticmethod
+    def getIntro(rank=None, variant=None):
         intros = {
             "A": "https://s3.amazonaws.com/dart-battle-resources/scenarios/arctic/intros/intro_arctic_A_{:02d}_Any.mp3",
             "B": "https://s3.amazonaws.com/dart-battle-resources/scenarios/arctic/intros/intro_arctic_B_{:02d}_Any.mp3"
@@ -209,12 +318,13 @@ class Arctic(object):
         return variant, intros[variant].format(int(rank))
 
 
-class NoEvents01(object):
+class NoEvents01(Playlist):
     def __init__(self):
-        self._events = None
-        self.soundtrack = "https://s3.amazonaws.com/dart-battle-resources/sndtrk_Arctic_Music_Sfx_{}s"
+        super(NoEvents01, self).__init__()
+        self.soundtrack = "https://s3.amazonaws.com/dart-battle-resources/sndtrk/sndtrk_Arctic_Music_Sfx_{}s.mp3"
         self.outtro = "https://s3.amazonaws.com/dart-battle-resources/tail_NoTeam.mp3"
         self.outtroTeams = "https://s3.amazonaws.com/dart-battle-resources/tail_Team.mp3"
+        self.prettyName = "NoEvents01"
 
     # -------------------------------------------------------------------------
     # PROPERTIES
@@ -233,25 +343,38 @@ class NoEvents01(object):
     def getEventsForRank(self, rank):
         return None
 
-    def getIntro(self, rank=None, variant=None):
+    @staticmethod
+    def getIntro(rank=None, variant=None):
         return None, None
 
+    @staticmethod
+    def isActive(sessionAttributes):
+        usingEvents = sessionAttributes.get("usingEvents", "True")
+        if usingEvents:
+            return False
+        return True
 
-"""
-        # TODO: Handle SFX, Music preferences, rank
-        self.allEvents = [
-            'https://s3.amazonaws.com/dart-battle-resources/event_Arctic_10_Shelter_AirStrike_Any_00.mp3',
-            'https://s3.amazonaws.com/dart-battle-resources/event_Arctic_10_Shelter_Avalanche_Any_00.mp3',
-            'https://s3.amazonaws.com/dart-battle-resources/event_Arctic_10_Shelter_Blizzard_Any_00.mp3',
-            'https://s3.amazonaws.com/dart-battle-resources/event_Arctic_10_SplitUp_HeatSignature_Team_00.mp3',
-            'https://s3.amazonaws.com/dart-battle-resources/event_Arctic_10_SplitUp_IceBreak_Team_00.mp3',
-            'https://s3.amazonaws.com/dart-battle-resources/event_Arctic_10_TagFeature_AirStrikeCancel_Team_03.mp3',
-            'https://s3.amazonaws.com/dart-battle-resources/event_Arctic_10_TagFeature_BombDefuse_Team_05.mp3',
-            'https://s3.amazonaws.com/dart-battle-resources/event_Arctic_10_TagFeature_ComputerHack_Team_02.mp3',
-            'https://s3.amazonaws.com/dart-battle-resources/event_Arctic_10_TagFeature_WeatherDoorSecure_Team_08.mp3',
-            'https://s3.amazonaws.com/dart-battle-resources/event_Arctic_10_TagInOrder_StrategyWeaponSize_Team_00.mp3',
-            'https://s3.amazonaws.com/dart-battle-resources/event_Arctic_10_TagManyToOne_TechnologyEnergy_Team_00.mp3',
-            'https://s3.amazonaws.com/dart-battle-resources/event_Arctic_10_TagManyToOne_TechnologyShield_Team_00.mp3',
-            'https://s3.amazonaws.com/dart-battle-resources/event_Arctic_10_TagOneToOne_Intel_Team_07.mp3',
+
+class Prospector(Playlist):
+    def __init__(self):
+        super(Prospector, self).__init__()
+        self._events = [
+            'https://s3.amazonaws.com/dart-battle-resources/scenarios/prospector/OldWest_Intro_test.mp3',
         ]
-"""
+        self.soundtrack = "https://s3.amazonaws.com/dart-battle-resources/sndtrk/oldWest/sndtrk_OldWest_Music_Sfx_{}s.mp3"
+        self.outCount = "https://s3.amazonaws.com/dart-battle-resources/scenarios/arctic/outCounts/outCount_Arctic_00_YourBattleEnds_Any_00.mp3"
+        self.outtro = "https://s3.amazonaws.com/dart-battle-resources/scenarios/arctic/outtros/outtro_Arctic_00_CeaseFire_NoTeam_00.mp3"
+        self.outtroTeams = "https://s3.amazonaws.com/dart-battle-resources/scenarios/arctic/outtros/outtro_Arctic_00_CeaseFire_Team_00.mp3"
+        self.prettyName = "Prospector's Predicament"
+
+    @property
+    def intro(self):
+        intros = [
+            "https://s3.amazonaws.com/dart-battle-resources/scenarios/prospector/OldWest_Intro_test.mp3"
+        ]
+        return random.choice(intros)
+
+    def getIntro(self, rank=None, variant=None):
+        return self.intro
+
+# TODO: Handle SFX, Music preferences, rank
