@@ -3,6 +3,7 @@ import datetime
 import random
 
 # Dart Battle imports:
+import protocols
 import rank
 
 def GetRankPromotionFile(rank):
@@ -10,6 +11,77 @@ def GetRankPromotionFile(rank):
     rankFile = 'https://s3.amazonaws.com/dart-battle-resources/common/common_Any_{:02d}_RankPromotion_Any_00.mp3'
     rankFile = rankFile.format(rank)
     return rankFile
+
+
+class Greeting(object):
+    def __init__(self, sessionAttributes):
+        self.sessionAttributes = sessionAttributes
+        self.crowsNestGreetings = [
+            "Scanning biometric data for field soldiers. Increased pulse detected. Initiating battle sequence. Awaiting orders. ",
+            "Initiating secure uplink to satellite. Uplink acquired, handshake initiated. Combat interface ready for instruction. ",
+            "Stitching battlefield photogrammetry. Closing edge loops and interpolating surface points. " +
+            "Battlefield metrics have been distributed to combat vehicles and qualifying infantry. Standing by.",
+            "Reboot complete. Repairing damage to central targeting systems. Unit tests passed. Awaiting instruction.",
+            "Damage sustained. Artillery servos 8 and 12 are offline. Electromagnetic shield operating at reduced levels. Ready for input.",
+            "Enemy activity detected. Raising defensive perimeter. Sealing entrances on levels Charlie though Foxtrot. Further instruction required from authorized personnel."
+        ]
+        self.noTeamGreetingsStandard = [
+            "<audio src='https://s3.amazonaws.com/dart-battle-resources/common/common_Any_00_Greeting_StandardA_NoTeam_00.mp3' /> ",
+        ]
+        self.noTeamGreetingsQuick = [
+            "<audio src='https://s3.amazonaws.com/dart-battle-resources/common/common_Any_00_Greeting_QuickA_NoTeam_00.mp3' /> ",
+            "<audio src='https://s3.amazonaws.com/dart-battle-resources/common/common_Any_00_Greeting_QuickB_NoTeam_00.mp3' /> ",
+        ]
+        self.officerGreetings = [
+            "<audio src='https://s3.amazonaws.com/dart-battle-resources/common/common_Any_{:02d}_Greeting_WelcomeBackA_Any_00.mp3' /> "
+        ]
+        self.officerGreetingHead = "<audio src='https://s3.amazonaws.com/dart-battle-resources/common/common_Any_00_Greeting_AttnOfficerA_Any_00.mp3' /> "
+        self.officerGreetingTail = "<audio src='https://s3.amazonaws.com/dart-battle-resources/common/common_Any_00_Greeting_AtEaseA_Any_00.mp3' /> "
+        self.teamGreetingsStandard = [
+            "<audio src='https://s3.amazonaws.com/dart-battle-resources/common/common_Any_00_Greeting_StandardA_Team_00.mp3' /> ",
+            "<audio src='https://s3.amazonaws.com/dart-battle-resources/common/common_Any_00_Greeting_StandardB_Team_00.mp3' /> ",
+        ]
+        self.teamGreetingsQuick = [
+            "<audio src='https://s3.amazonaws.com/dart-battle-resources/common/common_Any_00_Greeting_QuickA_Team_00.mp3' /> ",
+            "<audio src='https://s3.amazonaws.com/dart-battle-resources/common/common_Any_00_Greeting_QuickB_Team_00.mp3' /> ",
+        ]
+
+    def getGreeting(self):
+        greetings = []
+        if self.sessionAttributes.get("recentSession", "False") == "True":
+            if self.sessionAttributes.get("usingTeams", "False") == "True":
+                # Recent Teams
+                greetings.extend(self.teamGreetingsQuick)
+            else:
+                # Recent Individual
+                greetings.extend(self.noTeamGreetingsQuick)
+        else:
+            if self.sessionAttributes.get("usingTeams", "False") == "True":
+                # Not recent Teams
+                greetings.extend(self.teamGreetingsStandard)
+            else:
+                # Not recent Individual
+                greetings.extend(self.noTeamGreetingsStandard)
+
+        # Officer greetings
+        if int(self.sessionAttributes.get("playerRank", "00")) > 0:
+            officerGreetings = []
+            for track in self.officerGreetings:
+                track = track.format(int(self.sessionAttributes["playerRank"]))
+                officerIntro = random.randint(0, 2)
+                if officerIntro == 2 and int(self.sessionAttributes["playerRank"]) > 5:
+                    track = "{}{}{}".format(self.officerGreetingHead, track, self.officerGreetingTail)
+                officerGreetings.append(track)
+            greetings.extend(officerGreetings)
+
+        # Protocol greetings
+        session = {"attributes": self.sessionAttributes}
+        if protocols.ProtocolCrowsNest(session).isActive:
+            greetings.extend(self.crowsNestGreetings)
+
+        # Final selection
+        selection = random.choice(greetings)
+        return selection
 
 
 class Playlist(object):
@@ -168,6 +240,7 @@ class Playlist(object):
         if usingEvents:
             return True
         return False
+
 
 class Arctic(Playlist):
     def __init__(self):
