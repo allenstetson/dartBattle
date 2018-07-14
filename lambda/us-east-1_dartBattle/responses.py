@@ -127,54 +127,11 @@ def getWelcomeResponse(session):
     if sessionAttributes['recentSession'] == "True":
         title = "Welcome Back"
         # TODO: "I'm here for you, troops/soldier.", "Resuming Dart Battle, protocol Igloo/Tango", "Welcome back.", "On alert.", "Monitoring enemy activity."
-        if sessionAttributes['usingTeams'] == "True":
-            tracks = [
-                "https://s3.amazonaws.com/dart-battle-resources/common/common_Any_00_Greeting_QuickA_Team_00.mp3",
-                "https://s3.amazonaws.com/dart-battle-resources/common/common_Any_00_Greeting_QuickB_Team_00.mp3",
-                "rank"
-            ]
-            welcomeTracks = [random.choice(tracks)]
-        else:
-            tracks = [
-                "https://s3.amazonaws.com/dart-battle-resources/common/common_Any_00_Greeting_QuickA_NoTeam_00.mp3",
-                "https://s3.amazonaws.com/dart-battle-resources/common/common_Any_00_Greeting_QuickB_NoTeam_00.mp3",
-                "rank"
-            ]
-            welcomeTracks = [random.choice(tracks)]
     else:
         title = "Welcome, Soldier"
         # TODO: "Dart Battle mission instantiated.", "Attention! Codename Dart Battle ready for orders.", "Dart Battle Protocol ready for commands."
-        if sessionAttributes['usingTeams'] == "True":
-            tracks = [
-                "https://s3.amazonaws.com/dart-battle-resources/common/common_Any_00_Greeting_StandardA_Team_00.mp3",
-                "https://s3.amazonaws.com/dart-battle-resources/common/common_Any_00_Greeting_StandardB_Team_00.mp3",
-                "rank"
-            ]
-            welcomeTracks = [random.choice(tracks)]
-        else:
-            tracks = [
-                "https://s3.amazonaws.com/dart-battle-resources/common/common_Any_00_Greeting_StandardA_NoTeam_00.mp3",
-                "rank"
-            ]
-            welcomeTracks = [random.choice(tracks)]
-    if welcomeTracks[0] == "rank":
-        officerIntro = random.randint(0, 2)
-        welcomeTrack = "https://s3.amazonaws.com/dart-battle-resources/common/common_Any_{:02d}_Greeting_WelcomeBackA_Any_00.mp3"
-        if isNewRank:
-            welcomeTracks = [welcomeTrack.format(int(rankNum)-1)]
-        else:
-            welcomeTracks = [welcomeTrack.format(int(rankNum))]
-        if officerIntro == 2 and int(rankNum) > 5:
-            attn = "https://s3.amazonaws.com/dart-battle-resources/common/common_Any_00_Greeting_AttnOfficerA_Any_00.mp3"
-            welcomeTrack = welcomeTracks[0]
-            atEase = "https://s3.amazonaws.com/dart-battle-resources/common/common_Any_00_Greeting_AtEaseA_Any_00.mp3"
-            welcomeTracks = [attn, welcomeTrack, atEase]
 
-    welcome = ""
-    for track in welcomeTracks:
-        track = '<audio src="{}" /> '.format(track)
-        welcome += track
-    print("WELCOME: {}".format(welcome))
+    welcome = playlists.Greeting(sessionAttributes).getGreeting()
 
     # -------------------------------------------------------------------------
 
@@ -202,14 +159,14 @@ def getWelcomeResponse(session):
     # Handle new recruit
     # -------------------------------------------------------------------------
     justJoined = ""
-    if sessionAttributes['playerRank'] == "00" and sessionAttributes['recentSession'] == "False":
+    if sessionAttributes.get("playerRank", "00") == "00" and sessionAttributes.get("recentSession", "False") == "False":
         justJoined = '<audio src="https://s3.amazonaws.com/dart-battle-resources/common/common_Any_00_Greeting_JustJoinedA_Any_00.mp3" />'
 
     # -------------------------------------------------------------------------
     # Handle 'you can' intro, options
     # -------------------------------------------------------------------------
-    if sessionAttributes['recentSession'] == "True":
-        if sessionAttributes['usingTeams'] == "True":
+    if sessionAttributes.get("recentSession", "False") == "True":
+        if sessionAttributes.get("usingTeams", "False") == "True":
             tracks = [
                 "https://s3.amazonaws.com/dart-battle-resources/common/common_Any_00_Greeting_OptionsQuickA_Team_00.mp3"
             ]

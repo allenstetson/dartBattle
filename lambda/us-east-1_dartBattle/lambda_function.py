@@ -10,6 +10,7 @@ import random
 # DartBattle imports:
 import battle
 import database
+import protocols
 import rank
 import responses
 import session
@@ -81,7 +82,7 @@ def on_intent(event):
 
     # PROTOCOLS
     elif intent_name == "EnableProtocolIntent":
-        return responses.enableProtocol(event)
+        return protocols.enableProtocol(event)
 
     # RANKS
     elif intent_name == "RankQueryIntent":
@@ -124,7 +125,7 @@ def on_intent(event):
         "AMAZON.RepeatIntent",
         "AMAZON.ShuffleOffIntent",
         "AMAZON.ShuffleOnIntent"
-        ]:
+            ]:
         return {
             'version': '1.0',
             'response': {
