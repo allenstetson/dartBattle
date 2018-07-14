@@ -661,9 +661,10 @@ class Scenario(object):
         scenarioName = Scenarios(int(scenarioEnum)).name
         self.name = scenarioName
 
-        if not 'usingTeams' in self.sessionAttributes:
-            if teams == '1':
-                self.sessionAttributes['usingTeams'] = 'True'
+        if teams == '1':
+            self.sessionAttributes['usingTeams'] = 'True'
+        else:
+            self.sessionAttributes['usingTeams'] = 'False'
         print("Current track is {}".format(trackNum))
         currentTrack = None
         for track in playlist:

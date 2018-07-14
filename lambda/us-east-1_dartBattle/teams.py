@@ -11,6 +11,7 @@ import random
 
 # DartBattle imports:
 import database
+import protocols
 import responses
 
 logger = logging.getLogger()
@@ -36,6 +37,24 @@ class PlayerRoles(enum.Enum):
     special_forces_operative = 14
     any = 99
 
+class PlayerRolesStandard(enum.Enum):
+    captain = 1
+    computer_specialist = 3
+    electrician = 4
+    explosives_expert = 5
+    heavy_weapons_expert = 6
+    intelligence_officer = 7
+    mechanic = 8
+    medic = 9
+    pilot = 10
+    science_officer = 11
+    scout = 12
+    sniper = 13
+    special_forces_operative = 14
+
+class PlayerRolesSpecial(enum.Enum):
+    communications_specialist = 2
+
 
 class PlayerRanks(enum.Enum):
     private = 1
@@ -51,7 +70,7 @@ class PlayerRanks(enum.Enum):
     general = 11
 
 
-def assignTeamsandRoles(numTeams, availablePlayers):
+def assignTeamsAndRoles(numTeams, availablePlayers, sessionAttributes):
     # TODO: Look at session attrs to determine if special roles are unlocked.
     numPlayers = len(availablePlayers)
     playersPerTeam = int(numPlayers / numTeams)
@@ -73,16 +92,15 @@ def assignTeamsandRoles(numTeams, availablePlayers):
     playerRoles = {}
     for teamNum in teams:
         playerRoles[teamNum] = []
-        roles = list(PlayerRoles.__members__.keys())
+        roles = list(PlayerRolesStandard.__members__.keys())
+        if protocols.ProtocolTelemetry({'attributes': sessionAttributes}).isActive:
+            roles.extend(list(PlayerRolesSpecial.__members__.keys()))
         needAssignment = list(teams[teamNum].keys())
         for i, player in enumerate(needAssignment):
             if i == 0:
                 role = 'captain'
             else:
                 role = random.choice(roles)
-                while role in ['any', 'none']:
-                    # TODO: Also check for special roles. If not unlocked, pick another.
-                    role = random.choice(roles)
             playerRoles[teamNum].append("{:02d}".format(PlayerRoles[role].value))
             roles.remove(role)
             teams[teamNum][player] = role
@@ -129,9 +147,6 @@ def reciteTeamsIntent(session):
     What teams do we have?
     Tell me the teams.
 
-    :param request:
-    :param session:
-    :return:
     """
     sessionAttributes = session['attributes']
 
@@ -192,8 +207,12 @@ def setupTeamsIntent(request, session):
         sessionAttributes = session['attributes']
 
     allPlayers = {}
+    speech = ""
     numTeams = int(request['intent']['slots']['TEAMNUM']['value'])
     numPlayers = int(request['intent']['slots']['PLAYERNUM']['value'])
+    if numTeams > numPlayers:
+        speech += "There can not be more teams than there are players. I'll make one team for each of the {} players. ".format(numPlayers)
+        numTeams = numPlayers
     sessionAttributes['usingTeams'] = "True"
     sessionAttributes['numTeams'] = numTeams
     sessionAttributes['numPlayers'] = numPlayers
@@ -210,12 +229,12 @@ def setupTeamsIntent(request, session):
 
     #TEAMS
     if numPlayers > 12:
-        speech = "{}, my current design allows for a maximum of 12 players. ".format(playerRankName)
+        speech += "{}, my current design allows for a maximum of 12 players. ".format(playerRankName)
         speech += "If you need more, please let us know at support@dartbattle.fun. "
         speech += "Continuing with 12 players across {} teams. ".format(numTeams)
         numPlayers = 12
     else:
-        speech = "Ok {} teams across {} players. ".format(numTeams, numPlayers)
+        speech += "Ok {} teams across {} players. ".format(numTeams, numPlayers)
 
     #PLAYERS
     missingPlayers = False
@@ -241,7 +260,7 @@ def setupTeamsIntent(request, session):
     speech += "Now building teams. "
     speech += "<audio src=\"https://s3.amazonaws.com/dart-battle-resources/choiceMusic.mp3\" /> "
 
-    teams, playerRoles = assignTeamsandRoles(numTeams, [allPlayers[x]['name'] for x in allPlayers.keys()])
+    teams, playerRoles = assignTeamsAndRoles(numTeams, [allPlayers[x]['name'] for x in allPlayers.keys()], sessionAttributes)
     sessionAttributes['playerRoles'] = playerRoles
     sessionAttributes['teams'] = teams
     database.updateRecordTeams(sessionAttributes)
@@ -303,7 +322,7 @@ def shuffleTeamsIntent(session):
         for num in teamNums:
             playerNames.extend(list(sessionAttributes['teams'][num].keys()))
         numTeams = len(teamNums)
-        teams, playerRoles = assignTeamsandRoles(numTeams, playerNames)
+        teams, playerRoles = assignTeamsAndRoles(numTeams, playerNames, sessionAttributes)
         sessionAttributes['playerRoles'] = playerRoles
         sessionAttributes['teams'] = teams
         database.updateRecordTeams(sessionAttributes)

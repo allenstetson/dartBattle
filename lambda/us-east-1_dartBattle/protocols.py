@@ -235,3 +235,33 @@ class ProtocolStingray(DartBattleProtocol):
             self.title = "Protocol About Face: enabled (permanent)"
             self.text = "This protocol was enabled on {} and cannot be disabled.".format(self.protocolCodes[self.name])
 
+
+class ProtocolTelemetry(DartBattleProtocol):
+    def __init__(self, session):
+        super(ProtocolTelemetry, self).__init__(session)
+        self.name = "stingray"
+        self._names = ["stingray", "sting ray"]
+
+    def _run(self):
+        # Do protocol-specific things here
+        numBattles = int(self.sessionAttributes['numBattles'])
+        numBattles += 10
+        self.sessionAttributes['numBattles'] = str(numBattles)
+        database.updateRecord(self.sessionAttributes)
+
+        # Report Success
+        self.speech += "Thank you for helping to spread the word about Dart Battle. "
+        self.speech += "10 battles have been added to your total, getting you closer to the next rank promotion. "
+        self.title += "Protocol Stingray: enabled"
+        self.text += "+10 battles toward rank advancement"
+
+    def disable(self):
+        if not self.name in self.protocolCodes:
+            self.speech = "There is no protocol with that name which is enabled. "
+            self.title = "Protocols"
+            self.text = "Earn protocols by visiting http://dartbattle.fun and completing Special Objectives."
+        else:
+            self.speech = "Protocol {} is permanent and cannot be disabled. ".format(self.name)
+            self.title = "Protocol About Face: enabled (permanent)"
+            self.text = "This protocol was enabled on {} and cannot be disabled.".format(self.protocolCodes[self.name])
+

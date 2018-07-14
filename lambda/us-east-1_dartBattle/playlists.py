@@ -106,13 +106,6 @@ class Playlist(object):
         return allEvents
 
     @property
-    def intro(self):
-        intros = [
-            ""
-        ]
-        return random.choice(intros)
-
-    @property
     def promo(self):
         promos = [
             "https://s3.amazonaws.com/dart-battle-resources/scenarios/promos/promo_Any_00_AudioDirectives_A.mp3",
@@ -368,12 +361,6 @@ class Arctic(Playlist):
     # -------------------------------------------------------------------------
     # PROPERTIES
     # -------------------------------------------------------------------------
-    @property
-    def intro(self):
-        intros = [
-            "https://s3.amazonaws.com/dart-battle-resources/arcticIntro.mp3"
-        ]
-        return random.choice(intros)
 
     # -------------------------------------------------------------------------
     # PUBLIC METHODS
@@ -404,10 +391,6 @@ class NoEvents01(Playlist):
     # -------------------------------------------------------------------------
     @property
     def events(self):
-        return None
-
-    @property
-    def intro(self):
         return None
 
     # -------------------------------------------------------------------------
@@ -441,13 +424,15 @@ class Prospector(Playlist):
         self.prettyName = "Prospector's Predicament"
 
     @property
-    def intro(self):
-        intros = [
-            "https://s3.amazonaws.com/dart-battle-resources/scenarios/prospector/OldWest_Intro_test.mp3"
-        ]
-        return random.choice(intros)
-
     def getIntro(self, rank=None, variant=None):
-        return self.intro
+        rank = rank or '00'
+        intros = {
+            "A": "https://s3.amazonaws.com/dart-battle-resources/scenarios/prospector/OldWest_Intro_test.mp3"
+        }
+        if not variant:
+            randKey = random.choice(list(intros.keys()))
+            randTrack = intros[randKey].format(int(rank))
+            return randKey, randTrack
+        return variant, intros[variant].format(int(rank))
 
 # TODO: Handle SFX, Music preferences, rank
