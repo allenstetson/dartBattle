@@ -4,29 +4,53 @@ import os
 
 # DartBattle imports:
 import database
+import responses
 
 
 def enableProtocol(event):
     request = event['request']
     session = event['session']
     sessionAttributes = session["attributes"]
+
+    dialogState = request['dialogState']
+    if dialogState in ["STARTED", "IN_PROGRESS"]:
+        return responses.continueDialog(sessionAttributes)
+    elif dialogState == 'COMPLETED':
+        # sessionAttributes = session.get('attributes', database.getDefaultSessionAttrs(session['user']['userId']))
+        pass
+
     speech = ""
     text = ""
     title = ""
     if 'slots' in request['intent'] and 'PROTOCOLNAME' in request['intent']['slots']:
         protocolName = request['intent']['slots']['PROTOCOLNAME']['value']
+        protocolAction = request['intent']['slots']['PROTOCOLACTION']['value']
     else:
         protocolName = None
     registeredProtocols = [
-        ProtocolSilverSparrow(session)
+        ProtocolSilverSparrow(session),
+        ProtocolCrowsNest(session)
     ]
 
-    if protocolName in [x.name for x in registeredProtocols]:
-        protocol = [x for x in registeredProtocols if x.name == protocolName][0]
-        protocol.enable()
-        speech = protocol.speech
-        title = protocol.title
-        text = protocol.text
+    allNames = []
+    for regProtocol in registeredProtocols:
+        allNames.extend(regProtocol.getNames())
+    if protocolName in allNames:
+        protocol = [x for x in registeredProtocols if protocolName in x.getNames()][0]
+        if "enable" in protocolAction:
+            protocol.enable()
+        elif "disable" in protocolAction:
+            protocol.disable()
+        else:
+            print("{} vs. enable or disable".format(protocolAction))
+            speech += "I can not perform the action {} on this protocol. ".format(protocolAction)
+        speech += protocol.speech
+        title += protocol.title
+        text += protocol.text
+    else:
+        speech += "There is no protocol named {} registered in the system. If you feel as if this is an error, please contact support at dart battle dot fun. ".format(protocolName)
+        text += 'See Special Objectives at http://dartbattle.fun. support@dartbattle.fun with problems.'
+        title += 'Unknown protocol: "{}". '.format(protocolName)
     speech += "What next? Start a battle? More options? "
     return {
         "version": os.environ['VERSION'],
@@ -56,6 +80,7 @@ class DartBattleProtocol(object):
         self.text = ""
         self.title = ""
         self.name = ""
+        self._names = []
         self.session = session
         self.sessionAttributes = self.session["attributes"]
         self.protocolCodes = self.sessionAttributes.get("protocolCodes", {})
@@ -63,17 +88,23 @@ class DartBattleProtocol(object):
     def _run(self):
         raise NotImplementedError("Subclass failed to re-implement _run().")
 
-    def _updateDatabase(self):
+    def _updateDatabase(self, value=None):
         """Updates DB with timestamp to Reflect Protocol Usage:
 
         """
-        value = datetime.datetime.strftime(datetime.datetime.now(), "%m/%d/%Y")
+        value = value or datetime.datetime.strftime(datetime.datetime.now(), "%m/%d/%Y")
         self.protocolCodes[self.name] = value
         self.sessionAttributes["protocolCodes"] = self.protocolCodes
         database.updateRecordProtocol(self.sessionAttributes)
 
-    def checkForDuplicate(self):
+    @property
+    def isActive(self):
         if self.name in self.protocolCodes and self.protocolCodes[self.name] != "False":
+            return True
+        return False
+
+    def checkForDuplicate(self):
+        if self.isActive:
             self.speech = "Protocol {} has already been enabled and cannot be enabled again. ".format(self.name)
             self.title = "Enable protocol {}".format(self.name)
             self.text = "Protocol {} already enabled".format(self.name)
@@ -87,6 +118,9 @@ class DartBattleProtocol(object):
             return
         self._run()
         self._updateDatabase()
+
+    def getNames(self):
+        return self._names or [self.name]
 
 
 class ProtocolSilverSparrow(DartBattleProtocol):
@@ -115,3 +149,27 @@ class ProtocolSilverSparrow(DartBattleProtocol):
             self.speech = "Protocol {} is permanent and cannot be disabled. ".format(self.name)
             self.title = "Protocol Silver Sparrow: enabled (permanent)"
             self.text = "This protocol was enabled on {} and cannot be disabled.".format(self.protocolCodes[self.name])
+
+
+class ProtocolCrowsNest(DartBattleProtocol):
+    def __init__(self, session):
+        super(ProtocolCrowsNest, self).__init__(session)
+        self.name = "crow's nest"
+        self._names = ["close nest", "crows nest", "crow's nest", "crowsnest"]
+
+    def _run(self):
+        self.speech += "Thank you for helping to spread the word about Dart Battle. "
+        self.speech += "COMSAT tactical greetings are now being added to the rotation of randomly selected greetings. "
+        self.title += "Protocol Crow's Nest: enabled"
+        self.text += "COMSAT Tactical greetings have been added to rotation."
+
+    def disable(self):
+        if not self.name in self.protocolCodes:
+            self.speech = "There is no protocol with that name which is enabled. "
+            self.title = "Protocols"
+            self.text = "Earn protocols by visiting http://dartbattle.fun and completing Special Objectives."
+        else:
+            self.speech = "Protocol {} now disabled. ".format(self.name)
+            self.title = "Protocol Crow's Nest: disabled"
+            self.text = "COMSAT tactical greetings are now removed from rotation."
+            self._updateDatabase(value="False")
