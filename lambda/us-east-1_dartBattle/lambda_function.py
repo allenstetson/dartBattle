@@ -161,10 +161,16 @@ def on_playback_nearly_finished(event):
 
 
 def on_playback_resume(sessionInfo):
-    sessionAttributes = database.getSessionFromDB(sessionInfo)
+    session = database.getSessionFromDB(sessionInfo)
+    sessionAttributes = session["attributes"]
+
     token = sessionAttributes.get('currentToken')
     offsetInMilliseconds = sessionAttributes.get('offsetInMilliseconds', "0")
-    playlist = battle.ScenePlaylist('arctic', sessionAttributes)
+    sessionInfo = token.split("_")[1]
+    (playerRank, scenarioEnum, teams, sfx, soundtrack) = sessionInfo.split(".")
+    scenarioName = battle.Scenarios(int(scenarioEnum)).name
+
+    playlist = battle.Scenario(sessionAttributes, name=scenarioName)
     track = playlist.getTrackFromToken(token)
     output = {
         "version": os.environ['VERSION'],
@@ -216,7 +222,9 @@ def on_session_end_request(event):
 # FUNCTIONS
 # =============================================================================
 def playback_stop(event):
-    sessionAttributes = database.getSessionFromDB(event['session'])
+    session = database.getSessionFromDB(event['session'])
+    sessionAttributes = session["attributes"]
+
     speeches = [
         "Standing down.",
         "Of course.",
