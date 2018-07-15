@@ -25,6 +25,14 @@ class Greeting(object):
             "Damage sustained. Artillery servos 8 and 12 are offline. Electromagnetic shield operating at reduced levels. Ready for input.",
             "Enemy activity detected. Raising defensive perimeter. Sealing entrances on levels Charlie though Foxtrot. Further instruction required from authorized personnel."
         ]
+        self.madDogGreetings = [
+            "<audio src='https://s3.amazonaws.com/dart-battle-resources/protocols/madDog/protocol_MadDog_00_Greeting_Dance_Any_00.mp3' /> ",
+            "<audio src='https://s3.amazonaws.com/dart-battle-resources/protocols/madDog/protocol_MadDog_00_Greeting_Diaper_Any_00.mp3' /> ",
+            "<audio src='https://s3.amazonaws.com/dart-battle-resources/protocols/madDog/protocol_MadDog_00_Greeting_Disappointment_Any_00.mp3' /> ",
+            "<audio src='https://s3.amazonaws.com/dart-battle-resources/protocols/madDog/protocol_MadDog_00_Greeting_DontCry_Any_00.mp3' /> ",
+            "<audio src='https://s3.amazonaws.com/dart-battle-resources/protocols/madDog/protocol_MadDog_00_Greeting_Malfunction_Any_00.mp3' /> ",
+            "<audio src='https://s3.amazonaws.com/dart-battle-resources/protocols/madDog/protocol_MadDog_00_Greeting_Smell_Any_00.mp3' /> "
+        ]
         self.noTeamGreetingsStandard = [
             "<audio src='https://s3.amazonaws.com/dart-battle-resources/common/common_Any_00_Greeting_StandardA_NoTeam_00.mp3' /> ",
         ]
@@ -78,6 +86,8 @@ class Greeting(object):
         session = {"attributes": self.sessionAttributes}
         if protocols.ProtocolCrowsNest(session).isActive:
             greetings.extend(self.crowsNestGreetings)
+        if protocols.ProtocolMadDog(session).isActive:
+            greetings.extend(self.madDogGreetings)
 
         # Final selection
         selection = random.choice(greetings)

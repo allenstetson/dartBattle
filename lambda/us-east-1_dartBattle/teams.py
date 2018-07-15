@@ -37,6 +37,7 @@ class PlayerRoles(enum.Enum):
     special_forces_operative = 14
     any = 99
 
+
 class PlayerRolesStandard(enum.Enum):
     captain = 1
     computer_specialist = 3
@@ -51,6 +52,7 @@ class PlayerRolesStandard(enum.Enum):
     scout = 12
     sniper = 13
     special_forces_operative = 14
+
 
 class PlayerRolesSpecial(enum.Enum):
     communications_specialist = 2
@@ -196,7 +198,6 @@ def reciteTeamRoles(teams):
     return speech
 
 
-
 def setupTeamsIntent(request, session):
     sessionAttributes = session['attributes']
 
@@ -211,7 +212,8 @@ def setupTeamsIntent(request, session):
     numTeams = int(request['intent']['slots']['TEAMNUM']['value'])
     numPlayers = int(request['intent']['slots']['PLAYERNUM']['value'])
     if numTeams > numPlayers:
-        speech += "There can not be more teams than there are players. I'll make one team for each of the {} players. ".format(numPlayers)
+        speech += "There can not be more teams than there are players. I'll make one team for each of the {} players. ".format(
+            numPlayers)
         numTeams = numPlayers
     sessionAttributes['usingTeams'] = "True"
     sessionAttributes['numTeams'] = numTeams
@@ -227,7 +229,7 @@ def setupTeamsIntent(request, session):
     else:
         playerRankName = "soldier"
 
-    #TEAMS
+    # TEAMS
     if numPlayers > 12:
         speech += "{}, my current design allows for a maximum of 12 players. ".format(playerRankName)
         speech += "If you need more, please let us know at support@dartbattle.fun. "
@@ -236,13 +238,13 @@ def setupTeamsIntent(request, session):
     else:
         speech += "Ok {} teams across {} players. ".format(numTeams, numPlayers)
 
-    #PLAYERS
+    # PLAYERS
     missingPlayers = False
     playerOne = request['intent']['slots']['PLAYERONE']['value']
     allPlayers['one'] = {"name": playerOne}
     for num, keyname in enumerate(['PLAYERTWO', 'PLAYERTHREE', 'PLAYERFOUR', 'PLAYERFIVE',
-            'PLAYERSIX', 'PLAYERSEVEN', 'PLAYEREIGHT', 'PLAYERNINE',
-            'PLAYERTEN', 'PLAYERELEVEN', 'PLAYERTWELVE']):
+                                   'PLAYERSIX', 'PLAYERSEVEN', 'PLAYEREIGHT', 'PLAYERNINE',
+                                   'PLAYERTEN', 'PLAYERELEVEN', 'PLAYERTWELVE']):
         if num + 2 > numPlayers:
             break
         if 'value' in request['intent']['slots'][keyname]:
@@ -253,14 +255,15 @@ def setupTeamsIntent(request, session):
             allPlayers[num + 2] = {'name': "player {}".format(num + 2)}
             missingPlayers = True
     if missingPlayers:
-        speech += "I think I missed a player name or two. No worries, I'll use "+\
-            "their player number. "
+        speech += "I think I missed a player name or two. No worries, I'll use " + \
+                  "their player number. "
 
     # BUILD
     speech += "Now building teams. "
     speech += "<audio src=\"https://s3.amazonaws.com/dart-battle-resources/choiceMusic.mp3\" /> "
 
-    teams, playerRoles = assignTeamsAndRoles(numTeams, [allPlayers[x]['name'] for x in allPlayers.keys()], sessionAttributes)
+    teams, playerRoles = assignTeamsAndRoles(numTeams, [allPlayers[x]['name'] for x in allPlayers.keys()],
+                                             sessionAttributes)
     sessionAttributes['playerRoles'] = playerRoles
     sessionAttributes['teams'] = teams
     database.updateRecordTeams(sessionAttributes)
@@ -292,6 +295,7 @@ def setupTeamsIntent(request, session):
         }
     }
 
+
 def shuffleTeamsIntent(session):
     """
                 "teams": {
@@ -306,9 +310,6 @@ def shuffleTeamsIntent(session):
                 }
             },
 
-    :param request:
-    :param session:
-    :return:
     """
     sessionAttributes = session.attributes
 
