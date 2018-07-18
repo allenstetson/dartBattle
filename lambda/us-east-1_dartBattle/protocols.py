@@ -23,9 +23,16 @@ def enableProtocol(event):
     text = ""
     title = ""
     if 'slots' in request['intent'] and 'PROTOCOLNAME' in request['intent']['slots']:
-        protocolName = request['intent']['slots']['PROTOCOLNAME']['value']
-        protocolAction = request['intent']['slots']['PROTOCOLACTION']['value']
+        code = ['intent']['slots']['PROTOCOLNAME']['resolutions']['resolutionsPerAuthority']['status']['code']
+        if code == "ER_SUCCESS_MATCH":
+            protocolName = request['intent']['slots']['PROTOCOLNAME']['value']
+            protocolAction = request['intent']['slots']['PROTOCOLACTION']['value']
     else:
+        code = ['intent']['slots']['PROTOCOLNAME']['resolutions']['resolutionsPerAuthority']['status']['code']
+        if code == "ER_SUCCESS_NO_MATCH":
+            protocolName = "with that name"
+        elif code == "ER_ERROR_TIMEOUT":
+            return responses.getTimeoutResponse()
         protocolName = None
     registeredProtocols = [
         ProtocolAboutFace(session),

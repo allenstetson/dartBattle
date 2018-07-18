@@ -34,7 +34,21 @@ def continueDialog(sessionAttributes):
 
 def getTestResponse(session):
     speech = "Perimeter compromised. Defenses will be breached in 5, 4, 3, 2, 1. "
-    speech = '<audio src="https://s3.amazonaws.com/dart-battle-resources/scenarios/arctic/events/pairUp/event_Arctic_09_PairUp_Yeti_Any_00.mp3" /> '
+    speech = '<audio src="https://s3.amazonaws.com/dart-battle-resources/scenarios/prospector/events/ceaseFire/event_Prospectors_00_CeaseFire_Bats_Any_00.mp3" /> '
+
+    return {
+        "version": os.environ['VERSION'],
+        "response": {
+            "outputSpeech": {
+                "type": "SSML",
+                "ssml": "<speak>" + speech + "</speak>"
+            },
+            "shouldEndSession": True
+        }
+    }
+
+def getTimeoutResponse():
+    speech = 'canceling. '
 
     return {
         "version": os.environ['VERSION'],

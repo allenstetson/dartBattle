@@ -85,14 +85,14 @@ class Scenario(object):
         self.sessionAttributes = sessionAttributes
 
         self._availableEvents = None
-        self._protectedCategories = [
-            EventCategories.Intro,
-            EventCategories.InCount,
-            EventCategories.Soundtrack,
-            EventCategories.OutCount,
-            EventCategories.Outtro,
-            EventCategories.Tail
-            ]
+        # self._protectedCategories = [
+        #    EventCategories.Intro,
+        #    EventCategories.InCount,
+        #    EventCategories.Soundtrack,
+        #    EventCategories.OutCount,
+        #    EventCategories.Outtro,
+        #    EventCategories.Tail
+        #    ]
         if not name:
             name, playlist = random.choice(self.availablePlaylists)
             self.name = name
@@ -182,7 +182,7 @@ class Scenario(object):
         allPlaylists = {
             "Arctic": playlists.Arctic(),
             "NoEvents01": playlists.NoEvents01(),
-            "Prospector": playlists.Prospector()
+            # "Prospector": playlists.Prospector()
         }
         return [(x, allPlaylists[x]) for x in allPlaylists.keys() if allPlaylists[x].isActive(self.sessionAttributes)]
 
@@ -191,7 +191,7 @@ class Scenario(object):
         """The introductory track; first track."""
         if self._intro:
             return self._intro
-        (self._introVariant, self._intro) = self.getIntro()
+        self._introVariant, self._intro = self.getIntro()
         return self._intro
 
     @property
