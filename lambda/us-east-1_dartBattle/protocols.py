@@ -23,12 +23,12 @@ def enableProtocol(event):
     text = ""
     title = ""
     if 'slots' in request['intent'] and 'PROTOCOLNAME' in request['intent']['slots']:
-        code = ['intent']['slots']['PROTOCOLNAME']['resolutions']['resolutionsPerAuthority']['status']['code']
+        code = request['intent']['slots']['PROTOCOLNAME']['resolutions']['resolutionsPerAuthority'][0]['status']['code']
         if code == "ER_SUCCESS_MATCH":
             protocolName = request['intent']['slots']['PROTOCOLNAME']['value']
             protocolAction = request['intent']['slots']['PROTOCOLACTION']['value']
     else:
-        code = ['intent']['slots']['PROTOCOLNAME']['resolutions']['resolutionsPerAuthority']['status']['code']
+        code = request['intent']['slots']['PROTOCOLNAME']['resolutions']['resolutionsPerAuthority'][0]['status']['code']
         if code == "ER_SUCCESS_NO_MATCH":
             protocolName = "with that name"
         elif code == "ER_ERROR_TIMEOUT":
@@ -39,7 +39,8 @@ def enableProtocol(event):
         ProtocolCrowsNest(session),
         ProtocolMadDog(session),
         ProtocolSilverSparrow(session),
-        ProtocolStingray(session)
+        ProtocolStingray(session),
+        ProtocolTelemetry(session)
     ]
 
     allNames = []
@@ -271,8 +272,8 @@ class ProtocolStingray(DartBattleProtocol):
 class ProtocolTelemetry(DartBattleProtocol):
     def __init__(self, session):
         super(ProtocolTelemetry, self).__init__(session)
-        self.name = "stingray"
-        self._names = ["stingray", "sting ray"]
+        self.name = "telemetry"
+        self._names = ["telemetry"]
 
     def _run(self):
         # Do protocol-specific things here
@@ -282,10 +283,9 @@ class ProtocolTelemetry(DartBattleProtocol):
         database.updateRecord(self.sessionAttributes)
 
         # Report Success
-        self.speech += "Thank you for helping to spread the word about Dart Battle. "
-        self.speech += "10 battles have been added to your total, getting you closer to the next rank promotion. "
-        self.title += "Protocol Stingray: enabled"
-        self.text += "+10 battles toward rank advancement"
+        self.speech += '<audio src="https://s3.amazonaws.com/dart-battle-resources/protocols/telemetry/protocol_Telemetry_00_Enable.mp3" /> '
+        self.title += "Protocol Telemetry: enabled"
+        self.text += "New team role!: Communications Specialist"
 
     def disable(self):
         if not self.name in self.protocolCodes:
