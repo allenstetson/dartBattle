@@ -182,7 +182,7 @@ class Scenario(object):
         allPlaylists = {
             "Arctic": playlists.Arctic(),
             "NoEvents01": playlists.NoEvents01(),
-            # "Prospector": playlists.Prospector()
+            "Prospector": playlists.Prospector()
         }
         return [(x, allPlaylists[x]) for x in allPlaylists.keys() if allPlaylists[x].isActive(self.sessionAttributes)]
 
@@ -547,6 +547,9 @@ class Scenario(object):
         return newToken, filename
 
     def getIntro(self, variant=None):
+        print("playlist: {}".format(self.playlist))
+        variant, intro = self.playlist.getIntro(rank=self.playerRank, variant=variant)
+        print("variant: {}, intro: {}".format(variant, intro))
         return self.playlist.getIntro(rank=self.playerRank, variant=variant)
 
     def getNextFromToken(self, token):

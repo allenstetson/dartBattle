@@ -23,7 +23,7 @@ class Greeting(object):
             "Battlefield metrics have been distributed to combat vehicles and qualifying infantry. Standing by.",
             "Reboot complete. Repairing damage to central targeting systems. Unit tests passed. Awaiting instruction.",
             "Damage sustained. Artillery servos 8 and 12 are offline. Electromagnetic shield operating at reduced levels. Ready for input.",
-            "Enemy activity detected. Raising defensive perimeter. Sealing entrances on levels Charlie though Foxtrot. Further instruction required from authorized personnel."
+            "Enemy activity detected. Raising defensive perimeter. Sealing entrances on levels Charlie through Foxtrot. Further instruction required from authorized personnel."
         ]
         self.madDogGreetings = [
             "<audio src='https://s3.amazonaws.com/dart-battle-resources/protocols/madDog/protocol_MadDog_00_Greeting_Dance_Any_00.mp3' /> ",
@@ -425,16 +425,60 @@ class Prospector(Playlist):
     def __init__(self):
         super(Prospector, self).__init__()
         self._events = [
-            'https://s3.amazonaws.com/dart-battle-resources/scenarios/prospector/OldWest_Intro_test.mp3',
+            "https://s3.amazonaws.com/dart-battle-resources/scenarios/prospector/events/ceaseFire/event_Prospectors_00_CeaseFire_Bats_Any_00.mp3",
+            "https://s3.amazonaws.com/dart-battle-resources/scenarios/prospector/events/ceaseFire/event_Prospectors_00_CeaseFire_CaveIn_Any_00.mp3",
+            "https://s3.amazonaws.com/dart-battle-resources/scenarios/prospector/events/exclusiveShot/event_Prospectors_00_ExclusiveShot_AlternatePath_Team_12.mp3",
+            "https://s3.amazonaws.com/dart-battle-resources/scenarios/prospector/events/exclusiveShot/event_Prospectors_00_ExclusiveShot_CoverFire_Team_01.mp3",
+            "https://s3.amazonaws.com/dart-battle-resources/scenarios/prospector/events/exclusiveShot/event_Prospectors_00_ExclusiveShot_CoverFire_Team_02.mp3",
+            "https://s3.amazonaws.com/dart-battle-resources/scenarios/prospector/events/exclusiveShot/event_Prospectors_00_ExclusiveShot_CoverFire_Team_03.mp3",
+            "https://s3.amazonaws.com/dart-battle-resources/scenarios/prospector/events/exclusiveShot/event_Prospectors_00_ExclusiveShot_CoverFire_Team_04.mp3",
+            "https://s3.amazonaws.com/dart-battle-resources/scenarios/prospector/events/exclusiveShot/event_Prospectors_00_ExclusiveShot_CoverFire_Team_05.mp3",
+            "https://s3.amazonaws.com/dart-battle-resources/scenarios/prospector/events/exclusiveShot/event_Prospectors_00_ExclusiveShot_CoverFire_Team_06.mp3",
+            "https://s3.amazonaws.com/dart-battle-resources/scenarios/prospector/events/exclusiveShot/event_Prospectors_00_ExclusiveShot_CoverFire_Team_07.mp3",
+            "https://s3.amazonaws.com/dart-battle-resources/scenarios/prospector/events/exclusiveShot/event_Prospectors_00_ExclusiveShot_CoverFire_Team_08.mp3",
+            "https://s3.amazonaws.com/dart-battle-resources/scenarios/prospector/events/exclusiveShot/event_Prospectors_00_ExclusiveShot_CoverFire_Team_09.mp3",
+            "https://s3.amazonaws.com/dart-battle-resources/scenarios/prospector/events/exclusiveShot/event_Prospectors_00_ExclusiveShot_CoverFire_Team_10.mp3",
+            "https://s3.amazonaws.com/dart-battle-resources/scenarios/prospector/events/exclusiveShot/event_Prospectors_00_ExclusiveShot_CoverFire_Team_11.mp3",
+            "https://s3.amazonaws.com/dart-battle-resources/scenarios/prospector/events/exclusiveShot/event_Prospectors_00_ExclusiveShot_CoverFire_Team_12.mp3",
+            "https://s3.amazonaws.com/dart-battle-resources/scenarios/prospector/events/exclusiveShot/event_Prospectors_00_ExclusiveShot_CoverFire_Team_13.mp3",
+            "https://s3.amazonaws.com/dart-battle-resources/scenarios/prospector/events/exclusiveShot/event_Prospectors_00_ExclusiveShot_CoverFire_Team_14.mp3",
+            "https://s3.amazonaws.com/dart-battle-resources/scenarios/prospector/events/exclusiveShot/event_Prospectors_00_ExclusiveShot_Outgunned_Team_01.mp3",
+            "https://s3.amazonaws.com/dart-battle-resources/scenarios/prospector/events/exclusiveShot/event_Prospectors_00_ExclusiveShot_Outgunned_Team_02.mp3",
+            "https://s3.amazonaws.com/dart-battle-resources/scenarios/prospector/events/exclusiveShot/event_Prospectors_00_ExclusiveShot_Outgunned_Team_03.mp3",
+            "https://s3.amazonaws.com/dart-battle-resources/scenarios/prospector/events/exclusiveShot/event_Prospectors_00_ExclusiveShot_Outgunned_Team_04.mp3",
+            "https://s3.amazonaws.com/dart-battle-resources/scenarios/prospector/events/exclusiveShot/event_Prospectors_00_ExclusiveShot_Outgunned_Team_05.mp3",
+            "https://s3.amazonaws.com/dart-battle-resources/scenarios/prospector/events/exclusiveShot/event_Prospectors_00_ExclusiveShot_Outgunned_Team_06.mp3",
+            "https://s3.amazonaws.com/dart-battle-resources/scenarios/prospector/events/exclusiveShot/event_Prospectors_00_ExclusiveShot_Outgunned_Team_07.mp3",
+            "https://s3.amazonaws.com/dart-battle-resources/scenarios/prospector/events/exclusiveShot/event_Prospectors_00_ExclusiveShot_Outgunned_Team_08.mp3",
+            "https://s3.amazonaws.com/dart-battle-resources/scenarios/prospector/events/exclusiveShot/event_Prospectors_00_ExclusiveShot_Outgunned_Team_09.mp3",
+            "https://s3.amazonaws.com/dart-battle-resources/scenarios/prospector/events/exclusiveShot/event_Prospectors_00_ExclusiveShot_Outgunned_Team_10.mp3",
+            "https://s3.amazonaws.com/dart-battle-resources/scenarios/prospector/events/exclusiveShot/event_Prospectors_00_ExclusiveShot_Outgunned_Team_11.mp3",
+            "https://s3.amazonaws.com/dart-battle-resources/scenarios/prospector/events/exclusiveShot/event_Prospectors_00_ExclusiveShot_Outgunned_Team_12.mp3",
+            "https://s3.amazonaws.com/dart-battle-resources/scenarios/prospector/events/exclusiveShot/event_Prospectors_00_ExclusiveShot_Outgunned_Team_13.mp3",
+            "https://s3.amazonaws.com/dart-battle-resources/scenarios/prospector/events/exclusiveShot/event_Prospectors_00_ExclusiveShot_Outgunned_Team_14.mp3",
+            "https://s3.amazonaws.com/dart-battle-resources/scenarios/prospector/events/holdOn/event_Prospectors_00_HoldOn_CaveIn_Any_00.mp3",
+            "https://s3.amazonaws.com/dart-battle-resources/scenarios/prospector/events/holdOn/event_Prospectors_00_HoldOn_Earthquake_Any_00.mp3",
+            "https://s3.amazonaws.com/dart-battle-resources/scenarios/prospector/events/layDown/event_Prospectors_00_LayDown_Bats_Any_00.mp3",
+            "https://s3.amazonaws.com/dart-battle-resources/scenarios/prospector/events/protect/event_Prospectors_00_Protect_AlternatePath_Team_12.mp3",
+            "https://s3.amazonaws.com/dart-battle-resources/scenarios/prospector/events/reset/event_Prospectors_00_Reset_HallOfGems_Any_00.mp3",
+            "https://s3.amazonaws.com/dart-battle-resources/scenarios/prospector/events/resupply/event_Prospectors_00_Resupply_OutOfAmmo_Any_00.mp3",
+            "https://s3.amazonaws.com/dart-battle-resources/scenarios/prospector/events/retreat/event_Prospectors_00_Retreat_CaveIn_NoTeam_00.mp3",
+            "https://s3.amazonaws.com/dart-battle-resources/scenarios/prospector/events/retreat/event_Prospectors_00_Retreat_CaveIn_Team_00.mp3",
+            "https://s3.amazonaws.com/dart-battle-resources/scenarios/prospector/events/retreat/event_Prospectors_00_Retreat_FlashFlood_NoTeam_00.mp3",
+            "https://s3.amazonaws.com/dart-battle-resources/scenarios/prospector/events/retreat/event_Prospectors_00_Retreat_FlashFlood_Team_00.mp3",
+            "https://s3.amazonaws.com/dart-battle-resources/scenarios/prospector/events/specificTarget/event_Prospectors_00_SpecificTarget_BackRoute_Team_12.mp3",
+
+
+
         ]
-        self.soundtrack = "https://s3.amazonaws.com/dart-battle-resources/sndtrk/oldWest/sndtrk_OldWest_Music_Sfx_{}s.mp3"
-        self.outCount = "https://s3.amazonaws.com/dart-battle-resources/scenarios/arctic/outCounts/outCount_Arctic_00_YourBattleEnds_Any_00.mp3"
-        self.outtro = "https://s3.amazonaws.com/dart-battle-resources/scenarios/arctic/outtros/outtro_Arctic_00_CeaseFire_NoTeam_00.mp3"
-        self.outtroTeams = "https://s3.amazonaws.com/dart-battle-resources/scenarios/arctic/outtros/outtro_Arctic_00_CeaseFire_Team_00.mp3"
+        self.soundtrack = "https://s3.amazonaws.com/dart-battle-resources/scenarios/prospector/sndtrk/sndtrk_OldWest_Music_Sfx_{}s.mp3"
+        self.outCount = "https://s3.amazonaws.com/dart-battle-resources/scenarios/prospector/outCounts/outCount_Prospectors_00_YourBattleEnds_Any_00.mp3"
+        self.outtro = "https://s3.amazonaws.com/dart-battle-resources/scenarios/prospector/outtros/outtro_Prospectors_00_CeaseFire_NoTeam_00.mp3"
+        self.outtroTeams = "https://s3.amazonaws.com/dart-battle-resources/scenarios/prospector/outtros/outtro_Prospectors_00_CeaseFire_Team_00.mp3"
         self.prettyName = "Prospector's Predicament"
 
-    @property
-    def getIntro(self, rank=None, variant=None):
+    @staticmethod
+    def getIntro(rank=None, variant=None):
         rank = rank or '00'
         intros = {
             "A": "https://s3.amazonaws.com/dart-battle-resources/scenarios/prospector/OldWest_Intro_test.mp3"
