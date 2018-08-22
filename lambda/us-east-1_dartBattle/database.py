@@ -71,6 +71,7 @@ def getDefaultSessionAttrs(userId):
     sessionAttributes = {
         "dateCreated": lastRun,
         "battleDuration": "240",
+        "currentToken": "None",
         "lastRun": lastRun,
         "numBattles": "0",
         "recentSession": "False",
