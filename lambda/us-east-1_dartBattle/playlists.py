@@ -133,6 +133,7 @@ class Playlist(object):
             "https://s3.amazonaws.com/dart-battle-resources/scenarios/promos/promo_Any_00_ShuffleTeams_A.mp3",
             "https://s3.amazonaws.com/dart-battle-resources/scenarios/promos/promo_Any_00_TeamMode_A.mp3",
             "https://s3.amazonaws.com/dart-battle-resources/scenarios/promos/promo_Any_00_VisualOutput_A.mp3",
+            "https://s3.amazonaws.com/dart-battle-resources/scenarios/promos/promo_Any_00_Charity_A.mp3",
             # Duplicates for weighting
             "https://s3.amazonaws.com/dart-battle-resources/scenarios/promos/promo_Any_00_Facebook_A.mp3",
             "https://s3.amazonaws.com/dart-battle-resources/scenarios/promos/promo_Any_00_HowMoreScenarios_A.mp3",
@@ -427,6 +428,28 @@ class Prospector(Playlist):
         self._events = [
             "https://s3.amazonaws.com/dart-battle-resources/scenarios/prospector/events/ceaseFire/event_Prospectors_00_CeaseFire_Bats_Any_00.mp3",
             "https://s3.amazonaws.com/dart-battle-resources/scenarios/prospector/events/ceaseFire/event_Prospectors_00_CeaseFire_CaveIn_Any_00.mp3",
+            "https://s3.amazonaws.com/dart-battle-resources/scenarios/prospector/events/ceaseFire/event_Prospectors_00_CeaseFire_DynamiteCrate_Any_00.mp3",
+            "https://s3.amazonaws.com/dart-battle-resources/scenarios/prospector/events/ceaseFire/event_Prospectors_00_CeaseFire_LightsOut_Any_00.mp3",
+            "https://s3.amazonaws.com/dart-battle-resources/scenarios/prospector/events/ceaseFire/event_Prospectors_00_CeaseFire_ProtectGems_Any_00.mp3",
+            "https://s3.amazonaws.com/dart-battle-resources/scenarios/prospector/events/duel/event_Prospectors_00_Duel_Dispute_Team_01.02.mp3",
+            "https://s3.amazonaws.com/dart-battle-resources/scenarios/prospector/events/duel/event_Prospectors_00_Duel_Dispute_Team_01.03.mp3",
+            "https://s3.amazonaws.com/dart-battle-resources/scenarios/prospector/events/duel/event_Prospectors_00_Duel_Dispute_Team_01.04.mp3",
+            "https://s3.amazonaws.com/dart-battle-resources/scenarios/prospector/events/duel/event_Prospectors_00_Duel_Dispute_Team_01.05.mp3",
+            "https://s3.amazonaws.com/dart-battle-resources/scenarios/prospector/events/duel/event_Prospectors_00_Duel_Dispute_Team_01.06.mp3",
+            "https://s3.amazonaws.com/dart-battle-resources/scenarios/prospector/events/duel/event_Prospectors_00_Duel_Dispute_Team_01.07.mp3",
+            "https://s3.amazonaws.com/dart-battle-resources/scenarios/prospector/events/duel/event_Prospectors_00_Duel_Dispute_Team_01.08.mp3",
+            "https://s3.amazonaws.com/dart-battle-resources/scenarios/prospector/events/duel/event_Prospectors_00_Duel_Dispute_Team_01.09.mp3",
+            "https://s3.amazonaws.com/dart-battle-resources/scenarios/prospector/events/duel/event_Prospectors_00_Duel_Dispute_Team_01.10.mp3",
+            "https://s3.amazonaws.com/dart-battle-resources/scenarios/prospector/events/duel/event_Prospectors_00_Duel_Dispute_Team_01.11.mp3",
+            "https://s3.amazonaws.com/dart-battle-resources/scenarios/prospector/events/duel/event_Prospectors_00_Duel_Dispute_Team_01.12.mp3",
+            "https://s3.amazonaws.com/dart-battle-resources/scenarios/prospector/events/duel/event_Prospectors_00_Duel_Dispute_Team_01.13.mp3",
+            "https://s3.amazonaws.com/dart-battle-resources/scenarios/prospector/events/duel/event_Prospectors_00_Duel_Dispute_Team_01.14.mp3",
+            "https://s3.amazonaws.com/dart-battle-resources/scenarios/prospector/events/duel/event_Prospectors_00_Duel_Dispute_Team_02.05.mp3",
+            "https://s3.amazonaws.com/dart-battle-resources/scenarios/prospector/events/duel/event_Prospectors_00_Duel_Dispute_Team_02.06.mp3",
+            "https://s3.amazonaws.com/dart-battle-resources/scenarios/prospector/events/duel/event_Prospectors_00_Duel_Dispute_Team_02.11.mp3",
+            "https://s3.amazonaws.com/dart-battle-resources/scenarios/prospector/events/duel/event_Prospectors_00_Duel_Dispute_Team_06.12.mp3",
+            "https://s3.amazonaws.com/dart-battle-resources/scenarios/prospector/events/duel/event_Prospectors_00_Duel_Dispute_Team_06.13.mp3",
+            "https://s3.amazonaws.com/dart-battle-resources/scenarios/prospector/events/duel/event_Prospectors_00_Duel_Dispute_Team_08.10.mp3",
             "https://s3.amazonaws.com/dart-battle-resources/scenarios/prospector/events/exclusiveShot/event_Prospectors_00_ExclusiveShot_AlternatePath_Team_12.mp3",
             "https://s3.amazonaws.com/dart-battle-resources/scenarios/prospector/events/exclusiveShot/event_Prospectors_00_ExclusiveShot_CoverFire_Team_01.mp3",
             "https://s3.amazonaws.com/dart-battle-resources/scenarios/prospector/events/exclusiveShot/event_Prospectors_00_ExclusiveShot_CoverFire_Team_02.mp3",
@@ -481,7 +504,7 @@ class Prospector(Playlist):
     def getIntro(rank=None, variant=None):
         rank = rank or '00'
         intros = {
-            "A": "https://s3.amazonaws.com/dart-battle-resources/scenarios/prospector/OldWest_Intro_test.mp3"
+            "A": "https://s3.amazonaws.com/dart-battle-resources/scenarios/prospector/intros/intro_Prospectors_00_IntroA_Any_00.mp3"
         }
         if not variant:
             randKey = random.choice(list(intros.keys()))
