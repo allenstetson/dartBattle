@@ -45,6 +45,9 @@ class EventCategories(enum.Enum):
     Outtro = 22
     Tail = 23
     Promo = 24
+    DropAndRoll = 25
+    Duel = 26
+
 
 
 class Scenarios(enum.Enum):
