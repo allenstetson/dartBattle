@@ -615,6 +615,20 @@ class Prospector(Playlist):
             "https://s3.amazonaws.com/dart-battle-resources/scenarios/prospector/events/tagFeature/event_Prospectors_00_TagFeature_CoverOfDarkness_Team_12.mp3",
             "https://s3.amazonaws.com/dart-battle-resources/scenarios/prospector/events/tagFeature/event_Prospectors_00_TagFeature_CoverOfDarkness_Team_13.mp3",
             "https://s3.amazonaws.com/dart-battle-resources/scenarios/prospector/events/tagFeature/event_Prospectors_00_TagFeature_CoverOfDarkness_Team_14.mp3",
+            "https://s3.amazonaws.com/dart-battle-resources/scenarios/prospector/events/tagFeature/event_Prospectors_00_TagFeature_FloodDoor_Team_01.mp3",
+            "https://s3.amazonaws.com/dart-battle-resources/scenarios/prospector/events/tagFeature/event_Prospectors_00_TagFeature_FloodDoor_Team_02.mp3",
+            "https://s3.amazonaws.com/dart-battle-resources/scenarios/prospector/events/tagFeature/event_Prospectors_00_TagFeature_FloodDoor_Team_03.mp3",
+            "https://s3.amazonaws.com/dart-battle-resources/scenarios/prospector/events/tagFeature/event_Prospectors_00_TagFeature_FloodDoor_Team_04.mp3",
+            "https://s3.amazonaws.com/dart-battle-resources/scenarios/prospector/events/tagFeature/event_Prospectors_00_TagFeature_FloodDoor_Team_05.mp3",
+            "https://s3.amazonaws.com/dart-battle-resources/scenarios/prospector/events/tagFeature/event_Prospectors_00_TagFeature_FloodDoor_Team_06.mp3",
+            "https://s3.amazonaws.com/dart-battle-resources/scenarios/prospector/events/tagFeature/event_Prospectors_00_TagFeature_FloodDoor_Team_07.mp3",
+            "https://s3.amazonaws.com/dart-battle-resources/scenarios/prospector/events/tagFeature/event_Prospectors_00_TagFeature_FloodDoor_Team_08.mp3",
+            "https://s3.amazonaws.com/dart-battle-resources/scenarios/prospector/events/tagFeature/event_Prospectors_00_TagFeature_FloodDoor_Team_09.mp3",
+            "https://s3.amazonaws.com/dart-battle-resources/scenarios/prospector/events/tagFeature/event_Prospectors_00_TagFeature_FloodDoor_Team_10.mp3",
+            "https://s3.amazonaws.com/dart-battle-resources/scenarios/prospector/events/tagFeature/event_Prospectors_00_TagFeature_FloodDoor_Team_11.mp3",
+            "https://s3.amazonaws.com/dart-battle-resources/scenarios/prospector/events/tagFeature/event_Prospectors_00_TagFeature_FloodDoor_Team_12.mp3",
+            "https://s3.amazonaws.com/dart-battle-resources/scenarios/prospector/events/tagFeature/event_Prospectors_00_TagFeature_FloodDoor_Team_13.mp3",
+            "https://s3.amazonaws.com/dart-battle-resources/scenarios/prospector/events/tagFeature/event_Prospectors_00_TagFeature_FloodDoor_Team_14.mp3",
 
         ]
         self.soundtrack = "https://s3.amazonaws.com/dart-battle-resources/scenarios/prospector/sndtrk/sndtrk_OldWest_Music_Sfx_{}s.mp3"
