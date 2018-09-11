@@ -22,6 +22,8 @@ def enableProtocol(event):
     speech = ""
     text = ""
     title = ""
+    protocolName = ""
+    protocolAction = ""
     if 'slots' in request['intent'] and 'PROTOCOLNAME' in request['intent']['slots']:
         code = request['intent']['slots']['PROTOCOLNAME']['resolutions']['resolutionsPerAuthority'][0]['status']['code']
         if code == "ER_SUCCESS_MATCH":
@@ -33,7 +35,6 @@ def enableProtocol(event):
             protocolName = "with that name"
         elif code == "ER_ERROR_TIMEOUT":
             return responses.getTimeoutResponse()
-        protocolName = None
     registeredProtocols = [
         ProtocolAboutFace(session),
         ProtocolCrowsNest(session),

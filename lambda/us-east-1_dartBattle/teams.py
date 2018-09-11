@@ -59,6 +59,7 @@ class PlayerRolesSpecial(enum.Enum):
 
 
 class PlayerRanks(enum.Enum):
+    newbie = 0
     private = 1
     corporal = 2
     sergeant = 3
@@ -313,9 +314,9 @@ def shuffleTeamsIntent(session):
     """
     sessionAttributes = session.attributes
 
-    if not "teams" in sessionAttributes:
-        speech = "I would shuffle the teams, but no teams have been recently set up."
-        text = "No current teams."
+    if not sessionAttributes.get("teams", None):
+        speech = "I would shuffle the teams, but no teams have been recently set up. "
+        text = "No current teams. "
     else:
         speech = "Shuffling teams and roles... "
         teamNums = sessionAttributes['teams'].keys()
