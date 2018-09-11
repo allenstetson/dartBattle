@@ -24,6 +24,24 @@
                     "samples": []
                 },
                 {
+                    "name": "BuySkillItemIntent",
+                    "samples": [
+                      "buy",
+                      "shop",
+                      "buy {ProductName}",
+                      "purchase {ProductName}",
+                      "want {ProductName}",
+                      "would like {ProductName}",
+                      "how do I get more scenarios"
+                    ],
+                    "slots": [
+                      {
+                        "name": "ProductName",
+                        "type": "LIST_OF_PRODUCT_NAMES"
+                      }
+                    ]
+                },
+                {
                     "name": "ClearTeamsIntent",
                     "slots": [],
                     "samples": [
@@ -340,6 +358,22 @@
                         {
                             "name": {
                                 "value": "enable"
+                            }
+                        }
+                    ]
+                },
+                {
+                    "name": "LIST_OF_PRODUCT_NAMES",
+                    "values": [
+                        {
+                            "id": "Prospectors_Predicament",
+                            "name": {
+                                "value": "prospector's predicament",
+                                "synonyms": [
+                                    "old west",
+                                    "sheriff",
+                                    "scenario"
+                                ]
                             }
                         }
                     ]
