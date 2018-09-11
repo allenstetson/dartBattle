@@ -41,7 +41,13 @@
             }
           }
         }
-      }
+      },
+      "in_skill_products": [
+        {
+          "deploy_status": "Add",
+          "filePath": "isps\\entitlement\\Prospectors_Predicament.json"
+        }
+      ]
     }
   }
 }
