@@ -1,0 +1,54 @@
+{
+  "version": "1.0",
+  "type": "ENTITLEMENT",
+  "referenceName": "Prospectors_Predicament",
+  "publishingInformation": {
+    "locales": {
+      "en-US": {
+        "name": "Prospector's Predicament",
+        "smallIconUri": "https://s3.amazonaws.com/dart-battle-resources/scenarios/prospector/iconProspectors_108.png",
+        "largeIconUri": "https://s3.amazonaws.com/dart-battle-resources/scenarios/prospector/iconProspectors_512.png",
+        "summary": "A new scenario set in the days of the old west! Includes brand new soundtrack and over 230 new event tracks.",
+        "description": "Fight alongside the Sheriff inside Prospector Walter's mineshaft to fend off notorious outlaw Bonnie Hawkins in a do-or-die scenario set in the days of the old west! Includes brand new soundtrack and over 230 new event tracks.",
+        "examplePhrases": [
+          "Alexa, buy prospector's predicament"
+        ],
+        "keywords": [
+          "prospector",
+          "old west",
+          "sheriff",
+          "scenario",
+          "soundtrack"
+        ],
+        "customProductPrompts": {
+          "purchasePromptDescription": "Fight alongside the Sheriff inside Prospector Walter's mineshaft to fend off notorious outlaw Bonnie Hawkins in a do-or-die scenario set in the days of the old west! Includes brand new soundtrack and over 230 new event tracks.",
+          "boughtCardDescription": "Congrats! Prospector's Predicament purchase was successful and will now be inserted into the random selection for battle scenarios!"
+        }
+      }
+    },
+    "distributionCountries": [
+      "US"
+    ],
+    "pricing": {
+      "amazon.com": {
+        "releaseDate": "2018-09-11",
+        "defaultPriceListing": {
+          "price": 2.99,
+          "currency": "USD"
+        }
+      }
+    },
+    "taxInformation": {
+      "category": "SOFTWARE"
+    }
+  },
+  "privacyAndCompliance": {
+    "locales": {
+      "en-US": {
+        "privacyPolicyUrl": "http://dartbattle.fun/#popup1"
+      }
+    }
+  },
+  "testingInstructions": "Ask Dart Battle 'How do I get more scenarios?' and follow the prompts to purchase Prospector's Predicament.",
+  "purchasableState": "PURCHASABLE"
+}
