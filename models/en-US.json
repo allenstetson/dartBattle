@@ -24,21 +24,21 @@
                     "samples": []
                 },
                 {
-                    "name": "BuySkillItemIntent",
+                    "name": "BuyItemIntent",
                     "samples": [
-                      "buy",
-                      "shop",
-                      "buy {ProductName}",
-                      "purchase {ProductName}",
-                      "want {ProductName}",
-                      "would like {ProductName}",
-                      "how do I get more scenarios"
+                        "buy",
+                        "shop",
+                        "buy {ProductName}",
+                        "purchase {ProductName}",
+                        "want {ProductName}",
+                        "would like {ProductName}",
+                        "how do I get more scenarios"
                     ],
                     "slots": [
-                      {
-                        "name": "ProductName",
-                        "type": "LIST_OF_PRODUCT_NAMES"
-                      }
+                        {
+                            "name": "ProductName",
+                            "type": "LIST_OF_PRODUCT_NAMES"
+                        }
                     ]
                 },
                 {
@@ -307,12 +307,67 @@
                     "values": [
                         {
                             "name": {
-                                "value": "Ji Sun"
+                                "value": "Devi"
                             }
                         },
                         {
                             "name": {
-                                "value": "Owen"
+                                "value": "Vimanyu"
+                            }
+                        },
+                        {
+                            "name": {
+                                "value": "Anleth"
+                            }
+                        },
+                        {
+                            "name": {
+                                "value": "Ismini"
+                            }
+                        },
+                        {
+                            "name": {
+                                "value": "Arianwen"
+                            }
+                        },
+                        {
+                            "name": {
+                                "value": "Allwyn"
+                            }
+                        },
+                        {
+                            "name": {
+                                "value": "Ji Sun",
+                                "synonyms": [
+                                    "jisun",
+                                    "G Sun"
+                                ]
+                            }
+                        },
+                        {
+                            "name": {
+                                "value": "Owen",
+                                "synonyms": [
+                                    "On",
+                                    "O N",
+                                    "Oh in"
+                                ]
+                            }
+                        }
+                    ]
+                },
+                {
+                    "name": "LIST_OF_PRODUCT_NAMES",
+                    "values": [
+                        {
+                            "id": "Prospectors_Predicament",
+                            "name": {
+                                "value": "prospector's predicament",
+                                "synonyms": [
+                                    "old west",
+                                    "sheriff",
+                                    "scenario"
+                                ]
                             }
                         }
                     ]
@@ -320,6 +375,11 @@
                 {
                     "name": "DB_Protocol",
                     "values": [
+                        {
+                            "name": {
+                                "value": "telemetry"
+                            }
+                        },
                         {
                             "name": {
                                 "value": "stingray"
@@ -358,22 +418,6 @@
                         {
                             "name": {
                                 "value": "enable"
-                            }
-                        }
-                    ]
-                },
-                {
-                    "name": "LIST_OF_PRODUCT_NAMES",
-                    "values": [
-                        {
-                            "id": "Prospectors_Predicament",
-                            "name": {
-                                "value": "prospector's predicament",
-                                "synonyms": [
-                                    "old west",
-                                    "sheriff",
-                                    "scenario"
-                                ]
                             }
                         }
                     ]
