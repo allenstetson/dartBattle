@@ -6,10 +6,10 @@
     "locales": {
       "en-US": {
         "name": "Prospector's Predicament",
+        "summary": "A new scenario set in the days of the old west! Includes brand new soundtrack and over 230 new event tracks.",
+        "description": "A new scenario set in the days of the old west! Includes brand new soundtrack and over 230 new event tracks.",
         "smallIconUri": "https://s3.amazonaws.com/dart-battle-resources/scenarios/prospector/iconProspectors_108.png",
         "largeIconUri": "https://s3.amazonaws.com/dart-battle-resources/scenarios/prospector/iconProspectors_512.png",
-        "summary": "A new scenario set in the days of the old west! Includes brand new soundtrack and over 230 new event tracks.",
-        "description": "Fight alongside the Sheriff inside Prospector Walter's mineshaft to fend off notorious outlaw Bonnie Hawkins in a do-or-die scenario set in the days of the old west! Includes brand new soundtrack and over 230 new event tracks.",
         "examplePhrases": [
           "Alexa, buy prospector's predicament"
         ],
@@ -21,7 +21,7 @@
           "soundtrack"
         ],
         "customProductPrompts": {
-          "purchasePromptDescription": "Fight alongside the Sheriff inside Prospector Walter's mineshaft to fend off notorious outlaw Bonnie Hawkins in a do-or-die scenario set in the days of the old west! Includes brand new soundtrack and over 230 new event tracks.",
+          "purchasePromptDescription": "A new scenario set in the days of the old west! Includes brand new soundtrack and over 230 new event tracks.",
           "boughtCardDescription": "Congrats! Prospector's Predicament purchase was successful and will now be inserted into the random selection for battle scenarios!"
         }
       }
@@ -31,7 +31,7 @@
     ],
     "pricing": {
       "amazon.com": {
-        "releaseDate": "2018-09-11",
+        "releaseDate": "2018-09-11T00:00Z",
         "defaultPriceListing": {
           "price": 2.99,
           "currency": "USD"

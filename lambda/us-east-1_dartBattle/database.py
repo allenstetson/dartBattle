@@ -6,6 +6,13 @@ logger = logging.getLogger()
 logger.setLevel(logging.INFO)
 
 logger.info('Attempting import DB.')
+from botocore.exceptions import ClientError
+import boto3
+DB_ACTIVE = True
+# DB_ACTIVE = False #THIS DISABLES DB WHILE IT IS UNSTABLE. COMMENT FOR TESTING.
+logger.info('DB Import successful')
+
+"""
 try:
     from boto3.dynamodb.conditions import Key, Attr
     from botocore.exceptions import ClientError
@@ -13,10 +20,11 @@ try:
     DB_ACTIVE = True
     # DB_ACTIVE = False #THIS DISABLES DB WHILE IT IS UNSTABLE. COMMENT FOR TESTING.
     logger.info('DB Import successful')
-except ImportError:
+except ImportError as e:
+    logger.info(e.message + "\n" + e.args)
     logger.info("DB Import failed. Falling back to defaults.")
     DB_ACTIVE = False
-
+"""
 
 def isActive():
     return DB_ACTIVE

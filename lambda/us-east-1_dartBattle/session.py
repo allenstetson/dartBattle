@@ -6,7 +6,8 @@ class DartBattleSession(dict):
     def __init__(self, session=None):
         if not database.isActive():
             session = dict()
-            session["attributes"] = database.getDefaultSessionAttrs()
+            userId = session['context']['System']['user']['userId']
+            session["attributes"] = database.getDefaultSessionAttrs(userId)
         else:
             session = database.getSessionFromDB(session)
         for key in session:

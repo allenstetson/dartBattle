@@ -20,7 +20,7 @@
             "alexaUsage": [
               "custom/default"
             ],
-            "revisionId": "5b2eae0c-0747-4a2c-918d-95734b573f30"
+            "revisionId": "7c6dabac-7d1d-410e-afd2-e2af1eeeafa7"
           }
         ]
       },
@@ -44,8 +44,10 @@
       },
       "in_skill_products": [
         {
-          "deploy_status": "Add",
-          "filePath": "isps\\entitlement\\Prospectors_Predicament.json"
+          "deploy_status": "Update",
+          "filePath": "isps\\entitlement\\Prospectors_Predicament.json",
+          "productId": "amzn1.adg.product.029ec28b-6301-4f7e-a24e-e7d231eebe36",
+          "eTag": "8d671bb2e880300f813ca313fa6717c1"
         }
       ]
     }
