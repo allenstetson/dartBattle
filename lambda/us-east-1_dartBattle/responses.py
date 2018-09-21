@@ -203,6 +203,9 @@ def getWelcomeResponse(session):
     # If the user either does not reply to the welcome message or says something
     # that is not understood, they will be prompted again with this text.
     repromptText = "Try saying: Start Battle, Setup Teams, or More Options."
+    return "<audio src=\"https://s3.amazonaws.com/dart-battle-resources/introMusic.mp3\" />" + speech
+
+"""
     return {
         'version': os.environ['VERSION'],
         'sessionAttributes': sessionAttributes,
@@ -243,6 +246,7 @@ def getWelcomeResponse(session):
             'shouldEndSession': False
         }
     }
+"""
 
 
 def howToPlayResponse():

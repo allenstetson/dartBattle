@@ -2,3 +2,5 @@ ask api get-model -s amzn1.ask.skill.d1311184-0f57-46e8-ab59-879027130a28 -l en-
 
 ask deploy --target lambda --force
 
+powershell.exe -ExecutionPolicy Unrestricted
+.\skill_env\Scripts\activate
