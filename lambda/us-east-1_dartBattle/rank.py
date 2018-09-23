@@ -3,8 +3,6 @@ import logging
 import os
 
 # DartBattle imports:
-import database
-import responses
 import teams
 
 logger = logging.getLogger()
@@ -67,16 +65,15 @@ def getRankResponse(session):
     }
 
 
-def checkForPromotion(sessionAttributes):
+def checkForPromotion(userSession):
     global rankRequirements
     logger.info("Checking for promotion.")
     # TODO: centralize this:
-    currentRank = int(sessionAttributes['playerRank'])
-    numBattles = sessionAttributes['numBattles']
-    if int(numBattles) > rankRequirements[currentRank] and \
-            int(numBattles) >= rankRequirements[currentRank + 1]:
-        sessionAttributes['playerRank'] = "{:02d}".format(currentRank + 1)
-        database.updateRecord(sessionAttributes)
+    currentRank = int(userSession.playerRank)
+    if int(userSession.numBattles) > rankRequirements[currentRank] and \
+            int(userSession.numBattles) >= rankRequirements[currentRank + 1]:
+        userSession.playerRank = "{:02d}".format(currentRank + 1)
+
         logger.info("Promotion to rank {} is earned!".format(currentRank + 1))
         return True, currentRank + 1
     return False, currentRank
