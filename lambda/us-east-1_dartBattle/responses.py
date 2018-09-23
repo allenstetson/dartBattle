@@ -8,6 +8,9 @@ import os
 import logging
 import random
 
+# Amazon Imports:
+from ask_sdk_model.ui.image import Image
+
 # DartBattle imports:
 import database
 import playlists
@@ -124,8 +127,6 @@ def getOptionsResponse(session):
 
 
 def getWelcomeResponse(session):
-    sessionAttributes = session['attributes']
-
     # __FORMAT:__
     # Music
     # Welcome to/back
@@ -133,19 +134,19 @@ def getWelcomeResponse(session):
     # You've been promoted to...
     # You can say / Would you like to
 
-    (isNewRank, rankNum) = rank.checkForPromotion(sessionAttributes)
+    (isNewRank, rankNum) = rank.checkForPromotion(session)
 
     # -------------------------------------------------------------------------
     # Determine welcome
     # -------------------------------------------------------------------------
-    if sessionAttributes['recentSession'] == "True":
+    if session.recentSession == "True":
         title = "Welcome Back"
         # TODO: "I'm here for you, troops/soldier.", "Resuming Dart Battle, protocol Igloo/Tango", "Welcome back.", "On alert.", "Monitoring enemy activity."
     else:
         title = "Welcome, Soldier"
         # TODO: "Dart Battle mission instantiated.", "Attention! Codename Dart Battle ready for orders.", "Dart Battle Protocol ready for commands."
 
-    welcome = playlists.Greeting(sessionAttributes).getGreeting()
+    welcome = playlists.Greeting(session.attributes).getGreeting()
 
     # -------------------------------------------------------------------------
 
@@ -163,7 +164,7 @@ def getWelcomeResponse(session):
         promotionFile = playlists.GetRankPromotionFile(rankNum)
         logger.info("Received a promotion track to play: {}".format(promotionFile))
         promotion += "<audio src=\"{}\" />".format(promotionFile)
-        sessionAttributes['playerRank'] = rankNum
+        session.playerRank = rankNum
         title = "Congratulations!"
         playerRankName = teams.PlayerRanks(int(rankNum)).name.replace("_", " ")
         text = "You are hereby promoted to {}.".format(playerRankName.title())
@@ -173,14 +174,14 @@ def getWelcomeResponse(session):
     # Handle new recruit
     # -------------------------------------------------------------------------
     justJoined = ""
-    if sessionAttributes.get("playerRank", "00") == "00" and sessionAttributes.get("recentSession", "False") == "False":
+    if session.playerRank == "00" and session.recentSession == "False":
         justJoined = '<audio src="https://s3.amazonaws.com/dart-battle-resources/common/common_Any_00_Greeting_JustJoinedA_Any_00.mp3" />'
 
     # -------------------------------------------------------------------------
     # Handle 'you can' intro, options
     # -------------------------------------------------------------------------
-    if sessionAttributes.get("recentSession", "False") == "True":
-        if sessionAttributes.get("usingTeams", "False") == "True":
+    if session.recentSession == "True":
+        if session.usingTeams == "True":
             tracks = [
                 "https://s3.amazonaws.com/dart-battle-resources/common/common_Any_00_Greeting_OptionsQuickA_Team_00.mp3"
             ]
@@ -202,8 +203,14 @@ def getWelcomeResponse(session):
 
     # If the user either does not reply to the welcome message or says something
     # that is not understood, they will be prompted again with this text.
-    repromptText = "Try saying: Start Battle, Setup Teams, or More Options."
-    return "<audio src=\"https://s3.amazonaws.com/dart-battle-resources/introMusic.mp3\" />" + speech
+    reprompt = "Try saying: Start Battle, Setup Teams, or More Options."
+
+    speech = "<audio src=\"https://s3.amazonaws.com/dart-battle-resources/introMusic.mp3\" />" + speech
+    cardImage = Image(
+        small_image_url="https://s3.amazonaws.com/dart-battle-resources/dartBattle_{}_720x480.jpg".format(imgName),
+        large_image_url="https://s3.amazonaws.com/dart-battle-resources/dartBattle_{}_1200x800.jpg".format(imgName)
+    )
+    return speech, reprompt, title, text, cardImage
 
 """
     return {
