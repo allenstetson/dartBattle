@@ -13,7 +13,7 @@ import logging
 from ask_sdk_model.ui.image import Image
 from ask_sdk_model.interfaces.audioplayer import (
     PlayDirective, PlayBehavior, AudioItem, Stream, AudioItemMetadata,
-    StopDirective)
+    StopDirective, AudioPlayerState)
 from ask_sdk_model.interfaces import display
 
 # DartBattle imports:
@@ -133,7 +133,6 @@ class Scenario(object):
 
         # Determine valid list
         tracklist = self.playlist.getEventsForRank(self.playerRank)  # FIXME: This breaks when usingEvents is False
-        print("Found {} tracks.".format(len(tracklist)))
 
         # TODO: Think about moving this logic into the Playlist
         available = []
@@ -152,9 +151,8 @@ class Scenario(object):
                 available.append(trackPath)
         except Exception as e:
             print("Exception caught processing track {}".format(track))
-            raise(e)
+            raise e
 
-        print("{} are valid tracks.".format(len(available)))
         self._availableEvents = available
         return available
 
@@ -229,10 +227,8 @@ class Scenario(object):
     def playerRank(self):
         """Enum of the rank achieved by the player; 01 = Private, etc."""
         if self._playerRank:
-            print("looking at playerRank {}".format(self._playerRank))
             return self._playerRank
         self._playerRank = self.userSession.playerRank
-        print("Looking at playerRank {}".format(self._playerRank))
         return self._playerRank
 
     @playerRank.setter
@@ -839,42 +835,51 @@ def startBattleStandardIntent(userSession):
     return speech, title, text, cardImage, directive
 
 
-def continueAudioPlayback(session, prevToken):
+def continueAudioPlayback(userSession):
     """Triggered by PlaybackNearlyFinished event, plays next."""
-    # Request triggered by PlaybackNearlyFinished and has no active session. Default is fine.
-    userId = session['context']['System']['user']['userId']
-    sessionAttributes = database.getDefaultSessionAttrs(userId)
-    playBehavior = "ENQUEUE"
+    prevToken = AudioPlayerState.token
 
     sessionInfo = prevToken.split("_")[1]
     (playerRank, scenarioEnum, teams, sfx, soundtrack) = sessionInfo.split(".")
     scenarioName = Scenarios(int(scenarioEnum)).name
-    (nextToken, nextTrack) = Scenario(sessionAttributes, name=scenarioName).getNextFromToken(prevToken)
-
-    sessionAttributes['currentToken'] = nextToken
+    (nextToken, nextTrack) = Scenario(userSession, name=scenarioName).getNextFromToken(prevToken)
+    userSession.currentToken = nextToken
     if nextToken:
-        database.updateRecordToken(sessionAttributes)
-    response = {
-        "version": os.environ['VERSION'],
-        "response": {
-            "directives": [
-                {
-                    "type": "AudioPlayer.Play",
-                    "playBehavior": playBehavior,
-                    "audioItem": {
-                        "stream": {
-                            "token": nextToken,
-                            "expectedPreviousToken": prevToken,
-                            "url": nextTrack,
-                            "offsetInMilliseconds": 0
-                        }
-                    }
-                }
-            ]
-        }
-    }
-    # print("Continue Audio Finished, returning: {}".format(response))
-    return response
+        database.updateRecordToken(userSession)
+    largeImg = "https://s3.amazonaws.com/dart-battle-resources/dartBattle_SB_1200x800.jpg"
+
+    directive = PlayDirective(
+        play_behavior=PlayBehavior.ENQUEUE,
+        audio_item=AudioItem(
+            stream=Stream(
+                expected_previous_token=prevToken,
+                token=nextToken,
+                url=nextTrack,
+                offset_in_milliseconds=0
+            ),
+            metadata=AudioItemMetadata(
+                title=scenarioName,
+                subtitle="",
+                art=display.Image(
+                    content_description=scenarioName,
+                    sources=[
+                        display.ImageInstance(
+                            url=largeImg
+                        )
+                    ]
+                ),
+                background_image=display.Image(
+                    content_description=scenarioName,
+                    sources=[
+                        display.ImageInstance(
+                            url=largeImg
+                        )
+                    ]
+                )
+            )
+        )
+    )
+    return directive
 
 
 def reverseAudioPlayback(session):
