@@ -172,7 +172,7 @@ class DartBattleSession(object):
     @property
     def userId(self):
         if not self.attributes.get("userId"):
-            self._sessionAttributes["userId"] = "False"
+            self._sessionAttributes["userId"] = ['context']['System']['user']['userId']
         return self._sessionAttributes["userId"]
 
     @userId.setter
@@ -212,7 +212,7 @@ class DartBattleSession(object):
 
     def populateAttrs(self):
         self._sessionAttributes = self._handler_input.attributes_manager.request_attributes
-        self._sessionAttributes["userId"] = self._handler_input.request_envelope.session.user.user_id
+        self._sessionAttributes["userId"] = self._handler_input.request_envelope.context.system.user.user_id
         dbAttrs = database.getSessionFromDB(self)
         for attrName in dbAttrs:
             if not self._sessionAttributes.get(attrName):

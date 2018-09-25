@@ -18,7 +18,7 @@ from ask_sdk_model import (
 
 from ask_sdk_model.interfaces.audioplayer import (
     PlayDirective, PlayBehavior, AudioItem, Stream, AudioItemMetadata,
-    StopDirective)
+    StopDirective, PlaybackNearlyFinishedRequest)
 
 from ask_sdk_model.interfaces import display
 
