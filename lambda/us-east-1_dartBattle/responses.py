@@ -11,6 +11,17 @@ import random
 # Amazon Imports:
 from ask_sdk_model.ui.image import Image
 
+from ask_sdk_model.dialog import (
+    ElicitSlotDirective, DelegateDirective)
+from ask_sdk_model import (
+    Response, IntentRequest, DialogState, SlotConfirmationStatus, Slot)
+
+from ask_sdk_model.interfaces.audioplayer import (
+    PlayDirective, PlayBehavior, AudioItem, Stream, AudioItemMetadata,
+    StopDirective)
+
+from ask_sdk_model.interfaces import display
+
 # DartBattle imports:
 import database
 import playlists
@@ -69,16 +80,11 @@ def getTimeoutResponse():
 # SPECIFIC USER RESPONSES
 # =============================================================================
 def getOptionsResponse(session):
-    sessionAttributes = session['attributes']
-
-    if 'playerRank' in sessionAttributes:
-        playerRank = sessionAttributes['playerRank']
-        if playerRank == '00':
-            playerRankName = "soldier"
-        else:
-            playerRankName = teams.PlayerRanks(int(playerRank)).name.replace("_", " ")
-    else:
+    playerRank = session.playerRank
+    if playerRank == '00':
         playerRankName = "soldier"
+    else:
+        playerRankName = teams.PlayerRanks(int(playerRank)).name.replace("_", " ")
 
     speech = "<audio src=\"https://s3.amazonaws.com/dart-battle-resources/choiceMusic.mp3\" /> "
     speech += "<audio src=\"https://s3.amazonaws.com/dart-battle-resources/comsatTellWhatYouCanDo_01.mp3\" /> "
@@ -104,26 +110,14 @@ def getOptionsResponse(session):
     text += "__OTHER:__\n"
     text += "How do I play?, More Options."
 
-    return {
-        "version": os.environ['VERSION'],
-        "sessionAttributes": sessionAttributes,
-        "response": {
-            "outputSpeech": {
-                "type": "SSML",
-                "ssml": "<speak>" + speech + "</speak>"
-            },
-            "card": {
-                "type": "Standard",
-                "title": "Options",
-                "text": text,
-                "image": {
-                    "smallImageUrl": "https://s3.amazonaws.com/dart-battle-resources/dartBattle_MO_720x480.jpg",
-                    "largeImageUrl": "https://s3.amazonaws.com/dart-battle-resources/dartBattle_MO_1200x800.jpg"
-                }
-            },
-            "shouldEndSession": False
-        }
-    }
+    reprompt = "Try saying: Start Battle, Setup Teams, or More Options."
+
+    cardImage = Image(
+        small_image_url="https://s3.amazonaws.com/dart-battle-resources/dartBattle_MO_720x480.jpg",
+        large_image_url="https://s3.amazonaws.com/dart-battle-resources/dartBattle_MO_1200x800.jpg"
+    )
+    title = "Options"
+    return speech, reprompt, title, text, cardImage
 
 
 def getWelcomeResponse(session):
@@ -146,7 +140,7 @@ def getWelcomeResponse(session):
         title = "Welcome, Soldier"
         # TODO: "Dart Battle mission instantiated.", "Attention! Codename Dart Battle ready for orders.", "Dart Battle Protocol ready for commands."
 
-    welcome = playlists.Greeting(session.attributes).getGreeting()
+    welcome = playlists.Greeting(session).getGreeting()
 
     # -------------------------------------------------------------------------
 
@@ -212,51 +206,9 @@ def getWelcomeResponse(session):
     )
     return speech, reprompt, title, text, cardImage
 
-"""
-    return {
-        'version': os.environ['VERSION'],
-        'sessionAttributes': sessionAttributes,
-        'response': {
-            "directive": {
-                "header": {
-                    "namespace": "AudioPlayer",
-                    "name": "ClearQueue",
-                    "messageId": "{{STRING}}",
-                    "dialogRequestId": "{{STRING}}"
-                },
-                "payload": {
-                    "clearBehavior": "{{STRING}}"
-                }
-            },
-            "outputSpeech": {
-                "type": "SSML",
-                "ssml": "<speak>"
-                        "<audio src=\"https://s3.amazonaws.com/dart-battle-resources/introMusic.mp3\" />" +
-                        speech +
-                        "</speak>"
-                    },
-            'reprompt': {
-                'outputSpeech': {
-                    'type': 'PlainText',
-                    'text': repromptText
-                }
-            },
-            "card": {
-                "type": "Standard",
-                "title": title,
-                "text": text,
-                "image": {
-                    "smallImageUrl": "https://s3.amazonaws.com/dart-battle-resources/dartBattle_{}_720x480.jpg".format(imgName),
-                    "largeImageUrl": "https://s3.amazonaws.com/dart-battle-resources/dartBattle_{}_1200x800.jpg".format(imgName)
-                }
-            },
-            'shouldEndSession': False
-        }
-    }
-"""
-
 
 def howToPlayResponse():
+    speech = "<audio src=\"https://s3.amazonaws.com/dart-battle-resources/choiceMusic.mp3\" />" + speech
     text = "- Use foam-based weaponry, score eliminations.\n"
     text += "- No head shots or point blank shots.\n"
     text += "- Listen for special events!\n"
@@ -265,97 +217,93 @@ def howToPlayResponse():
     text += "- Wear eye protection.\n"
     text += "- Settle disputes in a friendly manner.\n"
     text += " - HAVE FUN"
-    response = {
-        "version": os.environ['VERSION'],
-        "response": {
-            "card": {
-                "type": "Standard",
-                "title": "How to Play",
-                "text": text,
-                "image": {
-                    "smallImageUrl": "https://s3.amazonaws.com/dart-battle-resources/dartBattle_HTP_720x480.jpg",
-                    "largeImageUrl": "https://s3.amazonaws.com/dart-battle-resources/dartBattle_HTP_1200x800.jpg"
-                }
-            },
-            "directives": [
-                {
-                    "type": "AudioPlayer.Play",
-                    "playBehavior": "REPLACE_ALL",
-                    "audioItem": {
-                        "stream": {
-                            "token": "howToPlay_track01",
-                            "url": "https://s3.amazonaws.com/dart-battle-resources/howDoIPlay.mp3",
-                            "offsetInMilliseconds": 0
-                        }
-                    }
-                }
-            ]
-        }
-    }
-    return response
+    reprompt = "Try saying: Start Battle, Setup Teams, or More Options."
+
+    smallImg = "https://s3.amazonaws.com/dart-battle-resources/dartBattle_HTP_720x480.jpg"
+    largeImg = "https://s3.amazonaws.com/dart-battle-resources/dartBattle_HTP_1200x800.jpg"
+    cardImage = Image(
+        small_image_url=smallImg,
+        large_image_url=largeImg
+    )
+    title = "How to Play"
+    directive = PlayDirective(
+        play_behavior=PlayBehavior.REPLACE_ALL,
+        audio_item=AudioItem(
+            stream=Stream(
+                expected_previous_token=None,
+                token="howToPlay_track01",
+                url="https://s3.amazonaws.com/dart-battle-resources/howDoIPlay.mp3",
+                offset_in_milliseconds=0
+            ),
+            metadata=AudioItemMetadata(
+                title=title,
+                subtitle=text,
+                art=display.Image(
+                    content_description=title,
+                    sources=[
+                        display.ImageInstance(
+                            url=largeImg
+                        )
+                    ]
+                ),
+                background_image=display.Image(
+                    content_description=title,
+                    sources=[
+                        display.ImageInstance(
+                            url=largeImg
+                        )
+                    ]
+                )
+            )
+        )
+    )
+    return speech, reprompt, title, text, cardImage, directive
 
 
-def toggleSettingsResponse(event, enabled):
-    request = event["request"]
-    session = event["session"]
-    sessionAttributes = session["attributes"]
+def toggleSettingsResponse(userSession, enabled):
+    if not "ATTRNAME" in userSession.request.slots:
+        print("SLOTS: {}".format(userSession.request.slots))
+        return "Programming error: missing slots.", "", "", "", None
 
-    dialogState = request['dialogState']
-    if dialogState in ["STARTED", "IN_PROGRESS"]:
-        return continueDialog(sessionAttributes)
-    elif dialogState == 'COMPLETED':
-        # sessionAttributes = session.get('attributes', database.getDefaultSessionAttrs(session['user']['userId']))
-        pass
-    attrName = request['intent']['slots']['ATTRNAME']['value']
+    attr = userSession.request.slots["ATTRNAME"]
+    text = ""
+    title = ""
 
     speech = ""
-    if attrName.lower() == "events":
+    if attr['status'] == "StatusCode.ER_SUCCESS_NO_MATCH":
+        speech += "I'd like to comply, but I don't recognize {}. ".format(attr['value'])
+        title = "Did you say {}?".format(attr['value'])
+        text = "Did Not Compute"
+    elif attr['value'].lower() == "events":
         speech += "<audio src=\"https://s3.amazonaws.com/dart-battle-resources/choiceMusic.mp3\" /> "
         if enabled:
             speech += "Events enabled. "
+            text = "Events enabled."
+            userSession.usingEvents = "True"
+            title = "Enable Events."
         else:
             speech += "Events disabled. Your battles will have no events until re-enabled. "
-        success = database.updateToggleEvents(sessionAttributes, enabled)
-        if success:
-            if enabled:
-                sessionAttributes['usingEvents'] = "True"
-            else:
-                sessionAttributes['usingEvents'] = "False"
-        title = "Disable Events."
-        text = "Events are disabled."
+            text = "Events disabled."
+            userSession.usingEvents = "False"
+            title = "Disable Events."
     else:
-        speech += "I'd like to comply, but I don't recognize {}. ".format(attrName)
-        title = "Did you say {}?".format(attrName)
-        text = "Did Not Compute"
+        speech = "I'm not sure what to do with the slot {} that has a status of {}. ".format(attr['value'], attr['status'])
+        print(speech)
     speech += "What next? "
+    reprompt = "Try saying: Start Battle, Setup Teams, or More Options."
 
-    return {
-        "version": os.environ['VERSION'],
-        "sessionAttributes": sessionAttributes,
-        "response": {
-            "outputSpeech": {
-                "type": "SSML",
-                "ssml": "<speak>" + speech + "</speak>"
-            },
-            "card": {
-                "type": "Standard",
-                "title": title,
-                "text": text,
-                "image": {
-                    "smallImageUrl": "https://s3.amazonaws.com/dart-battle-resources/dartBattle_HTP_720x480.jpg",
-                    "largeImageUrl": "https://s3.amazonaws.com/dart-battle-resources/dartBattle_HTP_1200x800.jpg"
-                }
-            },
-            "shouldEndSession": False
-        }
-    }
+    cardImage = Image(
+        small_image_url="https://s3.amazonaws.com/dart-battle-resources/dartBattle_HTP_720x480.jpg",
+        large_image_url="https://s3.amazonaws.com/dart-battle-resources/dartBattle_HTP_1200x800.jpg"
+    )
+    return speech, reprompt, title, text, cardImage
 
 
-def turnOffSettingsResponse(event):
+def turnOffSettingsResponse(userSession):
     enabled = False
-    return toggleSettingsResponse(event, enabled)
+    return toggleSettingsResponse(userSession, enabled)
 
 
-def turnOnSettingsResponse(event):
+def turnOnSettingsResponse(userSession):
     enabled = True
-    return toggleSettingsResponse(event, enabled)
+    return toggleSettingsResponse(userSession, enabled)

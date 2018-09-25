@@ -2,100 +2,75 @@
 import datetime
 import os
 
+from ask_sdk_model.ui.image import Image
+
 # DartBattle imports:
 import database
 import responses
 
 
-def enableProtocol(event):
-    request = event['request']
-    session = event['session']
-    sessionAttributes = session["attributes"]
+def toggleProtocol(userSession):
+    if not "PROTOCOLNAME" in userSession.request.slots:
+        print("SLOTS: {}".format(userSession.request.slots))
+        return "Programming error: missing slots.", "", "", "", None
 
-    dialogState = request['dialogState']
-    if dialogState in ["STARTED", "IN_PROGRESS"]:
-        return responses.continueDialog(sessionAttributes)
-    elif dialogState == 'COMPLETED':
-        # sessionAttributes = session.get('attributes', database.getDefaultSessionAttrs(session['user']['userId']))
-        pass
-
-    speech = ""
+    incomingProtocol = userSession.request.slots["PROTOCOLNAME"]
+    protocolAction = userSession.request.slots["PROTOCOLACTION"]
     text = ""
     title = ""
-    protocolName = ""
-    protocolAction = ""
-    if 'slots' in request['intent'] and 'PROTOCOLNAME' in request['intent']['slots']:
-        code = request['intent']['slots']['PROTOCOLNAME']['resolutions']['resolutionsPerAuthority'][0]['status']['code']
-        if code == "ER_SUCCESS_MATCH":
-            protocolName = request['intent']['slots']['PROTOCOLNAME']['value']
-            protocolAction = request['intent']['slots']['PROTOCOLACTION']['value']
-    else:
-        code = request['intent']['slots']['PROTOCOLNAME']['resolutions']['resolutionsPerAuthority'][0]['status']['code']
-        if code == "ER_SUCCESS_NO_MATCH":
-            protocolName = "with that name"
-        elif code == "ER_ERROR_TIMEOUT":
-            return responses.getTimeoutResponse()
-    registeredProtocols = [
-        ProtocolAboutFace(session),
-        ProtocolCrowsNest(session),
-        ProtocolMadDog(session),
-        ProtocolSilverSparrow(session),
-        ProtocolStingray(session),
-        ProtocolTelemetry(session)
-    ]
+    speech = ""
 
+    registeredProtocols = [
+        ProtocolAboutFace(userSession),
+        ProtocolCrowsNest(userSession),
+        ProtocolMadDog(userSession),
+        ProtocolSilverSparrow(userSession),
+        ProtocolStingray(userSession),
+        ProtocolTelemetry(userSession)
+    ]
     allNames = []
     for regProtocol in registeredProtocols:
         allNames.extend(regProtocol.getNames())
-    if protocolName in allNames:
-        protocol = [x for x in registeredProtocols if protocolName in x.getNames()][0]
-        if "enable" in protocolAction:
+
+    if incomingProtocol['status'] == "StatusCode.ER_SUCCESS_NO_MATCH":
+        speech += "There is no protocol named {} registered in the system. If you feel as if this is an error, please contact support at dart battle dot fun. ".format(incomingProtocol['value'])
+        text += 'See Special Objectives at http://dartbattle.fun. support@dartbattle.fun with problems.'
+        title += 'Unknown protocol: "{}". '.format(incomingProtocol['value'])
+    elif incomingProtocol['value'] in allNames:
+        protocol = [x for x in registeredProtocols if incomingProtocol['value'] in x.getNames()][0]
+        if "enable" in protocolAction['value']:
             protocol.enable()
-        elif "disable" in protocolAction:
+        elif "disable" in protocolAction['value']:
             protocol.disable()
         else:
-            print("{} vs. enable or disable".format(protocolAction))
-            speech += "I can not perform the action {} on this protocol. ".format(protocolAction)
+            print("{} vs. enable or disable".format(protocolAction['value']))
+            speech += "I can not perform the action {} on this protocol. ".format(protocolAction['value'])
         speech += protocol.speech
         title += protocol.title
         text += protocol.text
     else:
-        speech += "There is no protocol named {} registered in the system. If you feel as if this is an error, please contact support at dart battle dot fun. ".format(protocolName)
+        speech += "I feel like I recognize that protocol, but I can't seem to find it. You might want to contact support at dart battle dot com. "
         text += 'See Special Objectives at http://dartbattle.fun. support@dartbattle.fun with problems.'
-        title += 'Unknown protocol: "{}". '.format(protocolName)
+        title += 'Unfound protocol: "{}". '.format(incomingProtocol["value"])
     speech += "What next? Start a battle? More options? "
-    return {
-        "version": os.environ['VERSION'],
-        "sessionAttributes": sessionAttributes,
-        "response": {
-            "outputSpeech": {
-                "type": "SSML",
-                "ssml": "<speak>" + speech + "</speak>"
-            },
-            "card": {
-                "type": "Standard",
-                "title": title,
-                "text": text,
-                "image": {
-                    "smallImageUrl": "https://s3.amazonaws.com/dart-battle-resources/dartBattle_MO_720x480.jpg",
-                    "largeImageUrl": "https://s3.amazonaws.com/dart-battle-resources/dartBattle_MO_1200x800.jpg"
-                }
-            },
-            "shouldEndSession": False
-        }
-    }
+    reprompt = "Try saying: Start Battle, Setup Teams, or More Options."
+
+    cardImage = Image(
+        small_image_url="https://s3.amazonaws.com/dart-battle-resources/dartBattle_MO_720x480.jpg",
+        large_image_url="https://s3.amazonaws.com/dart-battle-resources/dartBattle_MO_1200x800.jpg"
+    )
+    return speech, reprompt, title, text, cardImage
 
 
 class DartBattleProtocol(object):
-    def __init__(self, session):
+    def __init__(self, userSession):
         self.speech = ""
         self.text = ""
         self.title = ""
         self.name = ""
         self._names = []
-        self.session = session
-        self.sessionAttributes = self.session["attributes"]
-        self.protocolCodes = self.sessionAttributes.get("protocolCodes", {})
+        self.session = userSession
+        self.protocolCodes = self.session.protocolCodes
 
     def _run(self):
         raise NotImplementedError("Subclass failed to re-implement _run().")
@@ -106,8 +81,8 @@ class DartBattleProtocol(object):
         """
         value = value or datetime.datetime.strftime(datetime.datetime.now(), "%m/%d/%Y")
         self.protocolCodes[self.name] = value
-        self.sessionAttributes["protocolCodes"] = self.protocolCodes
-        database.updateRecordProtocol(self.sessionAttributes)
+        self.session.protocolCodes = self.protocolCodes
+        database.updateRecordProtocol(self.session)
 
     @property
     def isActive(self):
@@ -142,10 +117,10 @@ class ProtocolAboutFace(DartBattleProtocol):
 
     def _run(self):
         # Do protocol-specific things here
-        numBattles = int(self.sessionAttributes['numBattles'])
+        numBattles = int(self.session.numBattles)
         numBattles += 10
-        self.sessionAttributes['numBattles'] = str(numBattles)
-        database.updateRecord(self.sessionAttributes)
+        self.session.numBattles = str(numBattles)
+        database.updateRecord(self.session)
 
         # Report Success
         self.speech += "Thank you for taking the time to provide us with your valued feedback. "
@@ -219,10 +194,10 @@ class ProtocolSilverSparrow(DartBattleProtocol):
 
     def _run(self):
         # Do protocol-specific things here
-        numBattles = int(self.sessionAttributes['numBattles'])
+        numBattles = int(self.session.numBattles)
         numBattles += 5
-        self.sessionAttributes['numBattles'] = str(numBattles)
-        database.updateRecord(self.sessionAttributes)
+        self.session.numBattles = str(numBattles)
+        database.updateRecord(self.session)
 
         # Report Success
         self.speech += "5 battles have been added to your total, getting you closer to the next rank promotion. "
@@ -248,10 +223,10 @@ class ProtocolStingray(DartBattleProtocol):
 
     def _run(self):
         # Do protocol-specific things here
-        numBattles = int(self.sessionAttributes['numBattles'])
+        numBattles = int(self.session.numBattles)
         numBattles += 10
-        self.sessionAttributes['numBattles'] = str(numBattles)
-        database.updateRecord(self.sessionAttributes)
+        self.session.numBattles = str(numBattles)
+        database.updateRecord(self.session)
 
         # Report Success
         self.speech += "Thank you for helping to spread the word about Dart Battle. "
@@ -278,10 +253,10 @@ class ProtocolTelemetry(DartBattleProtocol):
 
     def _run(self):
         # Do protocol-specific things here
-        numBattles = int(self.sessionAttributes['numBattles'])
+        numBattles = int(self.session.numBattles)
         numBattles += 10
-        self.sessionAttributes['numBattles'] = str(numBattles)
-        database.updateRecord(self.sessionAttributes)
+        self.session.numBattles = str(numBattles)
+        database.updateRecord(self.session)
 
         # Report Success
         self.speech += '<audio src="https://s3.amazonaws.com/dart-battle-resources/protocols/telemetry/protocol_Telemetry_00_Enable.mp3" /> '

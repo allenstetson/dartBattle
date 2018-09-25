@@ -11,13 +11,23 @@ import random
 from ask_sdk_core.dispatch_components import AbstractRequestHandler
 from ask_sdk_core.utils import is_request_type, is_intent_name
 from ask_sdk_core.handler_input import HandlerInput
-from ask_sdk_model import Response
 from ask_sdk_model.interfaces import audioplayer
 from ask_sdk_model.interfaces.audioplayer.audio_player_state import AudioPlayerState
 from ask_sdk_model.ui import SimpleCard, StandardCard
 from ask_sdk_core.skill_builder import SkillBuilder
+from ask_sdk_model.slu.entityresolution import StatusCode
+
 from ask_sdk_model.services.monetization import (
     EntitledState, PurchasableState, InSkillProductsResponse)
+
+
+from ask_sdk_model import (
+    Response, IntentRequest, DialogState, SlotConfirmationStatus, Slot)
+from ask_sdk_model.dialog import (
+    ElicitSlotDirective, DelegateDirective)
+
+from ask_sdk_model.intent_request import IntentRequest
+
 
 sb = SkillBuilder()
 
@@ -35,79 +45,62 @@ logger = logging.getLogger()
 logger.setLevel(logging.INFO)
 
 
-class AlexaDataIntermediate(dict):
-    """Makes new data look like old data for now, so that I don't have to rewrite everything."""
-
-    def __init__(self, handler_input):
-        super(AlexaDataIntermediate, self).__init__()
-        handlerDict = handler_input.request_envelope.to_dict()
-        for keyname in handlerDict.keys():
-            self[keyname] = handlerDict[keyname]
-        self['session']['sessionId'] = self['session']['session_id']
-        self['session']['context'] = handlerDict['context']
-        self['session']['context']['System'] = self['session']['context']['system']
-        self['session']['context']['System']['user']['userId'] = self['session']['context']['system']['user']['user_id']
-        self['session']['user']['userId'] = self['session']['context']['system']['user']['user_id']
-        self['session']['attributes'] = {}
-
-
 # =============================================================================
 # MAIN HANDLER
 # =============================================================================
-#@sb.request_handler(can_handle_func=is_request_type("LaunchRequest"))
-def test_launch_request_handler(handler_input):
+#@sb.request_handler(can_handle_func=is_intent_name("TurnOffSettingIntent"))
+def test_handler(handler_input):
     # type: (HandlerInput) -> Response
     speech_text = "Welcome to the Alexa Skills Kit, you can say hello!"
-    print("request_envelope = {}".format(handler_input.request_envelope.to_dict()))
-    print("attributes_manager['request_attributes'] = {}".format(handler_input.attributes_manager.request_attributes))
-    print("attributes_manager['session_attributes'] = {}".format(handler_input.attributes_manager.session_attributes))
-    #print("attributes_manager['persistent_attributes'] = {}".format(handler_input.attributes_manager.persistent_attributes))
-    print("context = {}".format(handler_input.context))
+    print("dialog_state = {}".format(IntentRequest().dialog_state))
 
     handler_input.response_builder.speak(speech_text).set_card(
-         SimpleCard("Hello World", speech_text)).set_should_end_session(
-         False)
+        SimpleCard("Hello World", speech_text)).set_should_end_session(
+        False)
     return handler_input.response_builder.response
 
 
-@sb.request_handler(can_handle_func=is_request_type("LaunchRequest"))
-def launch_request_handler(handler_input):
-    """ Handle the launch request; fetch and serve the appropriate response.
+class LaunchRequestHandler(AbstractRequestHandler):
+    def can_handle(self, handler_input):
+        """Inform the request handler of what intents can be handled by this object.
 
-    Args:
-        handler_input (ask_sdk_core.handler_input.HandlerInput): The input from Alexa.
+        Args:
+            handler_input (ask_sdk_core.handler_input.HandlerInput): The input from Alexa.
 
-    Raises:
-        ValueError: If something other than the sanctioned app calls this intent.
+        Returns:
+            bool: Whether or not the current intent can be handled by this object.
 
-    Returns:
-        ask_sdk_model.response.Response: Response for this intent and device.
+        """
+        return is_request_type("LaunchRequest")(handler_input)
 
-    """
-    # Prevent someone else from configuring a skill that sends requests to this:
-    if handler_input.request_envelope.session.application.application_id != \
-            "amzn1.ask.skill.d1311184-0f57-46e8-ab59-879027130a28":
-        raise ValueError("Invalid Application ID")
+    def handle(self, handler_input):
+        """ Handle the launch request; fetch and serve the appropriate response.
 
-    userSession = session.DartBattleSession(handler_input)
+        Args:
+            handler_input (ask_sdk_core.handler_input.HandlerInput): The input from Alexa.
 
-    speech, reprompt, cardTitle, cardText, cardImage = responses.getWelcomeResponse(userSession)
-    handler_input.response_builder.speak(speech).ask(reprompt).set_card(
-        StandardCard(title=cardTitle, text=cardText, image=cardImage)
-    ).set_should_end_session(False)
-    return handler_input.response_builder.response
+        Raises:
+            ValueError: If something other than the sanctioned app calls this intent.
+
+        Returns:
+            ask_sdk_model.response.Response: Response for this intent and device.
+
+        """
+        # Prevent someone else from configuring a skill that sends requests to this:
+        if handler_input.request_envelope.session.application.application_id != \
+                "amzn1.ask.skill.d1311184-0f57-46e8-ab59-879027130a28":
+            raise ValueError("Invalid Application ID")
+
+        userSession = session.DartBattleSession(handler_input)
+
+        speech, reprompt, cardTitle, cardText, cardImage = responses.getWelcomeResponse(userSession)
+        handler_input.response_builder.speak(speech).ask(reprompt).set_card(
+            StandardCard(title=cardTitle, text=cardText, image=cardImage)
+        ).set_should_end_session(False)
+        return handler_input.response_builder.response
 
 
 """
-    if 'request' in event:
-        if event['request']['type'] == "LaunchRequest":
-            return on_launch(event)
-        elif event['request']['type'] == "IntentRequest":
-            if event['request']['intent']['name'] in ["AMAZON.PauseIntent", "AMAZON.StopIntent"]:
-                return playback_stop(event)
-            return on_intent(event)
-        elif event['request']['type'] == "SessionEndedRequest":
-            return on_session_ended(event)
         elif event['request']['type'] == "AudioPlayer.PlaybackNearlyFinished":
             return on_playback_nearly_finished(event)
 """
@@ -116,24 +109,627 @@ def launch_request_handler(handler_input):
 # =============================================================================
 # HANDLERS
 # =============================================================================
-@sb.request_handler(can_handle_func=is_intent_name("AMAZON.HelpIntent"))
-def help_intent_handler(handler_input):
-    # type: (HandlerInput) -> Response
-    speech_text = "You can say hello to me!"
+class BattleDurationStartHandler(AbstractRequestHandler):
+    def can_handle(self, handler_input):
+        """Inform the request handler of what intents can be handled by this object.
 
-    handler_input.response_builder.speak(speech_text).ask(speech_text).set_card(
-        SimpleCard("Hello World", speech_text))
-    return handler_input.response_builder.response
+        Args:
+            handler_input (ask_sdk_core.handler_input.HandlerInput): The input from Alexa.
+
+        Returns:
+            bool: Whether or not the current intent can be handled by this object.
+
+        """
+        return is_intent_name("StartBattleDurationIntent")(handler_input)
+
+    def handle(self, handler_input):
+        """ Handle the launch request; fetch and serve the appropriate response.
+
+        Args:
+            handler_input (ask_sdk_core.handler_input.HandlerInput): The input from Alexa.
+
+        Returns:
+            ask_sdk_model.response.Response: Response for this intent and device.
+
+        """
+        userSession = session.DartBattleSession(handler_input)
+        speech, cardTitle, cardText, cardImage, directive = battle.startBattleDurationIntent(userSession)
+        card = StandardCard(title=cardTitle, text=cardText, image=cardImage)
+        handler_input.response_builder.speak(speech).set_card(card).add_directive(directive).set_should_end_session(True)
+        return handler_input.response_builder.response
 
 
-@sb.request_handler(
-    can_handle_func=lambda handler_input:
-    is_intent_name("AMAZON.CancelIntent")(handler_input) or
-    is_intent_name("AMAZON.StopIntent")(handler_input) or
-    is_intent_name("SessionEndedRequest"))
-def cancel_and_stop_intent_handler(handler_input):
-    response = playback_stop(handler_input)
-    return response
+class BattleStandardStartHandler(AbstractRequestHandler):
+    def can_handle(self, handler_input):
+        """Inform the request handler of what intents can be handled by this object.
+
+        Args:
+            handler_input (ask_sdk_core.handler_input.HandlerInput): The input from Alexa.
+
+        Returns:
+            bool: Whether or not the current intent can be handled by this object.
+
+        """
+        return is_intent_name("StartBattleStandardIntent")(handler_input)
+
+    def handle(self, handler_input):
+        """ Handle the launch request; fetch and serve the appropriate response.
+
+        Args:
+            handler_input (ask_sdk_core.handler_input.HandlerInput): The input from Alexa.
+
+        Returns:
+            ask_sdk_model.response.Response: Response for this intent and device.
+
+        """
+        userSession = session.DartBattleSession(handler_input)
+        speech, cardTitle, cardText, cardImage, directive = battle.startBattleStandardIntent(userSession)
+        card = StandardCard(title=cardTitle, text=cardText, image=cardImage)
+        handler_input.response_builder.speak(speech).set_card(card).add_directive(directive).set_should_end_session(True)
+        return handler_input.response_builder.response
+
+
+class CancelAndStopIntentHandler(AbstractRequestHandler):
+    def can_handle(self, handler_input):
+        """Inform the request handler of what intents/requests can be handled by this object.
+
+        Args:
+            handler_input (ask_sdk_core.handler_input.HandlerInput): The input from Alexa.
+
+        Returns:
+            bool: Whether or not the current intent can be handled by this object.
+
+        """
+        return not (not is_intent_name("AMAZON.CancelIntent")(handler_input) and not is_intent_name(
+            "AMAZON.StopIntent")(handler_input) and not is_intent_name("AMAZON.PauseIntent")(handler_input))
+
+    def handle(self, handler_input):
+        """ Handle the launch request; fetch and serve the appropriate response.
+
+        Args:
+            handler_input (ask_sdk_core.handler_input.HandlerInput): The input from Alexa.
+
+        Returns:
+            ask_sdk_model.response.Response: Response for this intent and device.
+
+        """
+        response = playback_stop(handler_input)
+        return response
+
+
+class SessionEndedRequestHandler(AbstractRequestHandler):
+    def can_handle(self, handler_input):
+        """Inform the request handler of what intents/requests can be handled by this object.
+
+        Args:
+            handler_input (ask_sdk_core.handler_input.HandlerInput): The input from Alexa.
+
+        Returns:
+            bool: Whether or not the current intent can be handled by this object.
+
+        """
+        return is_request_type("SessionEndedRequest")(handler_input)
+
+    def handle(self, handler_input):
+        """ Handle the launch request; fetch and serve the appropriate response.
+
+        Args:
+            handler_input (ask_sdk_core.handler_input.HandlerInput): The input from Alexa.
+
+        Returns:
+            ask_sdk_model.response.Response: Response for this intent and device.
+
+        """
+        response = playback_stop(handler_input)
+        return response
+
+
+class HelpIntentHandler(AbstractRequestHandler):
+    def can_handle(self, handler_input):
+        """Inform the request handler of what intents can be handled by this object.
+
+        Args:
+            handler_input (ask_sdk_core.handler_input.HandlerInput): The input from Alexa.
+
+        Returns:
+            bool: Whether or not the current intent can be handled by this object.
+
+        """
+        return is_intent_name("AMAZON.HelpIntent")(handler_input) or is_intent_name("MoreOptionsIntent")(handler_input)
+
+    def handle(self, handler_input):
+        """ Handle the launch request; fetch and serve the appropriate response.
+
+        Args:
+            handler_input (ask_sdk_core.handler_input.HandlerInput): The input from Alexa.
+
+        Returns:
+            ask_sdk_model.response.Response: Response for this intent and device.
+
+        """
+        userSession = session.DartBattleSession(handler_input)
+
+        speech, reprompt, cardTitle, cardText, cardImage = responses.getOptionsResponse(userSession)
+        handler_input.response_builder.speak(speech).ask(reprompt).set_card(
+            StandardCard(title=cardTitle, text=cardText, image=cardImage)
+        ).set_should_end_session(False)
+        return handler_input.response_builder.response
+
+
+class HowToPlayHandler(AbstractRequestHandler):
+    def can_handle(self, handler_input):
+        """Inform the request handler of what intents can be handled by this object.
+
+        Args:
+            handler_input (ask_sdk_core.handler_input.HandlerInput): The input from Alexa.
+
+        Returns:
+            bool: Whether or not the current intent can be handled by this object.
+
+        """
+        return is_intent_name("HowToPlayIntent")(handler_input)
+
+    def handle(self, handler_input):
+        """ Handle the launch request; fetch and serve the appropriate response.
+
+        Args:
+            handler_input (ask_sdk_core.handler_input.HandlerInput): The input from Alexa.
+
+        Returns:
+            ask_sdk_model.response.Response: Response for this intent and device.
+
+        """
+        speech, reprompt, cardTitle, cardText, cardImage, directive = responses.howToPlayResponse()
+        card = StandardCard(title=cardTitle, text=cardText, image=cardImage)
+        handler_input.response_builder.speak(speech).set_card(card).add_directive(directive).set_should_end_session(True)
+        return handler_input.response_builder.response
+
+
+class RankQueryHandler(AbstractRequestHandler):
+    def can_handle(self, handler_input):
+        """Inform the request handler of what intents can be handled by this object.
+
+        Args:
+            handler_input (ask_sdk_core.handler_input.HandlerInput): The input from Alexa.
+
+        Returns:
+            bool: Whether or not the current intent can be handled by this object.
+
+        """
+        return is_intent_name("RankQueryIntent")(handler_input)
+
+    def handle(self, handler_input):
+        """ Handle the launch request; fetch and serve the appropriate response.
+
+        Args:
+            handler_input (ask_sdk_core.handler_input.HandlerInput): The input from Alexa.
+
+        Returns:
+            ask_sdk_model.response.Response: Response for this intent and device.
+
+        """
+        userSession = session.DartBattleSession(handler_input)
+        speech, reprompt, cardTitle, cardText, cardImage = rank.getRankResponse(userSession)
+        handler_input.response_builder.speak(speech).ask(reprompt).set_card(
+            StandardCard(title=cardTitle, text=cardText, image=cardImage)
+        ).set_should_end_session(False)
+        return handler_input.response_builder.response
+
+
+class TeamClearHandler(AbstractRequestHandler):
+    def can_handle(self, handler_input):
+        """Inform the request handler of what intents can be handled by this object.
+
+        Args:
+            handler_input (ask_sdk_core.handler_input.HandlerInput): The input from Alexa.
+
+        Returns:
+            bool: Whether or not the current intent can be handled by this object.
+
+        """
+        return is_intent_name("ClearTeamsIntent")(handler_input)
+
+    def handle(self, handler_input):
+        """ Handle the launch request; fetch and serve the appropriate response.
+
+        Args:
+            handler_input (ask_sdk_core.handler_input.HandlerInput): The input from Alexa.
+
+        Returns:
+            ask_sdk_model.response.Response: Response for this intent and device.
+
+        """
+        userSession = session.DartBattleSession(handler_input)
+        speech, reprompt, cardTitle, cardText, cardImage = teams.clearTeamsIntent(userSession)
+        handler_input.response_builder.speak(speech).ask(reprompt).set_card(
+            StandardCard(title=cardTitle, text=cardText, image=cardImage)
+        ).set_should_end_session(False)
+        return handler_input.response_builder.response
+
+
+class TeamSetupInProgressHandler(AbstractRequestHandler):
+    def can_handle(self, handler_input):
+        """Inform the request handler of what intents can be handled by this object.
+
+        Args:
+            handler_input (ask_sdk_core.handler_input.HandlerInput): The input from Alexa.
+
+        Returns:
+            bool: Whether or not the current intent can be handled by this object.
+
+        """
+        return (is_intent_name("SetupTeamsIntent")(handler_input)
+                and handler_input.request_envelope.request.dialog_state != DialogState.COMPLETED)
+
+    def handle(self, handler_input):
+        """ Handle the launch request; fetch and serve the appropriate response.
+
+        Args:
+            handler_input (ask_sdk_core.handler_input.HandlerInput): The input from Alexa.
+
+        Returns:
+            ask_sdk_model.response.Response: Response for this intent and device.
+
+        """
+        current_intent = handler_input.request_envelope.request.intent
+        return handler_input.response_builder.add_directive(
+            DelegateDirective(
+                updated_intent=current_intent
+            )).response
+
+
+class TeamSetupHandler(AbstractRequestHandler):
+    def can_handle(self, handler_input):
+        """Inform the request handler of what intents can be handled by this object.
+
+        Args:
+            handler_input (ask_sdk_core.handler_input.HandlerInput): The input from Alexa.
+
+        Returns:
+            bool: Whether or not the current intent can be handled by this object.
+
+        """
+        return (is_intent_name("SetupTeamsIntent")(handler_input)
+                and handler_input.request_envelope.request.dialog_state == DialogState.COMPLETED)
+
+    def handle(self, handler_input):
+        """ Handle the launch request; fetch and serve the appropriate response.
+
+        Args:
+            handler_input (ask_sdk_core.handler_input.HandlerInput): The input from Alexa.
+
+        Returns:
+            ask_sdk_model.response.Response: Response for this intent and device.
+
+        """
+        userSession = session.DartBattleSession(handler_input)
+
+        speech, reprompt, cardTitle, cardText, cardImage = teams.setupTeamsIntent(userSession)
+        handler_input.response_builder.speak(speech).ask(reprompt).set_card(
+            StandardCard(title=cardTitle, text=cardText, image=cardImage)
+        ).set_should_end_session(False)
+        return handler_input.response_builder.response
+
+
+class TeamShuffleHandler(AbstractRequestHandler):
+    def can_handle(self, handler_input):
+        """Inform the request handler of what intents can be handled by this object.
+
+        Args:
+            handler_input (ask_sdk_core.handler_input.HandlerInput): The input from Alexa.
+
+        Returns:
+            bool: Whether or not the current intent can be handled by this object.
+
+        """
+        return is_intent_name("ShuffleTeamsIntent")(handler_input)
+
+    def handle(self, handler_input):
+        """ Handle the launch request; fetch and serve the appropriate response.
+
+        Args:
+            handler_input (ask_sdk_core.handler_input.HandlerInput): The input from Alexa.
+
+        Returns:
+            ask_sdk_model.response.Response: Response for this intent and device.
+
+        """
+        userSession = session.DartBattleSession(handler_input)
+        speech, reprompt, cardTitle, cardText, cardImage = teams.shuffleTeamsIntent(userSession)
+        handler_input.response_builder.speak(speech).ask(reprompt).set_card(
+            StandardCard(title=cardTitle, text=cardText, image=cardImage)
+        ).set_should_end_session(False)
+        # FIXME: Response is wrong after cleared teams
+        return handler_input.response_builder.response
+
+
+class ToggleProtocolInProgressHandler(AbstractRequestHandler):
+    def can_handle(self, handler_input):
+        """Inform the request handler of what intents can be handled by this object.
+
+        Args:
+            handler_input (ask_sdk_core.handler_input.HandlerInput): The input from Alexa.
+
+        Returns:
+            bool: Whether or not the current intent can be handled by this object.
+
+        """
+        return (is_intent_name("EnableProtocolIntent")(handler_input)
+                and handler_input.request_envelope.request.dialog_state != DialogState.COMPLETED)
+
+    def handle(self, handler_input):
+        """ Handle the launch request; fetch and serve the appropriate response.
+
+        Args:
+            handler_input (ask_sdk_core.handler_input.HandlerInput): The input from Alexa.
+
+        Returns:
+            ask_sdk_model.response.Response: Response for this intent and device.
+
+        """
+        current_intent = handler_input.request_envelope.request.intent
+        return handler_input.response_builder.add_directive(
+            DelegateDirective(
+                updated_intent=current_intent
+            )).response
+
+
+class ToggleProtocolHandler(AbstractRequestHandler):
+    def can_handle(self, handler_input):
+        """Inform the request handler of what intents can be handled by this object.
+
+        Args:
+            handler_input (ask_sdk_core.handler_input.HandlerInput): The input from Alexa.
+
+        Returns:
+            bool: Whether or not the current intent can be handled by this object.
+
+        """
+        return (is_intent_name("EnableProtocolIntent")(handler_input)
+                and handler_input.request_envelope.request.dialog_state == DialogState.COMPLETED)
+
+    def handle(self, handler_input):
+        """ Handle the launch request; fetch and serve the appropriate response.
+
+        Args:
+            handler_input (ask_sdk_core.handler_input.HandlerInput): The input from Alexa.
+
+        Returns:
+            ask_sdk_model.response.Response: Response for this intent and device.
+
+        """
+        userSession = session.DartBattleSession(handler_input)
+
+        speech, reprompt, cardTitle, cardText, cardImage = protocols.toggleProtocol(userSession)
+        handler_input.response_builder.speak(speech).ask(reprompt).set_card(
+            StandardCard(title=cardTitle, text=cardText, image=cardImage)
+        ).set_should_end_session(False)
+        return handler_input.response_builder.response
+
+
+class TurnOffSettingHandler(AbstractRequestHandler):
+    def can_handle(self, handler_input):
+        """Inform the request handler of what intents can be handled by this object.
+
+        Args:
+            handler_input (ask_sdk_core.handler_input.HandlerInput): The input from Alexa.
+
+        Returns:
+            bool: Whether or not the current intent can be handled by this object.
+
+        """
+        return (is_intent_name("TurnOffSettingIntent")(handler_input)
+                and handler_input.request_envelope.request.dialog_state != DialogState.COMPLETED)
+
+    def handle(self, handler_input):
+        """ Handle the launch request; fetch and serve the appropriate response.
+
+        Args:
+            handler_input (ask_sdk_core.handler_input.HandlerInput): The input from Alexa.
+
+        Returns:
+            ask_sdk_model.response.Response: Response for this intent and device.
+
+        """
+        userSession = session.DartBattleSession(handler_input)
+
+        speech, reprompt, cardTitle, cardText, cardImage = responses.turnOffSettingsResponse(userSession)
+        handler_input.response_builder.speak(speech).ask(reprompt).set_card(
+            StandardCard(title=cardTitle, text=cardText, image=cardImage)
+        ).set_should_end_session(False)
+        return handler_input.response_builder.response
+
+
+class TurnOnSettingHandler(AbstractRequestHandler):
+    def can_handle(self, handler_input):
+        """Inform the request handler of what intents can be handled by this object.
+
+        Args:
+            handler_input (ask_sdk_core.handler_input.HandlerInput): The input from Alexa.
+
+        Returns:
+            bool: Whether or not the current intent can be handled by this object.
+
+        """
+        return (is_intent_name("TurnOnSettingIntent")(handler_input)
+                and handler_input.request_envelope.request.dialog_state != DialogState.COMPLETED)
+
+    def handle(self, handler_input):
+        """ Handle the launch request; fetch and serve the appropriate response.
+
+        Args:
+            handler_input (ask_sdk_core.handler_input.HandlerInput): The input from Alexa.
+
+        Returns:
+            ask_sdk_model.response.Response: Response for this intent and device.
+
+        """
+        userSession = session.DartBattleSession(handler_input)
+
+        speech, reprompt, cardTitle, cardText, cardImage = responses.turnOnSettingsResponse(userSession)
+        handler_input.response_builder.speak(speech).ask(reprompt).set_card(
+            StandardCard(title=cardTitle, text=cardText, image=cardImage)
+        ).set_should_end_session(False)
+        return handler_input.response_builder.response
+
+
+class VictoriesClearInProgressHandler(AbstractRequestHandler):
+    def can_handle(self, handler_input):
+        """Inform the request handler of what intents can be handled by this object.
+
+        Args:
+            handler_input (ask_sdk_core.handler_input.HandlerInput): The input from Alexa.
+
+        Returns:
+            bool: Whether or not the current intent can be handled by this object.
+
+        """
+        return (is_intent_name("ClearVictoryIntent")(handler_input)
+                and handler_input.request_envelope.request.dialog_state != DialogState.COMPLETED)
+
+    def handle(self, handler_input):
+        """ Handle the launch request; fetch and serve the appropriate response.
+
+        Args:
+            handler_input (ask_sdk_core.handler_input.HandlerInput): The input from Alexa.
+
+        Returns:
+            ask_sdk_model.response.Response: Response for this intent and device.
+
+        """
+        current_intent = handler_input.request_envelope.request.intent
+        return handler_input.response_builder.add_directive(
+            DelegateDirective(
+                updated_intent=current_intent
+            )).response
+
+
+class VictoriesClearHandler(AbstractRequestHandler):
+    def can_handle(self, handler_input):
+        """Inform the request handler of what intents can be handled by this object.
+
+        Args:
+            handler_input (ask_sdk_core.handler_input.HandlerInput): The input from Alexa.
+
+        Returns:
+            bool: Whether or not the current intent can be handled by this object.
+
+        """
+        return (is_intent_name("ClearVictoryIntent")(handler_input)
+                and handler_input.request_envelope.request.dialog_state == DialogState.COMPLETED)
+
+    def handle(self, handler_input):
+        """ Handle the launch request; fetch and serve the appropriate response.
+
+        Args:
+            handler_input (ask_sdk_core.handler_input.HandlerInput): The input from Alexa.
+
+        Returns:
+            ask_sdk_model.response.Response: Response for this intent and device.
+
+        """
+        userSession = session.DartBattleSession(handler_input)
+
+        speech, reprompt, cardTitle, cardText, cardImage = victories.clearVictoryIntent(userSession)
+        handler_input.response_builder.speak(speech).ask(reprompt).set_card(
+            StandardCard(title=cardTitle, text=cardText, image=cardImage)
+        ).set_should_end_session(False)
+        return handler_input.response_builder.response
+
+
+class VictoriesReciteHandler(AbstractRequestHandler):
+    def can_handle(self, handler_input):
+        """Inform the request handler of what intents can be handled by this object.
+
+        Args:
+            handler_input (ask_sdk_core.handler_input.HandlerInput): The input from Alexa.
+
+        Returns:
+            bool: Whether or not the current intent can be handled by this object.
+
+        """
+        return is_intent_name("ReciteVictoriesIntent")(handler_input)
+
+    def handle(self, handler_input):
+        """ Handle the launch request; fetch and serve the appropriate response.
+
+        Args:
+            handler_input (ask_sdk_core.handler_input.HandlerInput): The input from Alexa.
+
+        Returns:
+            ask_sdk_model.response.Response: Response for this intent and device.
+
+        """
+        userSession = session.DartBattleSession(handler_input)
+        speech, reprompt, cardTitle, cardText, cardImage = victories.reciteVictoriesIntent(userSession)
+        handler_input.response_builder.speak(speech).ask(reprompt).set_card(
+            StandardCard(title=cardTitle, text=cardText, image=cardImage)
+        ).set_should_end_session(False)
+        return handler_input.response_builder.response
+
+
+class VictoriesRecordInProgressHandler(AbstractRequestHandler):
+    def can_handle(self, handler_input):
+        """Inform the request handler of what intents can be handled by this object.
+
+        Args:
+            handler_input (ask_sdk_core.handler_input.HandlerInput): The input from Alexa.
+
+        Returns:
+            bool: Whether or not the current intent can be handled by this object.
+
+        """
+        return (is_intent_name("RecordVictoryIntent")(handler_input)
+                and handler_input.request_envelope.request.dialog_state != DialogState.COMPLETED)
+
+    def handle(self, handler_input):
+        """ Handle the launch request; fetch and serve the appropriate response.
+
+        Args:
+            handler_input (ask_sdk_core.handler_input.HandlerInput): The input from Alexa.
+
+        Returns:
+            ask_sdk_model.response.Response: Response for this intent and device.
+
+        """
+        current_intent = handler_input.request_envelope.request.intent
+        return handler_input.response_builder.add_directive(
+            DelegateDirective(
+                updated_intent=current_intent
+            )).response
+
+
+class VictoriesRecordHandler(AbstractRequestHandler):
+    def can_handle(self, handler_input):
+        """Inform the request handler of what intents can be handled by this object.
+
+        Args:
+            handler_input (ask_sdk_core.handler_input.HandlerInput): The input from Alexa.
+
+        Returns:
+            bool: Whether or not the current intent can be handled by this object.
+
+        """
+        return (is_intent_name("RecordVictoryIntent")(handler_input)
+                and handler_input.request_envelope.request.dialog_state == DialogState.COMPLETED)
+
+    def handle(self, handler_input):
+        """ Handle the launch request; fetch and serve the appropriate response.
+
+        Args:
+            handler_input (ask_sdk_core.handler_input.HandlerInput): The input from Alexa.
+
+        Returns:
+            ask_sdk_model.response.Response: Response for this intent and device.
+
+        """
+        userSession = session.DartBattleSession(handler_input)
+
+        speech, reprompt, cardTitle, cardText, cardImage = victories.recordVictoryIntent(userSession)
+        handler_input.response_builder.speak(speech).ask(reprompt).set_card(
+            StandardCard(title=cardTitle, text=cardText, image=cardImage)
+        ).set_should_end_session(False)
+        return handler_input.response_builder.response
 
 
 # =============================================================================
@@ -157,50 +753,6 @@ def on_intent(event):
         return battle.startBattleStandardIntent(sessionInfo)
     elif intent_name == "StartBattleDurationIntent":
         return battle.startBattleDurationIntent(intent, sessionInfo)
-
-    # OPTIONS/HELP
-    elif intent_name == "MoreOptionsIntent":
-        return responses.getOptionsResponse(sessionInfo)
-    elif intent_name == "TurnOffSettingIntent":
-        return responses.turnOffSettingsResponse(event)
-    elif intent_name == "TurnOnSettingIntent":
-        return responses.turnOnSettingsResponse(event)
-
-    # PROTOCOLS
-    elif intent_name == "EnableProtocolIntent":
-        return protocols.enableProtocol(event)
-
-    # RANKS
-    elif intent_name == "RankQueryIntent":
-        return rank.getRankResponse(sessionInfo)
-
-    # RULES
-    elif intent_name == "HowToPlayIntent":
-        return responses.howToPlayResponse()
-
-    # TEAMS
-    elif intent_name == "SetupTeamsIntent":
-        return teams.setupTeamsIntent(intent_request, sessionInfo)
-    elif intent_name == "ReciteTeamsIntent":
-        return teams.reciteTeamsIntent(sessionInfo)
-    elif intent_name == "ClearTeamsIntent":
-        return teams.clearTeamsIntent(sessionInfo)
-    elif intent_name == "ShuffleTeamsIntent":
-        return teams.shuffleTeamsIntent(sessionInfo)
-
-    # VICTORIES
-    elif intent_name == "ClearVictoryIntent":
-        return victories.clearVictoryIntent(intent_request, sessionInfo)
-    elif intent_name == "RecordVictoryIntent":
-        return victories.recordVictoryIntent(intent_request, sessionInfo)
-    elif intent_name == "ReciteVictoriesIntent":
-        return victories.reciteVictoriesIntent(sessionInfo)
-
-    # STANDARD
-    #    elif intent_name == "AMAZON.HelpIntent":
-    #        return responses.getOptionsResponse(sessionInfo)
-    #    elif intent_name == "AMAZON.CancelIntent" or intent_name == "AMAZON.StopIntent":
-    #        return on_session_end_request(event)
 
     # AUDIO
     elif intent_name == "AMAZON.ResumeIntent":
@@ -312,6 +864,27 @@ def playback_stop(handler_input):
     return handler_input.response_builder.response
 
 
+sb.add_request_handler(BattleDurationStartHandler())
+sb.add_request_handler(BattleStandardStartHandler())
+sb.add_request_handler(LaunchRequestHandler())
+sb.add_request_handler(HelpIntentHandler())
+sb.add_request_handler(HowToPlayHandler())
+sb.add_request_handler(CancelAndStopIntentHandler())
+sb.add_request_handler(RankQueryHandler())
+sb.add_request_handler(SessionEndedRequestHandler())
+sb.add_request_handler(TeamClearHandler())
+sb.add_request_handler(TeamSetupInProgressHandler())
+sb.add_request_handler(TeamSetupHandler())
+sb.add_request_handler(TeamShuffleHandler())
+sb.add_request_handler(TurnOffSettingHandler())
+sb.add_request_handler(TurnOnSettingHandler())
+sb.add_request_handler(ToggleProtocolInProgressHandler())
+sb.add_request_handler(ToggleProtocolHandler())
+sb.add_request_handler(VictoriesClearInProgressHandler())
+sb.add_request_handler(VictoriesClearHandler())
+sb.add_request_handler(VictoriesReciteHandler())
+sb.add_request_handler(VictoriesRecordInProgressHandler())
+sb.add_request_handler(VictoriesRecordHandler())
 handler = sb.lambda_handler()
 
 # {'version': '1.0', 'session': {'new': True, 'session_id': 'amzn1.echo-api.session.103a01a9-09b2-4223-a97c-d54c298efc82', 'user': {'user_id': 'amzn1.ask.account.AHQ53A7TTH5ELGE4FJB6RLVARNQ6DCN6EMDSUXCL5VDY4SDYTJGIC2A5EGNQMZNGF2HCOQJ242OVAEEZFQOIE3I246UXWKZGEOTXAVZWNVPJOCOHKSGFOKYG2KYWZI7CIPIEK2IHSGMANP3HX36MPPZKIS4A7KVEFRXLZNFXXOAFARCXOL3IIFBRUT5C67KDO27HH7HCF24IG7I', 'access_token': None, 'permissions': None}, 'attributes': None, 'application': {'application_id': 'amzn1.ask.skill.d1311184-0f57-46e8-ab59-879027130a28'}}, 'context': {'system': {'application': {'application_id': 'amzn1.ask.skill.d1311184-0f57-46e8-ab59-879027130a28'}, 'user': {'user_id': 'amzn1.ask.account.AHQ53A7TTH5ELGE4FJB6RLVARNQ6DCN6EMDSUXCL5VDY4SDYTJGIC2A5EGNQMZNGF2HCOQJ242OVAEEZFQOIE3I246UXWKZGEOTXAVZWNVPJOCOHKSGFOKYG2KYWZI7CIPIEK2IHSGMANP3HX36MPPZKIS4A7KVEFRXLZNFXXOAFARCXOL3IIFBRUT5C67KDO27HH7HCF24IG7I', 'access_token': None, 'permissions': None}, 'device': {'device_id': 'amzn1.ask.device.AES4DYXDO3B5ZTCVMKGUESOVSANNWHO3V7N3DP2RWW4LXYSCB3DIY6HR524ZVFNOOKQJAKGCCSR5YURCYK4UCQVX6KVB6WMV4VYEE23ND3MFK7IQWOD724XDPA7I6PBUZCXTQ4GKV4FFUFQSD3G4VORXTHXQ', 'supported_interfaces': {'audio_player': {}, 'display': None, 'video_app': None}}, 'api_endpoint': 'https://api.amazonalexa.com', 'api_access_token': 'eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiIsImtpZCI6IjEifQ.eyJhdWQiOiJodHRwczovL2FwaS5hbWF6b25hbGV4YS5jb20iLCJpc3MiOiJBbGV4YVNraWxsS2l0Iiwic3ViIjoiYW16bjEuYXNrLnNraWxsLmQxMzExMTg0LTBmNTctNDZlOC1hYjU5LTg3OTAyNzEzMGEyOCIsImV4cCI6MTUzNzUwOTQ3OSwiaWF0IjoxNTM3NTA1ODc5LCJuYmYiOjE1Mzc1MDU4NzksInByaXZhdGVDbGFpbXMiOnsiY29uc2VudFRva2VuIjpudWxsLCJkZXZpY2VJZCI6ImFtem4xLmFzay5kZXZpY2UuQUVTNERZWERPM0I1WlRDVk1LR1VFU09WU0FOTldITzNWN04zRFAyUldXNExYWVNDQjNESVk2SFI1MjRaVkZOT09LUUpBS0dDQ1NSNVlVUkNZSzRVQ1FWWDZLVkI2V01WNFZZRUUyM05EM01GSzdJUVdPRDcyNFhEUEE3STZQQlVaQ1hUUTRHS1Y0RkZVRlFTRDNHNFZPUlhUSFhRIiwidXNlcklkIjoiYW16bjEuYXNrLmFjY291bnQuQUhRNTNBN1RUSDVFTEdFNEZKQjZSTFZBUk5RNkRDTjZFTURTVVhDTDVWRFk0U0RZVEpHSUMyQTVFR05RTVpOR0YySENPUUoyNDJPVkFFRVpGUU9JRTNJMjQ2VVhXS1pHRU9UWEFWWldOVlBKT0NPSEtTR0ZPS1lHMktZV1pJN0NJUElFSzJJSFNHTUFOUDNIWDM2TVBQWktJUzRBN0tWRUZSWExaTkZYWE9BRkFSQ1hPTDNJSUZCUlVUNUM2N0tETzI3SEg3SENGMjRJRzdJIn19.G16Z8BEynj3TX9TEILQL-rGjCClSQZR2oW59iJB0ClR2d5fvrtHSWpjYny9xVdx36PvgQIoL_jlUgHlClNciKAwomsBg8YvH4yTBSTGfvxZohsr4Feui-oY7I79-vd3WT1H0tg-HOcmnXjv_k_PfGzdrYE49ZIhJqMRNy0epTKMo9edTmhWweMB2PldmNMC27BJg2jXaxsp2HxBVig3gY-SsYsUI7QqxfQsN9GhYxFxEu7Cvdv3r4685LPIpAsqDpuDRCi_TL47hA9HLjdjX5qpyN3lt2cfpj8D22wQXUlTt_9JCubDPGADdcB-ByvMzLgcLoDthKtNdvxoX4v5ddw'}, 'audio_player': {'offset_in_milliseconds': None, 'token': None, 'player_activity': 'IDLE'}, 'display': None}, 'request': {'object_type': 'LaunchRequest', 'request_id': 'amzn1.echo-api.request.c75e2ea9-a482-4bfa-9d62-14dad9ca87ef', 'timestamp': datetime.datetime(2018, 9, 21, 4, 57, 59, tzinfo=tzlocal()), 'locale': 'en-US'}}

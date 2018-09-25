@@ -14,8 +14,8 @@ def GetRankPromotionFile(rank):
 
 
 class Greeting(object):
-    def __init__(self, sessionAttributes):
-        self.sessionAttributes = sessionAttributes
+    def __init__(self, userSession):
+        self.session = userSession
         self.crowsNestGreetings = [
             "Scanning biometric data for field soldiers. Increased pulse detected. Initiating battle sequence. Awaiting orders. ",
             "Initiating secure uplink to satellite. Uplink acquired, handshake initiated. Combat interface ready for instruction. ",
@@ -56,15 +56,15 @@ class Greeting(object):
 
     def getGreeting(self):
         greetings = []
-        if self.sessionAttributes.get("recentSession", "False") == "True":
-            if self.sessionAttributes.get("usingTeams", "False") == "True":
+        if self.session.recentSession == "True":
+            if self.session.usingTeams == "True":
                 # Recent Teams
                 greetings.extend(self.teamGreetingsQuick)
             else:
                 # Recent Individual
                 greetings.extend(self.noTeamGreetingsQuick)
         else:
-            if self.sessionAttributes.get("usingTeams", "False") == "True":
+            if self.session.usingTeams == "True":
                 # Not recent Teams
                 greetings.extend(self.teamGreetingsStandard)
             else:
@@ -72,21 +72,20 @@ class Greeting(object):
                 greetings.extend(self.noTeamGreetingsStandard)
 
         # Officer greetings
-        if int(self.sessionAttributes.get("playerRank", "00")) > 0:
+        if int(self.session.playerRank) > 0:
             officerGreetings = []
             for track in self.officerGreetings:
-                track = track.format(int(self.sessionAttributes["playerRank"]))
+                track = track.format(int(self.session.playerRank))
                 officerIntro = random.randint(0, 2)
-                if officerIntro == 2 and int(self.sessionAttributes["playerRank"]) > 5:
+                if officerIntro == 2 and int(self.session.playerRank) > 5:
                     track = "{}{}{}".format(self.officerGreetingHead, track, self.officerGreetingTail)
                 officerGreetings.append(track)
             greetings.extend(officerGreetings)
 
         # Protocol greetings
-        session = {"attributes": self.sessionAttributes}
-        if protocols.ProtocolCrowsNest(session).isActive:
+        if protocols.ProtocolCrowsNest(self.session).isActive:
             greetings.extend(self.crowsNestGreetings)
-        if protocols.ProtocolMadDog(session).isActive:
+        if protocols.ProtocolMadDog(self.session).isActive:
             greetings.extend(self.madDogGreetings)
 
         # Final selection
@@ -239,9 +238,9 @@ class Playlist(object):
         return selection
 
     @staticmethod
-    def isActive(sessionAttributes):
-        usingEvents = sessionAttributes.get("usingEvents", "True")
-        if usingEvents:
+    def isActive(userSession):
+        usingEvents = userSession.usingEvents
+        if usingEvents == "True":
             return True
         return False
 
@@ -415,9 +414,9 @@ class NoEvents01(Playlist):
         return None, None
 
     @staticmethod
-    def isActive(sessionAttributes):
-        usingEvents = sessionAttributes.get("usingEvents", "True")
-        if usingEvents:
+    def isActive(userSession):
+        usingEvents = userSession.usingEvents
+        if usingEvents == "True":
             return False
         return True
 
@@ -643,9 +642,9 @@ class Prospector(Playlist):
             "https://s3.amazonaws.com/dart-battle-resources/scenarios/prospector/events/tagManyToOne/event_Prospectors_00_TagManyToOne_DistributeDynamite_Team_12.mp3",
             "https://s3.amazonaws.com/dart-battle-resources/scenarios/prospector/events/tagManyToOne/event_Prospectors_00_TagManyToOne_DistributeDynamite_Team_13.mp3",
             "https://s3.amazonaws.com/dart-battle-resources/scenarios/prospector/events/tagManyToOne/event_Prospectors_00_TagManyToOne_DistributeDynamite_Team_14.mp3",
-            "https://s3.amazonaws.com/dart-battle-resources/scenarios/prospector/events/tagManyToOne/event_Prospectors_TagManyToOne_DugIn_Team_06.mp3",
-            "https://s3.amazonaws.com/dart-battle-resources/scenarios/prospector/events/tagManyToOne/event_Prospectors_TagManyToOne_DugIn_Team_07.mp3",
-            "https://s3.amazonaws.com/dart-battle-resources/scenarios/prospector/events/tagManyToOne/event_Prospectors_TagManyToOne_DugIn_Team_14.mp3",
+            "https://s3.amazonaws.com/dart-battle-resources/scenarios/prospector/events/tagManyToOne/event_Prospectors_00_TagManyToOne_DugIn_Team_06.mp3",
+            "https://s3.amazonaws.com/dart-battle-resources/scenarios/prospector/events/tagManyToOne/event_Prospectors_00_TagManyToOne_DugIn_Team_07.mp3",
+            "https://s3.amazonaws.com/dart-battle-resources/scenarios/prospector/events/tagManyToOne/event_Prospectors_00_TagManyToOne_DugIn_Team_14.mp3",
             "https://s3.amazonaws.com/dart-battle-resources/scenarios/prospector/events/tagOneToOne/event_Prospectors_00_TagOneToOne_FetchTheDoc_Team_09.01.mp3",
             "https://s3.amazonaws.com/dart-battle-resources/scenarios/prospector/events/tagOneToOne/event_Prospectors_00_TagOneToOne_FetchTheDoc_Team_09.02.mp3",
             "https://s3.amazonaws.com/dart-battle-resources/scenarios/prospector/events/tagOneToOne/event_Prospectors_00_TagOneToOne_FetchTheDoc_Team_09.03.mp3",

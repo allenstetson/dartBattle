@@ -9,6 +9,8 @@ import logging
 import os
 import random
 
+from ask_sdk_model.ui.image import Image
+
 # DartBattle imports:
 import database
 import protocols
@@ -73,7 +75,7 @@ class PlayerRanks(enum.Enum):
     general = 11
 
 
-def assignTeamsAndRoles(numTeams, availablePlayers, sessionAttributes):
+def assignTeamsAndRoles(numTeams, availablePlayers, userSession):
     # TODO: Look at session attrs to determine if special roles are unlocked.
     numPlayers = len(availablePlayers)
     playersPerTeam = int(numPlayers / numTeams)
@@ -96,7 +98,7 @@ def assignTeamsAndRoles(numTeams, availablePlayers, sessionAttributes):
     for teamNum in teams:
         playerRoles[teamNum] = []
         roles = list(PlayerRolesStandard.__members__.keys())
-        if protocols.ProtocolTelemetry({'attributes': sessionAttributes}).isActive:
+        if protocols.ProtocolTelemetry(userSession).isActive:
             roles.extend(list(PlayerRolesSpecial.__members__.keys()))
         needAssignment = list(teams[teamNum].keys())
         for i, player in enumerate(needAssignment):
@@ -111,36 +113,21 @@ def assignTeamsAndRoles(numTeams, availablePlayers, sessionAttributes):
     return teams, playerRoles
 
 
-def clearTeamsIntent(session):
-    session.usingTeams = False
-    database.updateRecordTeams(session.attributes)
+def clearTeamsIntent(userSession):
+    userSession.usingTeams = False
+    database.updateRecordTeams(userSession)
     speech = "Ok. "
     speech += "<audio src=\"https://s3.amazonaws.com/dart-battle-resources/choiceMusic.mp3\" /> "
     speech += "Team information has been cleared. What's next? Start a battle? More options? Exit? "
 
     title = "Clear Teams"
     text = "Teams have been cleared."
-
-    return {
-        "version": os.environ['VERSION'],
-        "sessionAttributes": session.attributes,
-        "response": {
-            "outputSpeech": {
-                "type": "SSML",
-                "ssml": "<speak>" + speech + "</speak>"
-            },
-            "card": {
-                "type": "Standard",
-                "title": title,
-                "text": text,
-                "image": {
-                    "smallImageUrl": "https://s3.amazonaws.com/dart-battle-resources/dartBattle_ST_720x480.jpg",
-                    "largeImageUrl": "https://s3.amazonaws.com/dart-battle-resources/dartBattle_SUT_1200x800.jpg"
-                }
-            },
-            "shouldEndSession": False
-        }
-    }
+    reprompt = "Try saying: Start Battle, Setup Teams, or More Options."
+    cardImage = Image(
+        small_image_url="https://s3.amazonaws.com/dart-battle-resources/dartBattle_ST_720x480.jpg",
+        large_image_url="https://s3.amazonaws.com/dart-battle-resources/dartBattle_SUT_1200x800.jpg"
+    )
+    return speech, reprompt, title, text, cardImage
 
 
 def reciteTeamsIntent(session):
@@ -199,36 +186,29 @@ def reciteTeamRoles(teams):
     return speech
 
 
-def setupTeamsIntent(request, session):
-    sessionAttributes = session['attributes']
-
-    dialogState = request['dialogState']
-    if dialogState in ["STARTED", "IN_PROGRESS"]:
-        return responses.continueDialog(sessionAttributes)
-    elif dialogState == 'COMPLETED':
-        sessionAttributes = session['attributes']
-
+def setupTeamsIntent(userSession):
     allPlayers = {}
     speech = ""
-    numTeams = int(request['intent']['slots']['TEAMNUM']['value'])
-    numPlayers = int(request['intent']['slots']['PLAYERNUM']['value'])
+    text = ""
+    title = ""
+
+    numTeams = int(userSession.request.slots["TEAMNUM"]["value"])
+    numPlayers = int(userSession.request.slots["PLAYERNUM"]["value"])
+
     if numTeams > numPlayers:
         speech += "There can not be more teams than there are players. I'll make one team for each of the {} players. ".format(
             numPlayers)
         numTeams = numPlayers
-    sessionAttributes['usingTeams'] = "True"
-    sessionAttributes['numTeams'] = numTeams
-    sessionAttributes['numPlayers'] = numPlayers
+    userSession.usingTeams = "True"
+    userSession.numTeams = numTeams
+    userSession.numPlayers = numPlayers
 
     # RANK (if it becomes important)
-    if 'playerRank' in sessionAttributes:
-        playerRank = sessionAttributes['playerRank']
-        if playerRank == '00':
-            playerRankName = "soldier"
-        else:
-            playerRankName = PlayerRanks(int(playerRank)).name.replace("_", " ")
-    else:
+    playerRank = userSession.playerRank
+    if playerRank == '00':
         playerRankName = "soldier"
+    else:
+        playerRankName = PlayerRanks(int(playerRank)).name.replace("_", " ")
 
     # TEAMS
     if numPlayers > 12:
@@ -241,20 +221,20 @@ def setupTeamsIntent(request, session):
 
     # PLAYERS
     missingPlayers = False
-    playerOne = request['intent']['slots']['PLAYERONE']['value']
+    playerOne = userSession.request.slots["PLAYERONE"]["value"]
     allPlayers['one'] = {"name": playerOne}
     for num, keyname in enumerate(['PLAYERTWO', 'PLAYERTHREE', 'PLAYERFOUR', 'PLAYERFIVE',
                                    'PLAYERSIX', 'PLAYERSEVEN', 'PLAYEREIGHT', 'PLAYERNINE',
                                    'PLAYERTEN', 'PLAYERELEVEN', 'PLAYERTWELVE']):
         if num + 2 > numPlayers:
             break
-        if 'value' in request['intent']['slots'][keyname]:
-            playerNum = keyname[6:].lower()
-            playerName = request['intent']['slots'][keyname]['value']
-            allPlayers[playerNum] = {"name": playerName}
-        else:
+        if userSession.request.slots["PLAYERONE"]["status"] == "Empty":
             allPlayers[num + 2] = {'name': "player {}".format(num + 2)}
             missingPlayers = True
+        else:
+            playerNum = keyname[6:].lower()
+            playerName = userSession.request.slots[keyname]["value"]
+            allPlayers[playerNum] = {"name": playerName}
     if missingPlayers:
         speech += "I think I missed a player name or two. No worries, I'll use " + \
                   "their player number. "
@@ -264,93 +244,49 @@ def setupTeamsIntent(request, session):
     speech += "<audio src=\"https://s3.amazonaws.com/dart-battle-resources/choiceMusic.mp3\" /> "
 
     teams, playerRoles = assignTeamsAndRoles(numTeams, [allPlayers[x]['name'] for x in allPlayers.keys()],
-                                             sessionAttributes)
-    sessionAttributes['playerRoles'] = playerRoles
-    sessionAttributes['teams'] = teams
-    database.updateRecordTeams(sessionAttributes)
+                                             userSession)
+    userSession.playerRoles = playerRoles
+    userSession.teams = teams
+    database.updateRecordTeams(userSession)
 
     roleSpeech = reciteTeamRoles(teams)
     speech += roleSpeech
     speech += "How shall I proceed? Start a battle? More options? "
-
     text = roleSpeech
     title = "Setup Teams"
-    return {
-        "version": os.environ['VERSION'],
-        "sessionAttributes": sessionAttributes,
-        "response": {
-            "outputSpeech": {
-                "type": "SSML",
-                "ssml": "<speak>" + speech + "</speak>"
-            },
-            "card": {
-                "type": "Standard",
-                "title": title,
-                "text": text,
-                "image": {
-                    "smallImageUrl": "https://s3.amazonaws.com/dart-battle-resources/dartBattle_ST_720x480.jpg",
-                    "largeImageUrl": "https://s3.amazonaws.com/dart-battle-resources/dartBattle_SUT_1200x800.jpg"
-                }
-            },
-            "shouldEndSession": False
-        }
-    }
+    reprompt = "Try saying: Start Battle, Setup Teams, or More Options."
+    cardImage = Image(
+        small_image_url="https://s3.amazonaws.com/dart-battle-resources/dartBattle_ST_720x480.jpg",
+        large_image_url="https://s3.amazonaws.com/dart-battle-resources/dartBattle_SUT_1200x800.jpg"
+    )
+    return speech, reprompt, title, text, cardImage
 
 
-def shuffleTeamsIntent(session):
-    """
-                "teams": {
-                "1": {
-                    "George": "captain",
-                    "player 4": "special_forces_operative",
-                    "player 3": "pilot"
-                },
-                "2": {
-                    "player 2": "heavy_weapons",
-                    "player 5": "captain"
-                }
-            },
-
-    """
-    sessionAttributes = session.attributes
-
-    if not sessionAttributes.get("teams", None):
+def shuffleTeamsIntent(userSession):
+    if not userSession.usingTeams:
         speech = "I would shuffle the teams, but no teams have been recently set up. "
         text = "No current teams. "
     else:
         speech = "Shuffling teams and roles... "
-        teamNums = sessionAttributes['teams'].keys()
+        speech = "<audio src=\"https://s3.amazonaws.com/dart-battle-resources/choiceMusic.mp3\" />" + speech
+        teamNums = userSession.teams.keys()
         playerNames = []
         for num in teamNums:
-            playerNames.extend(list(sessionAttributes['teams'][num].keys()))
+            playerNames.extend(list(userSession.teams[num].keys()))
         numTeams = len(teamNums)
-        teams, playerRoles = assignTeamsAndRoles(numTeams, playerNames, sessionAttributes)
-        sessionAttributes['playerRoles'] = playerRoles
-        sessionAttributes['teams'] = teams
-        database.updateRecordTeams(sessionAttributes)
+        teams, playerRoles = assignTeamsAndRoles(numTeams, playerNames, userSession)
+        userSession.playerRoles = playerRoles
+        userSession.teams = teams
+        database.updateRecordTeams(userSession)
 
         roleSpeech = reciteTeamRoles(teams)
         speech += roleSpeech
         text = speech
     speech += "What next? Start a battle? More options? Exit? "
     title = "Shuffle Teams"
-    return {
-        "version": os.environ['VERSION'],
-        "sessionAttributes": sessionAttributes,
-        "response": {
-            "outputSpeech": {
-                "type": "SSML",
-                "ssml": "<speak>" + speech + "</speak>"
-            },
-            "card": {
-                "type": "Standard",
-                "title": title,
-                "text": text,
-                "image": {
-                    "smallImageUrl": "https://s3.amazonaws.com/dart-battle-resources/dartBattle_ST_720x480.jpg",
-                    "largeImageUrl": "https://s3.amazonaws.com/dart-battle-resources/dartBattle_SUT_1200x800.jpg"
-                }
-            },
-            "shouldEndSession": False
-        }
-    }
+    reprompt = "Try saying: Start Battle, Setup Teams, or More Options."
+    cardImage = Image(
+        small_image_url="https://s3.amazonaws.com/dart-battle-resources/dartBattle_ST_720x480.jpg",
+        large_image_url="https://s3.amazonaws.com/dart-battle-resources/dartBattle_SUT_1200x800.jpg"
+    )
+    return speech, reprompt, title, text, cardImage
