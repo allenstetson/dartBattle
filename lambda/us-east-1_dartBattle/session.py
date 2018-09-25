@@ -1,6 +1,8 @@
 # DartBattle imports:
 import database
 import datetime
+from ask_sdk_model.slu.entityresolution import StatusCode
+import six
 
 
 class DartBattleSession(object):
@@ -33,6 +35,7 @@ class DartBattleSession(object):
     @battleDuration.setter
     def battleDuration(self, value):
         self._sessionAttributes["battleDuration"] = value
+        database.updateRecordDuration(self)
 
     @property
     def dateCreated(self):
@@ -177,6 +180,17 @@ class DartBattleSession(object):
         self._sessionAttributes["userId"] = value
 
     @property
+    def usingEvents(self):
+        if not self.attributes.get("usingEvents"):
+            self._sessionAttributes["usingEvents"] = "True"
+        return self._sessionAttributes["usingEvents"]
+
+    @usingEvents.setter
+    def usingEvents(self, value):
+        self._sessionAttributes["usingEvents"] = value
+        database.updateToggleEvents(self)
+
+    @property
     def usingTeams(self):
         if not self.attributes.get("usingTeams"):
             self._sessionAttributes["usingTeams"] = "False"
@@ -216,6 +230,8 @@ class DartBattleSession(object):
 class DartBattleRequest(object):
     def __init__(self, request_envelope):
         self._request_envelope = request_envelope
+        self.slots = {}
+        self.populateSlots()
 
     @property
     def isNew(self):
@@ -224,3 +240,16 @@ class DartBattleRequest(object):
     @property
     def requestId(self):
         return self._request_envelope.request_id
+
+    def populateSlots(self):
+        filledSlots = self._request_envelope.request.intent.slots
+        slots = {}
+
+        for slotName in filledSlots:
+            slots[slotName] = filledSlots[slotName].to_dict()
+            try:
+                slots[slotName]['status'] = str(filledSlots[slotName].resolutions.resolutions_per_authority[0].status.code)
+            except (TypeError, AttributeError) as e:
+                slots[slotName]['status'] = "Empty"
+            # dict_keys(['confirmation_status', 'name', 'resolutions', 'value', 'status'])
+        self.slots = slots

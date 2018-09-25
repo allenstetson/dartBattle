@@ -9,6 +9,13 @@ import enum
 import random
 import logging
 
+# Amazon Imports:
+from ask_sdk_model.ui.image import Image
+from ask_sdk_model.interfaces.audioplayer import (
+    PlayDirective, PlayBehavior, AudioItem, Stream, AudioItemMetadata,
+    StopDirective)
+from ask_sdk_model.interfaces import display
+
 # DartBattle imports:
 import database
 import playlists
@@ -49,7 +56,6 @@ class EventCategories(enum.Enum):
     Duel = 26
 
 
-
 class Scenarios(enum.Enum):
     """The major scenarios available; used for tokens and playlist generation."""
     NoEvents01 = 0
@@ -73,29 +79,18 @@ class Scenario(object):
     sceneAttributes.
 
     Args:
+        userSession: (session.DartBattleSession)
+            The session object derived from incoming Alexa data.
         name: (str)
             The name of the scene to be built (arctic, jungle, urban, etc)
-
-        sessionAttributes: (dict)
-            Attributes as would be passed via Alexa representing scene
-            properties and configuration.
 
     Raises:
         N/A
 
     """
-    def __init__(self, sessionAttributes, name=None):
-        self.sessionAttributes = sessionAttributes
-
+    def __init__(self, userSession, name=None):
+        self.userSession = userSession
         self._availableEvents = None
-        # self._protectedCategories = [
-        #    EventCategories.Intro,
-        #    EventCategories.InCount,
-        #    EventCategories.Soundtrack,
-        #    EventCategories.OutCount,
-        #    EventCategories.Outtro,
-        #    EventCategories.Tail
-        #    ]
         if not name:
             name, playlist = random.choice(self.availablePlaylists)
             self.name = name
@@ -137,24 +132,29 @@ class Scenario(object):
             return self._availableEvents
 
         # Determine valid list
-        tracklist = self.playlist.getEventsForRank(self.playerRank)
+        tracklist = self.playlist.getEventsForRank(self.playerRank)  # FIXME: This breaks when usingEvents is False
+        print("Found {} tracks.".format(len(tracklist)))
 
         # TODO: Think about moving this logic into the Playlist
         available = []
-        for trackPath in tracklist:
-            track = trackPath[:-4]  # remove ".mp3"
-            trackRoles = track.split("_")[6].split(".")
-            if "_Team_" in track and not self.usingTeams:
-                continue
-            if "_NoTeam_" in track and self.usingTeams:
-                continue
-            if self.roles and not all([x in self.roles for x in trackRoles]):
-                if not trackRoles == ["{:02d}".format(teams.PlayerRoles.any.value)] and \
-                        not trackRoles == ["{:02d}".format(teams.PlayerRoles.none.value)]:
+        try:
+            for trackPath in tracklist:
+                track = trackPath[:-4]  # remove ".mp3"
+                trackRoles = track.split("_")[6].split(".")
+                if "_Team_" in track and not self.usingTeams:
                     continue
-            available.append(trackPath)
+                if "_NoTeam_" in track and self.usingTeams:
+                    continue
+                if self.roles and not all([x in self.roles for x in trackRoles]):
+                    if not trackRoles == ["{:02d}".format(teams.PlayerRoles.any.value)] and \
+                            not trackRoles == ["{:02d}".format(teams.PlayerRoles.none.value)]:
+                        continue
+                available.append(trackPath)
+        except Exception as e:
+            print("Exception caught processing track {}".format(track))
+            raise(e)
 
-        # print("{} are valid tracks.".format(len(available)))
+        print("{} are valid tracks.".format(len(available)))
         self._availableEvents = available
         return available
 
@@ -187,7 +187,7 @@ class Scenario(object):
             "NoEvents01": playlists.NoEvents01(),
             "Prospector": playlists.Prospector()
         }
-        return [(x, allPlaylists[x]) for x in allPlaylists.keys() if allPlaylists[x].isActive(self.sessionAttributes)]
+        return [(x, allPlaylists[x]) for x in allPlaylists.keys() if allPlaylists[x].isActive(self.userSession)]
 
     @property
     def intro(self):
@@ -229,11 +229,10 @@ class Scenario(object):
     def playerRank(self):
         """Enum of the rank achieved by the player; 01 = Private, etc."""
         if self._playerRank:
+            print("looking at playerRank {}".format(self._playerRank))
             return self._playerRank
-        if 'playerRank' in self.sessionAttributes:
-            self._playerRank = self.sessionAttributes['playerRank']
-        else:
-            self._playerRank = '00'
+        self._playerRank = self.userSession.playerRank
+        print("Looking at playerRank {}".format(self._playerRank))
         return self._playerRank
 
     @playerRank.setter
@@ -262,11 +261,9 @@ class Scenario(object):
     @property
     def roles(self):
         """Enums of the roles currently in use by the teams"""
-        if not 'playerRoles' in self.sessionAttributes:
-            return []
         allRoles = []
-        for team in self.sessionAttributes['playerRoles']:
-            allRoles.extend(self.sessionAttributes['playerRoles'][team])
+        for team in self.userSession.playerRoles:
+            allRoles.extend(self.userSession.playerRoles[team])
         return list(set(allRoles))
 
     @property
@@ -282,7 +279,7 @@ class Scenario(object):
     @property
     def usingEvents(self):
         """Boolean indicating whether teams are in use for the session."""
-        usingEvents = self.sessionAttributes.get('usingEvents', "True")
+        usingEvents = self.userSession.usingEvents
         if usingEvents == "True":
             return True
         return False
@@ -290,7 +287,7 @@ class Scenario(object):
     @property
     def usingTeams(self):
         """Boolean indicating whether teams are in use for the session."""
-        usingTeams = self.sessionAttributes.get('usingTeams', "False")
+        usingTeams = self.userSession.usingTeams
         if usingTeams == "True":
             return True
         return False
@@ -436,12 +433,9 @@ class Scenario(object):
         trackNum = 1
 
         # Session Attributes:
-        if not 'playerRank' in self.sessionAttributes:
-            rank = '00'
-        else:
-            rank = self.sessionAttributes['playerRank']
+        rank = self.userSession.playerRank
         self.playerRank = rank
-        if self.sessionAttributes['usingTeams'] == "True":
+        if self.userSession.usingTeams == "True":
             teams = '1'
         else:
             teams = '0'
@@ -450,11 +444,11 @@ class Scenario(object):
             Scenarios[self.name].value,
             teams
         )
-        if self.sessionAttributes['sfx'] == "True":
+        if self.userSession.sfx == "True":
             sfx = 1
         else:
             sfx = 0
-        if self.sessionAttributes['soundtrack'] == 'True':
+        if self.userSession.soundtrack == "True":
             soundtrack = 1
         else:
             soundtrack = 0
@@ -668,9 +662,9 @@ class Scenario(object):
         self.name = scenarioName
 
         if teams == '1':
-            self.sessionAttributes['usingTeams'] = 'True'
+            self.userSession.usingTeams = 'True'
         else:
-            self.sessionAttributes['usingTeams'] = 'False'
+            self.userSession.usingTeams = 'False'
         print("Current track is {}".format(trackNum))
         currentTrack = None
         for track in playlist:
@@ -726,91 +720,74 @@ class Scenario(object):
         return track
 
 
-def startBattleDurationIntent(intent, session):
+def startBattleDurationIntent(userSession):
     """Triggered when a user asks for a battle of a given duration, comply.
 
     Args:
-        intent : (dict)
-            Intent data as provided by Alexa API, with slot for duration.
-
-        session : (dict)
-            Session data as provided by Alexa API.
+        userSession : (session.DartBattleSession)
+            Session derived from incoming Alexa data.
 
     Raises:
         N/A
 
     Returns:
-        dict
-            Response dict as required by Alexa API.
+        str, str, str, ask_sdk_model.ui.image.Image, ask_sdk_model.interfaces.audioplayer.PlayDirective
+            Response data to construct an Alexa response.
+            speech, title, text, cardImage, directive
 
     """
-    sessionAttributes = session['attributes']
-
-    if 'slots' in intent and 'DURATION' in intent['slots']:
-        duration = intent['slots']['DURATION']['value']
-        duration = int(duration) * 60
-        if duration < 120:
-            duration = 120
-        sessionAttributes['battleDuration'] = str(duration)
-        database.updateRecordDuration(sessionAttributes)
-        response = startBattleStandardIntent(session, duration=duration)
-        return response
+    duration = userSession.request.slots["DURATION"]["value"]
+    duration = int(duration) * 60
+    if duration < 120:
+        duration = 120
+    userSession.battleDuration = str(duration)
+    return startBattleStandardIntent(userSession)
 
 
-def startBattleStandardIntent(session, duration=None):
+def startBattleStandardIntent(userSession):
     """Triggered when a user asks for a battle, comply; may specify duration.
 
     Args:
-        session : (dict)
-            Session data as provided by Alexa API.
-
-        duration : (int)
-            Number of seconds requested by user as the duration of the battle.
+        userSession : (dict)
+            Session data derived from incoming Alexa data.
 
     Raises:
         N/A
 
     Returns:
-        dict
-            AudioPlayer Response dict as required by Alexa API.
+        str, str, str, ask_sdk_model.ui.image.Image, ask_sdk_model.interfaces.audioplayer.PlayDirective
+            Response data to construct an Alexa response.
+            speech, title, text, cardImage, directive
 
     """
     speech = ""
-    sessionAttributes = session['attributes']
-
-    if not duration:
-        if 'battleDuration' in sessionAttributes:
-            duration = int(sessionAttributes['battleDuration'])
-        else:
-            duration = 120
-    sessionAttributes[duration] = str(duration)
+    duration = int(userSession.battleDuration)
 
     isTeam = ""
-    if sessionAttributes['usingTeams'] == "True":
+    if userSession.usingTeams == "True":
         isTeam = "team"
 
-    playlist = Scenario(sessionAttributes)
+    playlist = Scenario(userSession)
     token = playlist.buildPlaylist(duration)
     track = playlist.getTrackFromToken(token)
 
     durMin = int(duration/60)
     sceneName = playlist.prettyName
-    numBattles = int(sessionAttributes['numBattles'])
+    numBattles = int(userSession.numBattles)
     numBattles += 1
-    sessionAttributes['numBattles'] = str(numBattles)
-    sessionAttributes['currentToken'] = str(token)
-    sessionAttributes['offsetInMilliseconds'] = "0"
+    userSession.numBattles = str(numBattles)
+    userSession.currentToken = str(token)
+    userSession.offsetInMilliseconds = "0"
 
     speech += "<audio src=\"https://s3.amazonaws.com/dart-battle-resources/choiceMusic.mp3\" /> "
 
-    if database.isActive():
-        database.updateRecord(sessionAttributes)
+    database.updateRecord(userSession)
 
     promo = playlist.promo
     if promo:
         speech += '<audio src="{}" /> '.format(promo)
 
-    if sceneName == "NoEvents01":
+    if userSession.usingEvents == "False":
         text = "{} minute {} battle commencing with no events. ".format(durMin, isTeam)
         choice = random.randint(0, 5)
         if choice == 0:
@@ -820,41 +797,46 @@ def startBattleStandardIntent(session, duration=None):
         text = "{} minute {} {} battle commencing. ".format(durMin, sceneName, isTeam)
         speech += text
     title = "Start a Battle"
-    output = {
-        "version": os.environ['VERSION'],
-        "sessionAttributes": sessionAttributes,
-        "response": {
-            "directives": [
-                {
-                    "type": "AudioPlayer.Play",
-                    "playBehavior": "REPLACE_ALL",
-                    "audioItem": {
-                        "stream": {
-                            "token": token,
-                            "url": track,
-                            "offsetInMilliseconds": 0
-                        }
-                    }
-                }
-            ],
-            "outputSpeech": {
-                "type": "SSML",
-                "ssml": "<speak>" + speech + "</speak>"
-            },
-            "card": {
-                "type": "Standard",
-                "title": title,
-                "text": text,
-                "image": {
-                    "smallImageUrl": "https://s3.amazonaws.com/dart-battle-resources/dartBattle_SB_720x480.jpg",
-                    "largeImageUrl": "https://s3.amazonaws.com/dart-battle-resources/dartBattle_SB_1200x800.jpg"
-                }
-            },
-            "shouldEndSession": True
-        }
-    }
-    logger.info("startBattle intent finished. Returning: {}".format(output))
-    return output
+    largeImg = "https://s3.amazonaws.com/dart-battle-resources/dartBattle_SB_1200x800.jpg"
+    smallImg = "https://s3.amazonaws.com/dart-battle-resources/dartBattle_SB_720x480.jpg"
+    cardImage = Image(
+        small_image_url=smallImg,
+        large_image_url=largeImg
+    )
+
+    directive = PlayDirective(
+        play_behavior=PlayBehavior.REPLACE_ALL,
+        audio_item=AudioItem(
+            stream=Stream(
+                expected_previous_token=None,
+                token=token,
+                url=track,
+                offset_in_milliseconds=0
+            ),
+            metadata=AudioItemMetadata(
+                title=title,
+                subtitle=text,
+                art=display.Image(
+                    content_description=title,
+                    sources=[
+                        display.ImageInstance(
+                            url=largeImg
+                        )
+                    ]
+                ),
+                background_image=display.Image(
+                    content_description=title,
+                    sources=[
+                        display.ImageInstance(
+                            url=largeImg
+                        )
+                    ]
+                )
+            )
+        )
+    )
+
+    return speech, title, text, cardImage, directive
 
 
 def continueAudioPlayback(session, prevToken):
