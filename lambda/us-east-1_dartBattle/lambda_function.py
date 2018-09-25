@@ -91,7 +91,7 @@ class LaunchRequestHandler(AbstractRequestHandler):
 # =============================================================================
 # HANDLERS
 # =============================================================================
-class AudioPlaybackNearlyFinishedHandler(AbstractRequestHandler):
+class AudioPlaybackFinishedHandler(AbstractRequestHandler):
     def can_handle(self, handler_input):
         """Inform the request handler of what intents/requests can be handled by this object.
 
@@ -102,7 +102,7 @@ class AudioPlaybackNearlyFinishedHandler(AbstractRequestHandler):
             bool: Whether or not the current intent can be handled by this object.
 
         """
-        return is_request_type("PlaybackNearlyFinishedRequest")(handler_input)
+        return is_request_type("AudioPlayer.PlaybackFinished")(handler_input)
 
     def handle(self, handler_input):
         """ Handle the launch request; fetch and serve the appropriate response.
@@ -114,12 +114,65 @@ class AudioPlaybackNearlyFinishedHandler(AbstractRequestHandler):
             ask_sdk_model.response.Response: Response for this intent and device.
 
         """
+        print("------- IN NEARLY AUDIO PLAYER FINISHED -------")
+
+
+class AudioPlaybackNearlyFinishedHandler(AbstractRequestHandler):
+    def can_handle(self, handler_input):
+        """Inform the request handler of what intents/requests can be handled by this object.
+
+        Args:
+            handler_input (ask_sdk_core.handler_input.HandlerInput): The input from Alexa.
+
+        Returns:
+            bool: Whether or not the current intent can be handled by this object.
+
+        """
+        return is_request_type("AudioPlayer.PlaybackNearlyFinished")(handler_input)
+
+    def handle(self, handler_input):
+        """ Handle the launch request; fetch and serve the appropriate response.
+
+        Args:
+            handler_input (ask_sdk_core.handler_input.HandlerInput): The input from Alexa.
+
+        Returns:
+            ask_sdk_model.response.Response: Response for this intent and device.
+
+        """
+        print("------- IN AUDIO PLAYER NEARLY FINISHED -------")
         userSession = session.DartBattleSession(handler_input)
 
         directive = battle.continueAudioPlayback(userSession)
         handler_input.response_builder.add_directive(
             directive).set_should_end_session(True)
         return handler_input.response_builder.response
+
+
+class AudioPlaybackStartedHandler(AbstractRequestHandler):
+    def can_handle(self, handler_input):
+        """Inform the request handler of what intents/requests can be handled by this object.
+
+        Args:
+            handler_input (ask_sdk_core.handler_input.HandlerInput): The input from Alexa.
+
+        Returns:
+            bool: Whether or not the current intent can be handled by this object.
+
+        """
+        return is_request_type("AudioPlayer.PlaybackStarted")(handler_input)
+
+    def handle(self, handler_input):
+        """ Handle the launch request; fetch and serve the appropriate response.
+
+        Args:
+            handler_input (ask_sdk_core.handler_input.HandlerInput): The input from Alexa.
+
+        Returns:
+            ask_sdk_model.response.Response: Response for this intent and device.
+
+        """
+        print("------- IN NEARLY AUDIO PLAYER STARTED -------")
 
 
 class AudioStopIntentHandler(AbstractRequestHandler):
@@ -808,8 +861,6 @@ def on_intent(event):
                 ]
             }
         }
-    elif event['request']['type'] == "AudioPlayer.PlaybackNearlyFinished":
-        return on_playback_nearly_finished(event)
     elif intent_name == "AMAZON.NextIntent":
         logger.info("NextIntent received: {} -- session: {}".format(intent_request, sessionInfo))
         return battle.skipToNextAudioPlayback(sessionInfo)
@@ -897,7 +948,9 @@ def playback_stop(handler_input):
     return handler_input.response_builder.response
 
 
+sb.add_request_handler(AudioPlaybackFinishedHandler())
 sb.add_request_handler(AudioPlaybackNearlyFinishedHandler())
+sb.add_request_handler(AudioPlaybackStartedHandler())
 sb.add_request_handler(AudioStopIntentHandler())
 sb.add_request_handler(BattleDurationStartHandler())
 sb.add_request_handler(BattleStandardStartHandler())

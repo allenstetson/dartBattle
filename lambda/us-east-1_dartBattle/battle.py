@@ -837,7 +837,7 @@ def startBattleStandardIntent(userSession):
 
 def continueAudioPlayback(userSession):
     """Triggered by PlaybackNearlyFinished event, plays next."""
-    prevToken = AudioPlayerState.token
+    prevToken = userSession.currentToken
 
     sessionInfo = prevToken.split("_")[1]
     (playerRank, scenarioEnum, teams, sfx, soundtrack) = sessionInfo.split(".")

@@ -51,7 +51,7 @@ class DartBattleSession(object):
     @property
     def currentToken(self):
         if not self.attributes.get("currentToken"):
-            self._sessionAttributes["currentToken"] = "None"
+            self._sessionAttributes["currentToken"] = self._handler_input.request_envelope.request.token
         return self._sessionAttributes["currentToken"]
 
     @currentToken.setter
@@ -217,7 +217,12 @@ class DartBattleSession(object):
         for attrName in dbAttrs:
             if not self._sessionAttributes.get(attrName):
                 self._sessionAttributes[attrName] = dbAttrs[attrName]
-        self._handler_input.attributes_manager.session_attributes = self._sessionAttributes
+        if self._handler_input.request_envelope.session:
+            self._handler_input.attributes_manager.session_attributes = self._sessionAttributes
+        else:
+            # This is a non-session request; almost certainly triggered by an audio event. Update token to current:
+            self.currentToken = self._handler_input.request_envelope.request.token
+            print("@@@ {}".format(self._handler_input.request_envelope.to_dict()))
         return self._sessionAttributes
 
     def setAudioState(self, currentToken, offsetInMilliseconds):
