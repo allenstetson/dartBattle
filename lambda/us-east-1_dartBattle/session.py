@@ -226,8 +226,10 @@ class DartBattleSession(object):
         return self._sessionAttributes
 
     def setAudioState(self, currentToken, offsetInMilliseconds):
-        self.currentToken = currentToken
-        self.offsetInMilliseconds = offsetInMilliseconds
+        if currentToken:
+            self.currentToken = currentToken
+        if offsetInMilliseconds:
+            self.offsetInMilliseconds = offsetInMilliseconds
         database.updateRecordToken(self)
 
 

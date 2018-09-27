@@ -10,12 +10,10 @@ import random
 # Amazon imports
 from ask_sdk_core.dispatch_components import AbstractRequestHandler
 from ask_sdk_core.utils import is_request_type, is_intent_name
-from ask_sdk_core.handler_input import HandlerInput
 from ask_sdk_model.interfaces import audioplayer
 from ask_sdk_model.interfaces.audioplayer.audio_player_state import AudioPlayerState
 from ask_sdk_model.ui import SimpleCard, StandardCard
 from ask_sdk_core.skill_builder import SkillBuilder
-from ask_sdk_model.slu.entityresolution import StatusCode
 from ask_sdk_model.interfaces.audioplayer import (
     PlayDirective, PlayBehavior, AudioItem, Stream, AudioItemMetadata,
     StopDirective, PlaybackNearlyFinishedRequest)
@@ -25,8 +23,8 @@ from ask_sdk_model import (
     Response, IntentRequest, DialogState, SlotConfirmationStatus, Slot)
 from ask_sdk_model.dialog import (
     ElicitSlotDirective, DelegateDirective)
+from ask_sdk_model.interfaces import display
 
-from ask_sdk_model.intent_request import IntentRequest
 
 
 sb = SkillBuilder()
@@ -91,6 +89,36 @@ class LaunchRequestHandler(AbstractRequestHandler):
 # =============================================================================
 # HANDLERS
 # =============================================================================
+class AudioNextIntentHandler(AbstractRequestHandler):
+    # Handler for Stop
+    def can_handle(self, handler_input):
+        """Inform the request handler of what intents/requests can be handled by this object.
+
+        Args:
+            handler_input (ask_sdk_core.handler_input.HandlerInput): The input from Alexa.
+
+        Returns:
+            bool: Whether or not the current intent can be handled by this object.
+
+        """
+        return is_intent_name("AMAZON.NextIntent")(handler_input)
+
+    def handle(self, handler_input):
+        """ Handle the launch request; fetch and serve the appropriate response.
+
+        Args:
+            handler_input (ask_sdk_core.handler_input.HandlerInput): The input from Alexa.
+
+        Returns:
+            ask_sdk_model.response.Response: Response for this intent and device.
+
+        """
+        userSession = session.DartBattleSession(handler_input)
+        directive = battle.skipToNextAudioPlayback(userSession)
+        handler_input.response_builder.add_directive(directive).set_should_end_session(True)
+        return handler_input.response_builder.response
+
+
 class AudioPlaybackFinishedHandler(AbstractRequestHandler):
     def can_handle(self, handler_input):
         """Inform the request handler of what intents/requests can be handled by this object.
@@ -114,7 +142,7 @@ class AudioPlaybackFinishedHandler(AbstractRequestHandler):
             ask_sdk_model.response.Response: Response for this intent and device.
 
         """
-        print("------- IN NEARLY AUDIO PLAYER FINISHED -------")
+        return {}
 
 
 class AudioPlaybackNearlyFinishedHandler(AbstractRequestHandler):
@@ -140,7 +168,6 @@ class AudioPlaybackNearlyFinishedHandler(AbstractRequestHandler):
             ask_sdk_model.response.Response: Response for this intent and device.
 
         """
-        print("------- IN AUDIO PLAYER NEARLY FINISHED -------")
         userSession = session.DartBattleSession(handler_input)
 
         directive = battle.continueAudioPlayback(userSession)
@@ -172,7 +199,169 @@ class AudioPlaybackStartedHandler(AbstractRequestHandler):
             ask_sdk_model.response.Response: Response for this intent and device.
 
         """
-        print("------- IN NEARLY AUDIO PLAYER STARTED -------")
+        return {}
+
+
+class AudioPlaybackStoppedHandler(AbstractRequestHandler):
+    def can_handle(self, handler_input):
+        """Inform the request handler of what intents/requests can be handled by this object.
+
+        Args:
+            handler_input (ask_sdk_core.handler_input.HandlerInput): The input from Alexa.
+
+        Returns:
+            bool: Whether or not the current intent can be handled by this object.
+
+        """
+        return is_request_type("AudioPlayer.PlaybackStopped")(handler_input)
+
+    def handle(self, handler_input):
+        """ Handle the launch request; fetch and serve the appropriate response.
+
+        Args:
+            handler_input (ask_sdk_core.handler_input.HandlerInput): The input from Alexa.
+
+        Returns:
+            ask_sdk_model.response.Response: Response for this intent and device.
+
+        """
+        token = handler_input.request_envelope.request.token
+        oim = handler_input.request_envelope.request.offset_in_milliseconds
+        userSession = session.DartBattleSession(handler_input)
+        userSession.setAudioState(token, oim)
+        return {}
+
+
+class AudioPreviousIntentHandler(AbstractRequestHandler):
+    # Handler for Stop
+    def can_handle(self, handler_input):
+        """Inform the request handler of what intents/requests can be handled by this object.
+
+        Args:
+            handler_input (ask_sdk_core.handler_input.HandlerInput): The input from Alexa.
+
+        Returns:
+            bool: Whether or not the current intent can be handled by this object.
+
+        """
+        return is_intent_name("AMAZON.PreviousIntent")(handler_input)
+
+    def handle(self, handler_input):
+        """ Handle the launch request; fetch and serve the appropriate response.
+
+        Args:
+            handler_input (ask_sdk_core.handler_input.HandlerInput): The input from Alexa.
+
+        Returns:
+            ask_sdk_model.response.Response: Response for this intent and device.
+
+        """
+        userSession = session.DartBattleSession(handler_input)
+        directive = battle.reverseAudioPlayback(userSession)
+        handler_input.response_builder.add_directive(directive).set_should_end_session(True)
+        return handler_input.response_builder.response
+
+
+class AudioResumeHandler(AbstractRequestHandler):
+    def can_handle(self, handler_input):
+        """Inform the request handler of what intents/requests can be handled by this object.
+
+        Args:
+            handler_input (ask_sdk_core.handler_input.HandlerInput): The input from Alexa.
+
+        Returns:
+            bool: Whether or not the current intent can be handled by this object.
+
+        """
+        return is_intent_name("AMAZON.ResumeIntent")(handler_input)
+
+    def handle(self, handler_input):
+        """ Handle the launch request; fetch and serve the appropriate response.
+
+        Args:
+            handler_input (ask_sdk_core.handler_input.HandlerInput): The input from Alexa.
+
+        Returns:
+            ask_sdk_model.response.Response: Response for this intent and device.
+
+        """
+        userSession = session.DartBattleSession(handler_input)
+
+        token = userSession.currentToken
+        offsetInMilliseconds = int(userSession.offsetInMilliseconds)
+        sessionInfo = token.split("_")[1]
+        (playerRank, scenarioEnum, teams, sfx, soundtrack) = sessionInfo.split(".")
+        scenarioName = battle.Scenarios(int(scenarioEnum)).name
+
+        playlist = battle.Scenario(userSession, name=scenarioName)
+        track = playlist.getTrackFromToken(token)
+        largeImg = "https://s3.amazonaws.com/dart-battle-resources/dartBattle_SB_1200x800.jpg"
+
+        directive = PlayDirective(
+            play_behavior=PlayBehavior.REPLACE_ALL,
+            audio_item=AudioItem(
+                stream=Stream(
+                    expected_previous_token=None,
+                    token=token,
+                    url=track,
+                    offset_in_milliseconds=offsetInMilliseconds
+                ),
+                metadata=AudioItemMetadata(
+                    title=scenarioName,
+                    subtitle="",
+                    art=display.Image(
+                        content_description=scenarioName,
+                        sources=[
+                            display.ImageInstance(
+                                url=largeImg
+                            )
+                        ]
+                    ),
+                    background_image=display.Image(
+                        content_description=scenarioName,
+                        sources=[
+                            display.ImageInstance(
+                                url=largeImg
+                            )
+                        ]
+                    )
+                )
+            )
+        )
+        print("Resuming track {} at {} ms".format(track, offsetInMilliseconds))
+        handler_input.response_builder.add_directive(
+            directive).set_should_end_session(True)
+        return handler_input.response_builder.response
+
+
+class AudioStartOverIntentHandler(AbstractRequestHandler):
+    # Handler for Stop
+    def can_handle(self, handler_input):
+        """Inform the request handler of what intents/requests can be handled by this object.
+
+        Args:
+            handler_input (ask_sdk_core.handler_input.HandlerInput): The input from Alexa.
+
+        Returns:
+            bool: Whether or not the current intent can be handled by this object.
+
+        """
+        return is_intent_name("AMAZON.StartOverIntent")(handler_input)
+
+    def handle(self, handler_input):
+        """ Handle the launch request; fetch and serve the appropriate response.
+
+        Args:
+            handler_input (ask_sdk_core.handler_input.HandlerInput): The input from Alexa.
+
+        Returns:
+            ask_sdk_model.response.Response: Response for this intent and device.
+
+        """
+        userSession = session.DartBattleSession(handler_input)
+        directive = battle.restartAudioPlayback(userSession)
+        handler_input.response_builder.add_directive(directive).set_should_end_session(True)
+        return handler_input.response_builder.response
 
 
 class AudioStopIntentHandler(AbstractRequestHandler):
@@ -189,7 +378,8 @@ class AudioStopIntentHandler(AbstractRequestHandler):
         """
         return (is_intent_name("AMAZON.CancelIntent")(handler_input) or
                 is_intent_name("AMAZON.StopIntent")(handler_input) or
-                is_intent_name("AMAZON.PauseIntent")(handler_input))
+                is_intent_name("AMAZON.PauseIntent")(handler_input)
+                )
 
     def handle(self, handler_input):
         """ Handle the launch request; fetch and serve the appropriate response.
@@ -204,6 +394,39 @@ class AudioStopIntentHandler(AbstractRequestHandler):
         directive = StopDirective()
         handler_input.response_builder.add_directive(directive).set_should_end_session(True)
         return handler_input.response_builder.response
+
+
+class AudioUnsupported(AbstractRequestHandler):
+    # Handler for Stop
+    def can_handle(self, handler_input):
+        """Inform the request handler of what intents/requests can be handled by this object.
+
+        Args:
+            handler_input (ask_sdk_core.handler_input.HandlerInput): The input from Alexa.
+
+        Returns:
+            bool: Whether or not the current intent can be handled by this object.
+
+        """
+        return (is_intent_name("AMAZON.LoopOffIntent")(handler_input) or
+                is_intent_name("AMAZON.LoopOnIntent")(handler_input) or
+                is_intent_name("AMAZON.RepeatIntent")(handler_input) or
+                is_intent_name("AMAZON.ShuffleOffIntent")(handler_input) or
+                is_intent_name("AMAZON.ShuffleOnIntent")(handler_input)
+                )
+
+    def handle(self, handler_input):
+        """ Handle the launch request; fetch and serve the appropriate response.
+
+        Args:
+            handler_input (ask_sdk_core.handler_input.HandlerInput): The input from Alexa.
+
+        Returns:
+            None
+
+        """
+        print("Unsupported audio intent called.")
+        return {}
 
 
 class BattleDurationStartHandler(AbstractRequestHandler):
@@ -290,8 +513,24 @@ class CancelAndStopIntentHandler(AbstractRequestHandler):
             ask_sdk_model.response.Response: Response for this intent and device.
 
         """
-        response = playback_stop(handler_input)
-        return response
+        userSession = session.DartBattleSession(handler_input)
+
+        speeches = [
+            "Standing down.",
+            "Of course.",
+            "Canceling."
+        ]
+        speech = random.choice(speeches)
+
+        if AudioPlayerState().player_activity:
+            userSession.setAudioState(AudioPlayerState().token, AudioPlayerState().offsetInMilliseconds)
+
+        responseBuilder = handler_input.response_builder
+        responseBuilder.speak(speech).ask(speech)
+        directive = audioplayer.StopDirective()
+        responseBuilder.add_directive(directive)
+        responseBuilder.set_should_end_session(True)
+        return handler_input.response_builder.response
 
 
 class HelpIntentHandler(AbstractRequestHandler):
@@ -473,8 +712,24 @@ class SessionEndedRequestHandler(AbstractRequestHandler):
             ask_sdk_model.response.Response: Response for this intent and device.
 
         """
-        response = playback_stop(handler_input)
-        return response
+        userSession = session.DartBattleSession(handler_input)
+
+        speeches = [
+            "Standing down.",
+            "Of course.",
+            "Canceling."
+        ]
+        speech = random.choice(speeches)
+
+        if AudioPlayerState().player_activity:
+            userSession.setAudioState(AudioPlayerState().token, AudioPlayerState().offsetInMilliseconds)
+
+        responseBuilder = handler_input.response_builder
+        responseBuilder.speak(speech).ask(speech)
+        directive = audioplayer.StopDirective()
+        responseBuilder.add_directive(directive)
+        responseBuilder.set_should_end_session(True)
+        return handler_input.response_builder.response
 
 
 class TeamClearHandler(AbstractRequestHandler):
@@ -830,128 +1085,18 @@ class VictoriesRecordHandler(AbstractRequestHandler):
 
 
 # =============================================================================
-# HANDLERS
+# SKILL BUILDER
 # =============================================================================
-def on_intent(event):
-    """ Called when the user specifies an intent for this skill """
-
-    intent_request = event["request"]
-    sessionInfo = session.DartBattleSession(event["session"])
-    event["session"] = sessionInfo
-    print("on_intent requestId=" + intent_request["requestId"] +
-          ", sessionId=" + sessionInfo["sessionId"])
-
-    intent_name = intent_request['intent']['name']
-
-    # Dispatch to your skill's intent handlers
-    # AUDIO
-    if intent_name == "AMAZON.ResumeIntent":
-        return on_playback_resume(sessionInfo)
-    elif intent_name in [
-        "AMAZON.LoopOffIntent",
-        "AMAZON.LoopOnIntent",
-        "AMAZON.RepeatIntent",
-        "AMAZON.ShuffleOffIntent",
-        "AMAZON.ShuffleOnIntent"
-    ]:
-        return {
-            'version': '1.0',
-            'response': {
-                'directives': [
-                ]
-            }
-        }
-    elif intent_name == "AMAZON.NextIntent":
-        logger.info("NextIntent received: {} -- session: {}".format(intent_request, sessionInfo))
-        return battle.skipToNextAudioPlayback(sessionInfo)
-    elif intent_name == "AMAZON.PreviousIntent":
-        return battle.reverseAudioPlayback(sessionInfo)
-    elif intent_name == "AMAZON.StartOverIntent":
-        return battle.restartAudioPlayback(sessionInfo)
-    # --
-    else:
-        raise ValueError("Invalid intent: {}".format(intent_name))
-
-
-def on_playback_resume(sessionInfo):
-    session = database.getSessionFromDB(sessionInfo)
-    sessionAttributes = session["attributes"]
-
-    token = sessionAttributes.get('currentToken')
-    offsetInMilliseconds = sessionAttributes.get('offsetInMilliseconds', "0")
-    sessionInfo = token.split("_")[1]
-    (playerRank, scenarioEnum, teams, sfx, soundtrack) = sessionInfo.split(".")
-    scenarioName = battle.Scenarios(int(scenarioEnum)).name
-
-    playlist = battle.Scenario(sessionAttributes, name=scenarioName)
-    track = playlist.getTrackFromToken(token)
-    output = {
-        "version": os.environ['VERSION'],
-        "sessionAttributes": sessionAttributes,
-        "response": {
-            "directives": [
-                {
-                    "type": "AudioPlayer.Play",
-                    "playBehavior": "REPLACE_ALL",
-                    "audioItem": {
-                        "stream": {
-                            "token": token,
-                            "url": track,
-                            "offsetInMilliseconds": int(offsetInMilliseconds)
-                        }
-                    }
-                }
-            ],
-            "shouldEndSession": True
-        }
-    }
-    logger.info("startBattle intent finished. Returning: {}".format(output))
-    return output
-
-
-def on_session_ended(event):
-    """ Called when the user ends the session.
-
-    Is not called when the skill returns should_end_session=true
-    """
-    session_ended_request = event['request']
-    sessionInfo = event['session']
-    print("on_session_ended requestId=" + session_ended_request['requestId'] +
-          ", sessionId=" + sessionInfo['sessionId'])
-    # add cleanup logic here
-
-
-# =============================================================================
-# FUNCTIONS
-# =============================================================================
-def playback_stop(handler_input):
-    print("Session Attrs: {}".format(handler_input.attributes_manager.session_attributes))
-    print("Audio: {}".format(AudioPlayerState().to_dict()))
-    userSession = session.DartBattleSession(handler_input)
-
-    speeches = [
-        "Standing down.",
-        "Of course.",
-        "Canceling."
-    ]
-    speech = random.choice(speeches)
-
-    if AudioPlayerState().player_activity:
-        userSession.setAudioState(AudioPlayerState().token, AudioPlayerState().offsetInMilliseconds)
-
-    responseBuilder = handler_input.response_builder
-    responseBuilder.speak(speech).ask(speech)
-    directive = audioplayer.StopDirective()
-    responseBuilder.add_directive(directive)
-    responseBuilder.set_should_end_session(True)
-
-    return handler_input.response_builder.response
-
-
+sb.add_request_handler(AudioNextIntentHandler())
 sb.add_request_handler(AudioPlaybackFinishedHandler())
 sb.add_request_handler(AudioPlaybackNearlyFinishedHandler())
 sb.add_request_handler(AudioPlaybackStartedHandler())
+sb.add_request_handler(AudioPlaybackStoppedHandler())
+sb.add_request_handler(AudioPreviousIntentHandler())
+sb.add_request_handler(AudioResumeHandler())
+sb.add_request_handler(AudioStartOverIntentHandler())
 sb.add_request_handler(AudioStopIntentHandler())
+sb.add_request_handler(AudioUnsupported())
 sb.add_request_handler(BattleDurationStartHandler())
 sb.add_request_handler(BattleStandardStartHandler())
 sb.add_request_handler(LaunchRequestHandler())
