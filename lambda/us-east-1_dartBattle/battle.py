@@ -579,7 +579,7 @@ class Scenario(object):
             return None, None
         return newToken, filename
 
-    def getPrevFromToken(self, token, double=True):
+    def getPrevFromToken(self, token, double=False):
         """Given a string token, determine the previous track.
 
         Args:
@@ -590,7 +590,7 @@ class Scenario(object):
                 3:event14, 4:sndtrk30s, 5:outtro)
 
             double : (bool)
-                The reported token is always the next one in the queue, meaning it is one track ahead
+                In SDK 1.0, the reported token is always the next one in the queue, meaning it is one track ahead
                 of the actual current track. In order to fetch previous track, we must subtrack TWO
                 from the current token, not just one.
 
@@ -882,109 +882,142 @@ def continueAudioPlayback(userSession):
     return directive
 
 
-def reverseAudioPlayback(session):
+def reverseAudioPlayback(userSession):
     """Triggered when user asks for next track, plays previous."""
     # Request was triggered by a user asking for Previous track.
-    session = database.getSessionFromDB(session)
-    sessionAttributes = session["attributes"]
-
-    # currentToken is always one ahead of the one that's playing.
-    currentToken = sessionAttributes['currentToken']
+    currentToken = userSession.currentToken
 
     sessionInfo = currentToken.split("_")[1]
     (playerRank, scenarioEnum, teams, sfx, soundtrack) = sessionInfo.split(".")
     scenarioName = Scenarios(int(scenarioEnum)).name
-    (previousToken, previousTrack) = Scenario(sessionAttributes, name=scenarioName).getPrevFromToken(currentToken)
+    (previousToken, previousTrack) = Scenario(userSession, name=scenarioName).getPrevFromToken(currentToken)
 
-    playBehavior = "REPLACE_ALL"
-    sessionAttributes['currentToken'] = previousToken
-    database.updateRecordToken(sessionAttributes)
-    # TODO: Handle lack of next file gracefully (None, None)
-    response = {
-        "version": os.environ['VERSION'],
-        "response": {
-            "directives": [
-                {
-                    "type": "AudioPlayer.Play",
-                    "playBehavior": playBehavior,
-                    "audioItem": {
-                        "stream": {
-                            "token": previousToken,
-                            "url": previousTrack,
-                            "offsetInMilliseconds": 0
-                        }
-                    }
-                }
-            ]
-        }
-    }
-    print("Skip to Next Audio Finished, returning: {}".format(response))
-    return response
+    oim = 0
+    userSession.setAudioState(previousToken, oim)
+    largeImg = "https://s3.amazonaws.com/dart-battle-resources/dartBattle_SB_1200x800.jpg"
+    print("Skipping to previous track with token {}, track {}, and offset {}".format(previousToken, previousTrack, oim))
+    directive = PlayDirective(
+        play_behavior=PlayBehavior.REPLACE_ALL,
+        audio_item=AudioItem(
+            stream=Stream(
+                expected_previous_token=None,
+                token=previousToken,
+                url=previousTrack,
+                offset_in_milliseconds=oim
+            ),
+            metadata=AudioItemMetadata(
+                title=scenarioName,
+                subtitle="",
+                art=display.Image(
+                    content_description=scenarioName,
+                    sources=[
+                        display.ImageInstance(
+                            url=largeImg
+                        )
+                    ]
+                ),
+                background_image=display.Image(
+                    content_description=scenarioName,
+                    sources=[
+                        display.ImageInstance(
+                            url=largeImg
+                        )
+                    ]
+                )
+            )
+        )
+    )
+    return directive
 
 
-def restartAudioPlayback(session):
-    session = database.getSessionFromDB(session)
-    sessionAttributes = session["attributes"]
-
-    currentToken = sessionAttributes['currentToken']
+def restartAudioPlayback(userSession):
+    currentToken = userSession.currentToken
 
     sessionInfo = currentToken.split("_")[1]
     (playerRank, scenarioEnum, teams, sfx, soundtrack) = sessionInfo.split(".")
     scenarioName = Scenarios(int(scenarioEnum)).name
-    (firstToken, firstTrack) = Scenario(sessionAttributes, name=scenarioName).getFirstTrackFromToken(currentToken)
-    sessionAttributes['currentToken'] = firstToken
-    database.updateRecordToken(sessionAttributes)
-    return {
-        "version": os.environ['VERSION'],
-        "response": {
-            "directives": [
-                {
-                    "type": "AudioPlayer.Play",
-                    "playBehavior": "REPLACE_ALL",
-                    "audioItem": {
-                        "stream": {
-                            "token": firstToken,
-                            "url": firstTrack,
-                            "offsetInMilliseconds": 0
-                        }
-                    }
-                }
-            ]
-        }
-    }
+    (firstToken, firstTrack) = Scenario(userSession, name=scenarioName).getFirstTrackFromToken(currentToken)
+    oim = 0
+    userSession.setAudioState(firstToken, oim)
+    largeImg = "https://s3.amazonaws.com/dart-battle-resources/dartBattle_SB_1200x800.jpg"
+    print("Restarting playback with token {}, track {}, and offset {}".format(firstToken, firstTrack, oim))
+    directive = PlayDirective(
+        play_behavior=PlayBehavior.REPLACE_ALL,
+        audio_item=AudioItem(
+            stream=Stream(
+                expected_previous_token=None,
+                token=firstToken,
+                url=firstTrack,
+                offset_in_milliseconds=oim
+            ),
+            metadata=AudioItemMetadata(
+                title=scenarioName,
+                subtitle="",
+                art=display.Image(
+                    content_description=scenarioName,
+                    sources=[
+                        display.ImageInstance(
+                            url=largeImg
+                        )
+                    ]
+                ),
+                background_image=display.Image(
+                    content_description=scenarioName,
+                    sources=[
+                        display.ImageInstance(
+                            url=largeImg
+                        )
+                    ]
+                )
+            )
+        )
+    )
+    return directive
 
 
-def skipToNextAudioPlayback(session):
+def skipToNextAudioPlayback(userSession):
     """Triggered when user asks for next track, plays next."""
     # Request was triggered by a user asking for Next track.
-    session = database.getSessionFromDB(session)
-    sessionAttributes = session["attributes"]
     # currentToken is always one ahead of the one that's playing,
     # courtesy of playbackNearlyFinished; just return the recorded token:
-    nextToken = sessionAttributes['currentToken']
-    playBehavior = "REPLACE_ALL"
-    generic = Scenario(sessionAttributes)
-    nextTrack = generic.getTrackFromToken(nextToken)  # TODO: Make this a classmethod so no args are required
-    sessionAttributes['currentToken'] = nextToken
-    database.updateRecordToken(sessionAttributes)
-    # TODO: Handle lack of next file gracefully (None, None)
-    response = {
-        "version": os.environ['VERSION'],
-        "response": {
-            "directives": [
-                {
-                    "type": "AudioPlayer.Play",
-                    "playBehavior": playBehavior,
-                    "audioItem": {
-                        "stream": {
-                            "token": nextToken,
-                            "url": nextTrack,
-                            "offsetInMilliseconds": 0
-                        }
-                    }
-                }
-            ]
-        }
-    }
-    print("Skip to Next Audio Finished, returning: {}".format(response))
-    return response
+    currentToken = userSession.currentToken
+    sessionInfo = currentToken.split("_")[1]
+    (playerRank, scenarioEnum, teams, sfx, soundtrack) = sessionInfo.split(".")
+    scenarioName = Scenarios(int(scenarioEnum)).name
+    nextToken, nextTrack = Scenario(userSession, name=scenarioName).getNextFromToken(currentToken)
+    oim = 0
+    userSession.setAudioState(nextToken, oim)
+    largeImg = "https://s3.amazonaws.com/dart-battle-resources/dartBattle_SB_1200x800.jpg"
+    print("Skipping to next track with token {}, track {}, and offset {}".format(nextToken, nextTrack, oim))
+    directive = PlayDirective(
+        play_behavior=PlayBehavior.REPLACE_ALL,
+        audio_item=AudioItem(
+            stream=Stream(
+                expected_previous_token=None,
+                token=nextToken,
+                url=nextTrack,
+                offset_in_milliseconds=oim
+            ),
+            metadata=AudioItemMetadata(
+                title=scenarioName,
+                subtitle="",
+                art=display.Image(
+                    content_description=scenarioName,
+                    sources=[
+                        display.ImageInstance(
+                            url=largeImg
+                        )
+                    ]
+                ),
+                background_image=display.Image(
+                    content_description=scenarioName,
+                    sources=[
+                        display.ImageInstance(
+                            url=largeImg
+                        )
+                    ]
+                )
+            )
+        )
+    )
+    return directive
