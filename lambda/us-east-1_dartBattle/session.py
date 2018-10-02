@@ -1,14 +1,17 @@
 # DartBattle imports:
 import database
 import datetime
-from ask_sdk_model.slu.entityresolution import StatusCode
-import six
+# from ask_sdk_model.slu.entityresolution import StatusCode
+from ask_sdk_model.services.service_exception import ServiceException
+# import six
 
 
 class DartBattleSession(object):
     def __init__(self, handler_input):
         self._handler_input = handler_input
         self._sessionAttributes = self.populateAttrs()
+        self._monetizationData = None
+        self.populateMonetizationData()
 
     # -------------------------------------------------------------------------
     # PROPERTIES
@@ -68,6 +71,12 @@ class DartBattleSession(object):
     @lastRun.setter
     def lastRun(self, value):
         self._sessionAttributes["lastRun"] = value
+
+    @property
+    def monetizationData(self):
+        if self._monetizationData:
+            return self._monetizationData
+        return self.populateMonetizationData()
 
     @property
     def numBattles(self):
@@ -225,13 +234,23 @@ class DartBattleSession(object):
             print("@@@ {}".format(self._handler_input.request_envelope.to_dict()))
         return self._sessionAttributes
 
+    def populateMonetizationData(self):
+        try:
+            print("- Attempting to reach the monetization_service...")
+            locale = self._handler_input.request_envelope.request.locale
+            ms = self._handler_input.service_client_factory.get_monetization_service()
+            self._monetizationData = ms.get_in_skill_products(locale)
+            print("- Monetization service success!")
+            return self._monetizationData
+        except ServiceException as e:
+            print("!!! ServiceException received from Monetization Service:\n{}".format(e))
+
     def setAudioState(self, currentToken, offsetInMilliseconds):
         if currentToken:
             self.currentToken = currentToken
         if offsetInMilliseconds:
             self.offsetInMilliseconds = offsetInMilliseconds
         database.updateRecordToken(self)
-
 
 
 class DartBattleRequest(object):
