@@ -208,7 +208,7 @@ def getWelcomeResponse(session):
 
 
 def howToPlayResponse():
-    speech = "<audio src=\"https://s3.amazonaws.com/dart-battle-resources/choiceMusic.mp3\" />" + speech
+    speech = "<audio src=\"https://s3.amazonaws.com/dart-battle-resources/choiceMusic.mp3\" />"
     text = "- Use foam-based weaponry, score eliminations.\n"
     text += "- No head shots or point blank shots.\n"
     text += "- Listen for special events!\n"

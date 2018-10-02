@@ -24,7 +24,7 @@
                     "samples": []
                 },
                 {
-                    "name": "BuyItemIntent",
+                    "name": "ShopIntent",
                     "samples": [
                         "buy",
                         "shop",
@@ -33,6 +33,18 @@
                         "want {ProductName}",
                         "would like {ProductName}",
                         "how do I get more scenarios"
+                    ],
+                    "slots": [
+                        {
+                            "name": "ProductName",
+                            "type": "LIST_OF_PRODUCT_NAMES"
+                        }
+                    ]
+                },
+                {
+                    "name": "ProductDetailIntent",
+                    "samples": [
+                        "tell me more about {ProductName}"
                     ],
                     "slots": [
                         {

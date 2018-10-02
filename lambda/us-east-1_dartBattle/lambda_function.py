@@ -24,10 +24,17 @@ from ask_sdk_model import (
 from ask_sdk_model.dialog import (
     ElicitSlotDirective, DelegateDirective)
 from ask_sdk_model.interfaces import display
+from ask_sdk_model.interfaces.monetization.v1 import PurchaseResult
+from ask_sdk_model.slu.entityresolution import StatusCode
+from ask_sdk_core.dispatch_components import (
+    AbstractRequestHandler, AbstractExceptionHandler,
+    AbstractRequestInterceptor, AbstractResponseInterceptor)
+from ask_sdk_core.api_client import DefaultApiClient
+from ask_sdk.standard import StandardSkillBuilder
 
+#sb = SkillBuilder()
+sb = StandardSkillBuilder()
 
-
-sb = SkillBuilder()
 
 # DartBattle imports:
 import battle
@@ -487,6 +494,280 @@ class BattleStandardStartHandler(AbstractRequestHandler):
         card = StandardCard(title=cardTitle, text=cardText, image=cardImage)
         handler_input.response_builder.speak(speech).set_card(card).add_directive(directive).set_should_end_session(True)
         return handler_input.response_builder.response
+
+
+class ProductShopHandler(AbstractRequestHandler):
+    def can_handle(self, handler_input):
+        """Inform the request handler of what intents can be handled by this object.
+
+        Args:
+            handler_input (ask_sdk_core.handler_input.HandlerInput): The input from Alexa.
+
+        Returns:
+            bool: Whether or not the current intent can be handled by this object.
+
+        """
+        return is_intent_name("ShopIntent")(handler_input)
+
+    def handle(self, handler_input):
+        """ Handle the launch request; fetch and serve the appropriate response.
+
+        Args:
+            handler_input (ask_sdk_core.handler_input.HandlerInput): The input from Alexa.
+
+        Returns:
+            ask_sdk_model.response.Response: Response for this intent and device.
+
+        """
+        print("@@@@@\n{}\n@@@@@".format(handler_input.request_envelope.to_dict()))
+        userSession = session.DartBattleSession(handler_input)
+        productName = userSession.request.slots["ProductName"]["value"]
+        if productName and userSession.request.slots["ProductName"]["status"] == StatusCode.ER_SUCCESS_MATCH:
+            return BuyHandler().handle(handler_input)
+
+        inSkillResponse = userSession.monetizationData
+
+        if not inSkillResponse:
+            speech = ("I am having trouble reaching Amazon's monetization "
+                      "service. What else can I do for you?")
+            reprompt = "I didn't catch that. Can you try again?"
+            return handler_input.response_builder.speak(speech).ask(
+                reprompt).response
+
+        # Inform the user about what products are available for purchase
+        purchasable = [l for l in inSkillResponse.in_skill_products
+                       if l.entitled == EntitledState.NOT_ENTITLED and
+                       l.purchasable == PurchasableState.PURCHASABLE]
+
+        if purchasable:
+            speech = ("There is currently one premium content scenario available "
+                      "for activation. Prospector's Predicament pits you against "
+                      "the outlaw Bonnie Hawkins in a do or die battle set in the "
+                      "days of the American Old West. To learn more, ask dart battle "
+                      "to tell me more about Prospector's Predicament. ")
+        else:
+            owned = [x for x in inSkillResponse.in_skill_products
+                     if x.entitled == EntitledState.NOT_ENTITLED]
+            if len(owned) == len (list(inSkillResponse.in_skill_products)):
+                speech = ("Impressive, soldier. It appears as if you already own all "
+                          "of the Dart Battle premium content scenarios. What else "
+                          "can I help you with?")
+            else:
+                speech = ("There are currently no more premium content scenarios "
+                          "available. What can I help you with?")
+        reprompt = "Try saying start a battle, set up teams, or more options. "
+        return handler_input.response_builder.speak(speech).ask(
+            reprompt).response
+
+
+class UpsellResponseHandler(AbstractRequestHandler):
+    """This handles the Connections.Response event after an upsell occurs."""
+    def can_handle(self, handler_input):
+        return (is_request_type("Connections.Response")(handler_input) and
+                handler_input.request_envelope.request.name == "Upsell")
+
+    def handle(self, handler_input):
+        logger.info("In UpsellResponseHandler")
+
+        if handler_input.request_envelope.request.status.code == "200":
+            if handler_input.request_envelope.request.payload.get(
+                    "purchaseResult") == PurchaseResult.DECLINED.value:
+                speech = "Ok. Hope you change your mind. "
+                reprompt = "You can say, start a battle and stuff. "
+                return handler_input.response_builder.speak(speech).ask(
+                    reprompt).response
+        else:
+            logger.log("Connections.Response indicated failure. "
+                       "Error: {}".format(
+                        handler_input.request_envelope.request.status.message))
+            return handler_input.response_builder.speak(
+                "There was an error handling your Upsell request. "
+                "Please try again or contact us for help.").response
+
+
+class ProductDetailHandler(AbstractRequestHandler):
+    """Handler for providing product detail to the user before buying.
+    Resolve the product category and provide the user with the
+    corresponding product detail message.
+    User says: Alexa, tell me more about <product>
+    """
+    def can_handle(self, handler_input):
+        return is_intent_name("ProductDetailIntent")(handler_input)
+
+    def handle(self, handler_input):
+        logger.info("In ProductDetailHandler")
+        userSession = session.DartBattleSession(handler_input)
+        inSkillResponse = userSession.monetizationData
+
+        if not inSkillResponse:
+            speech = ("I am having trouble reaching Amazon's monetization "
+                      "service. What else can I do for you?")
+            reprompt = "I didn't catch that. Can you try again?"
+            return handler_input.response_builder.speak(speech).ask(
+                reprompt).response
+
+        print("inSkillResponse: {}".format(inSkillResponse))
+        productName = userSession.request.slots["ProductName"]["value"]
+        productName = productName.replace(" ", "_").replace("'", "")
+        print("Product Name passed in: {}".format(productName))
+
+        # No entity resolution match
+        if productName is None:
+            speech = ("I don't think we have a product by that name.  "
+                      "Can you try again?")
+            reprompt = "I didn't catch that. Can you try again?"
+            return handler_input.response_builder.speak(speech).ask(
+                reprompt).response
+        else:
+            for item in inSkillResponse.in_skill_products:
+                print("  -> PRODUCT: {}".format(item.reference_name))
+            product = [l for l in inSkillResponse.in_skill_products
+                       if l.reference_name.lower() == productName.lower()]
+            if product:
+                speech = ("{}.  To buy it, say Buy {}".format(
+                    product[0].summary, product[0].name))
+                reprompt = (
+                    "I didn't catch that. To buy {}, say Buy {}".format(
+                        product[0].name, product[0].name))
+            else:
+                speech = ("I don't think we have a product by that name.  "
+                          "Can you try again?")
+                reprompt = "I didn't catch that. Can you try again?"
+
+            return handler_input.response_builder.speak(speech).ask(
+                reprompt).response
+
+
+class BuyHandler(AbstractRequestHandler):
+    """Handler for letting users buy the product.
+    User says: Alexa, buy <category>.
+    """
+    def can_handle(self, handler_input):
+        # type: (HandlerInput) -> bool
+        return is_intent_name("BuyIntent")(handler_input)
+
+    def handle(self, handler_input):
+        # type: (HandlerInput) -> Response
+        logger.info("In BuyHandler")
+
+        # Inform the user about what products are available for purchase
+        in_skill_response = in_skill_product_response(handler_input)
+        if in_skill_response:
+            product_category = get_resolved_value(
+                handler_input.request_envelope.request, "productCategory")
+
+            # No entity resolution match
+            if product_category is None:
+                product_category = "all_access"
+            else:
+                product_category += "_pack"
+
+            product = [l for l in in_skill_response.in_skill_products
+                       if l.reference_name == product_category]
+            return handler_input.response_builder.add_directive(
+                SendRequestDirective(
+                    name="Buy",
+                    payload={
+                        "InSkillProduct": {
+                            "productId": product[0].product_id
+                        }
+                    },
+                    token="correlationToken")
+            ).response
+
+
+class BuyResponseHandler(AbstractRequestHandler):
+    """This handles the Connections.Response event after a buy occurs."""
+    def can_handle(self, handler_input):
+        # type: (HandlerInput) -> bool
+        return (is_request_type("Connections.Response")(handler_input) and
+                handler_input.request_envelope.request.name == "Buy")
+
+    def handle(self, handler_input):
+        # type: (HandlerInput) -> Response
+        logger.info("In BuyResponseHandler")
+        in_skill_response = in_skill_product_response(handler_input)
+        product_id = handler_input.request_envelope.request.payload.get(
+            "productId")
+
+        if in_skill_response:
+            product = [l for l in in_skill_response.in_skill_products
+                       if l.product_id == product_id]
+            logger.info("Product = {}".format(str(product)))
+            if handler_input.request_envelope.request.status.code == "200":
+                speech = None
+                reprompt = None
+                purchase_result = handler_input.request_envelope.request.payload.get(
+                    "purchaseResult")
+                if purchase_result == PurchaseResult.ACCEPTED.value:
+                    category_facts = all_facts
+                    if product[0].reference_name != "all_access":
+                        category_facts = [l for l in all_facts if
+                                          l.get("type") ==
+                                          product[0].reference_name.replace(
+                                              "_pack", "")]
+                    speech = ("You have unlocked the {}.  Here is your {} "
+                              "fact: {}  {}").format(
+                        product[0].name,
+                        product[0].reference_name.replace(
+                            "_pack", "").replace("all_access", ""),
+                        get_random_from_list(category_facts),
+                        get_random_yes_no_question())
+                    reprompt = get_random_yes_no_question()
+                elif purchase_result in (
+                        PurchaseResult.DECLINED.value,
+                        PurchaseResult.ERROR.value,
+                        PurchaseResult.NOT_ENTITLED.value):
+                    speech = ("Thanks for your interest in {}.  "
+                              "Would you like another random fact?".format(
+                        product[0].name))
+                    reprompt = "Would you like another random fact?"
+                elif purchase_result == PurchaseResult.ALREADY_PURCHASED.value:
+                    logger.info("Already purchased product")
+                    speech = " Do you want to hear a fact?"
+                    reprompt = "What can I help you with?"
+                else:
+                    # Invalid purchase result value
+                    logger.info("Purchase result: {}".format(purchase_result))
+                    return FallbackIntentHandler().handle(handler_input)
+
+                return handler_input.response_builder.speak(speech).ask(
+                    reprompt).response
+            else:
+                logger.log("Connections.Response indicated failure. "
+                           "Error: {}".format(
+                    handler_input.request_envelope.request.status.message))
+
+                return handler_input.response_builder.speak(
+                    "There was an error handling your purchase request. "
+                    "Please try again or contact us for help").response
+
+
+class FallbackIntentHandler(AbstractRequestHandler):
+    """Handler for fallback intent.
+    2018-July-12: AMAZON.FallbackIntent is currently available in all
+    English locales. This handler will not be triggered except in that
+    locale, so it can be safely deployed for any locale. More info
+    on the fallback intent can be found here: https://developer.amazon.com/docs/custom-skills/standard-built-in-intents.html#fallback
+    """
+    def can_handle(self, handler_input):
+        return is_intent_name("AMAZON.FallbackIntent")(handler_input)
+
+    def handle(self, handler_input):
+        # type: (HandlerInput) -> Response
+        logger.info("In FallbackIntentHandler")
+        speech = (
+                "Sorry. I cannot help with that. I can help you with "
+                "some facts. "
+                "To hear a random fact you can say "
+                "'Tell me a fact', or to hear about the premium categories "
+                "for purchase, say 'What can I buy'. For help, say , "
+                "'Help me'... So, what can I help you with?"
+            )
+        reprompt = "I didn't catch that. What can I help you with?"
+
+        return handler_input.response_builder.speak(speech).ask(
+            reprompt).response
 
 
 class CancelAndStopIntentHandler(AbstractRequestHandler):
@@ -1085,6 +1366,24 @@ class VictoriesRecordHandler(AbstractRequestHandler):
 
 
 # =============================================================================
+# Request and Response Loggers
+# =============================================================================
+class RequestLogger(AbstractRequestInterceptor):
+    """Log the request envelope."""
+    def process(self, handler_input):
+        # type: (HandlerInput) -> None
+        logger.info("Request Envelope: {}".format(
+            handler_input.request_envelope))
+
+
+class ResponseLogger(AbstractResponseInterceptor):
+    """Log the response envelope."""
+    def process(self, handler_input, response):
+        # type: (HandlerInput, Response) -> None
+        logger.info("Response: {}".format(response))
+
+
+# =============================================================================
 # SKILL BUILDER
 # =============================================================================
 sb.add_request_handler(AudioNextIntentHandler())
@@ -1118,6 +1417,15 @@ sb.add_request_handler(VictoriesClearHandler())
 sb.add_request_handler(VictoriesReciteHandler())
 sb.add_request_handler(VictoriesRecordInProgressHandler())
 sb.add_request_handler(VictoriesRecordHandler())
+
+sb.add_request_handler(ProductShopHandler())
+sb.add_request_handler(UpsellResponseHandler())
+sb.add_request_handler(ProductDetailHandler())
+#sb.add_request_handler(BuyHandler())
+#sb.add_request_handler(BuyResponseHandler())
+
+sb.add_global_request_interceptor(RequestLogger())
+sb.add_global_response_interceptor(ResponseLogger())
 handler = sb.lambda_handler()
 
 # {'version': '1.0', 'session': {'new': True, 'session_id': 'amzn1.echo-api.session.103a01a9-09b2-4223-a97c-d54c298efc82', 'user': {'user_id': 'amzn1.ask.account.AHQ53A7TTH5ELGE4FJB6RLVARNQ6DCN6EMDSUXCL5VDY4SDYTJGIC2A5EGNQMZNGF2HCOQJ242OVAEEZFQOIE3I246UXWKZGEOTXAVZWNVPJOCOHKSGFOKYG2KYWZI7CIPIEK2IHSGMANP3HX36MPPZKIS4A7KVEFRXLZNFXXOAFARCXOL3IIFBRUT5C67KDO27HH7HCF24IG7I', 'access_token': None, 'permissions': None}, 'attributes': None, 'application': {'application_id': 'amzn1.ask.skill.d1311184-0f57-46e8-ab59-879027130a28'}}, 'context': {'system': {'application': {'application_id': 'amzn1.ask.skill.d1311184-0f57-46e8-ab59-879027130a28'}, 'user': {'user_id': 'amzn1.ask.account.AHQ53A7TTH5ELGE4FJB6RLVARNQ6DCN6EMDSUXCL5VDY4SDYTJGIC2A5EGNQMZNGF2HCOQJ242OVAEEZFQOIE3I246UXWKZGEOTXAVZWNVPJOCOHKSGFOKYG2KYWZI7CIPIEK2IHSGMANP3HX36MPPZKIS4A7KVEFRXLZNFXXOAFARCXOL3IIFBRUT5C67KDO27HH7HCF24IG7I', 'access_token': None, 'permissions': None}, 'device': {'device_id': 'amzn1.ask.device.AES4DYXDO3B5ZTCVMKGUESOVSANNWHO3V7N3DP2RWW4LXYSCB3DIY6HR524ZVFNOOKQJAKGCCSR5YURCYK4UCQVX6KVB6WMV4VYEE23ND3MFK7IQWOD724XDPA7I6PBUZCXTQ4GKV4FFUFQSD3G4VORXTHXQ', 'supported_interfaces': {'audio_player': {}, 'display': None, 'video_app': None}}, 'api_endpoint': 'https://api.amazonalexa.com', 'api_access_token': 'eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiIsImtpZCI6IjEifQ.eyJhdWQiOiJodHRwczovL2FwaS5hbWF6b25hbGV4YS5jb20iLCJpc3MiOiJBbGV4YVNraWxsS2l0Iiwic3ViIjoiYW16bjEuYXNrLnNraWxsLmQxMzExMTg0LTBmNTctNDZlOC1hYjU5LTg3OTAyNzEzMGEyOCIsImV4cCI6MTUzNzUwOTQ3OSwiaWF0IjoxNTM3NTA1ODc5LCJuYmYiOjE1Mzc1MDU4NzksInByaXZhdGVDbGFpbXMiOnsiY29uc2VudFRva2VuIjpudWxsLCJkZXZpY2VJZCI6ImFtem4xLmFzay5kZXZpY2UuQUVTNERZWERPM0I1WlRDVk1LR1VFU09WU0FOTldITzNWN04zRFAyUldXNExYWVNDQjNESVk2SFI1MjRaVkZOT09LUUpBS0dDQ1NSNVlVUkNZSzRVQ1FWWDZLVkI2V01WNFZZRUUyM05EM01GSzdJUVdPRDcyNFhEUEE3STZQQlVaQ1hUUTRHS1Y0RkZVRlFTRDNHNFZPUlhUSFhRIiwidXNlcklkIjoiYW16bjEuYXNrLmFjY291bnQuQUhRNTNBN1RUSDVFTEdFNEZKQjZSTFZBUk5RNkRDTjZFTURTVVhDTDVWRFk0U0RZVEpHSUMyQTVFR05RTVpOR0YySENPUUoyNDJPVkFFRVpGUU9JRTNJMjQ2VVhXS1pHRU9UWEFWWldOVlBKT0NPSEtTR0ZPS1lHMktZV1pJN0NJUElFSzJJSFNHTUFOUDNIWDM2TVBQWktJUzRBN0tWRUZSWExaTkZYWE9BRkFSQ1hPTDNJSUZCUlVUNUM2N0tETzI3SEg3SENGMjRJRzdJIn19.G16Z8BEynj3TX9TEILQL-rGjCClSQZR2oW59iJB0ClR2d5fvrtHSWpjYny9xVdx36PvgQIoL_jlUgHlClNciKAwomsBg8YvH4yTBSTGfvxZohsr4Feui-oY7I79-vd3WT1H0tg-HOcmnXjv_k_PfGzdrYE49ZIhJqMRNy0epTKMo9edTmhWweMB2PldmNMC27BJg2jXaxsp2HxBVig3gY-SsYsUI7QqxfQsN9GhYxFxEu7Cvdv3r4685LPIpAsqDpuDRCi_TL47hA9HLjdjX5qpyN3lt2cfpj8D22wQXUlTt_9JCubDPGADdcB-ByvMzLgcLoDthKtNdvxoX4v5ddw'}, 'audio_player': {'offset_in_milliseconds': None, 'token': None, 'player_activity': 'IDLE'}, 'display': None}, 'request': {'object_type': 'LaunchRequest', 'request_id': 'amzn1.echo-api.request.c75e2ea9-a482-4bfa-9d62-14dad9ca87ef', 'timestamp': datetime.datetime(2018, 9, 21, 4, 57, 59, tzinfo=tzlocal()), 'locale': 'en-US'}}
