@@ -47,6 +47,8 @@ class BaseServiceClient(object):
         :param api_configuration: ApiConfiguration implementation
         :type api_configuration: ask_sdk_model.services.api_configuration.ApiConfiguration
         """
+        print('*-> ANAND: Now inside ask_sdk_model.services.base_service_client.py')
+        print('*-> ANAND: Initializing BaseServiceClient()...')
         self._api_client = api_configuration.api_client
         self._serializer = api_configuration.serializer
         self._authorization_value = api_configuration.authorization_value
@@ -81,25 +83,34 @@ class BaseServiceClient(object):
         :rtype: object
         :raises: :py:class:`ask_sdk_model.services.service_exception.ServiceException`
         """
+        print('*-> ANAND: invoke() on BaseServiceClient()...')
         request = ApiClientRequest()
         request.url = BaseServiceClient.__build_url(
             endpoint=endpoint, path=path, query_params=query_params, path_params=path_params)
         request.method = method
         request.headers = header_params
+        print('*-> ANAND: ApiClientRequest created and populated with the following data:')
+        print('*-> ANAND: url: {}'.format(request.url))
+        print('*-> ANAND: method: {}'.format(request.method))
+        print('*-> ANAND: headers: {}'.format(request.headers))
+        print('*-> ANAND: body: {}'.format(body))
 
         if body:
             request.body = self._serializer.serialize(body)
 
         try:
+            print('*-> ANAND: calling self._api_client.invoke(request)')
             response = self._api_client.invoke(request)
         except Exception as e:
             raise ServiceException(
                 message="Call to service failed: {}".format(str(e)), status_code=500, headers=None, body=None)
+        print('*-> ANAND: api client invocation successful; no Exception raised.')
 
         if BaseServiceClient.__is_code_successful(response.status_code):
             if response_type is None:
                 return None
             return self._serializer.deserialize(response.body, response_type)
+        print('*-> ANAND (!!!): BaseServiceClient.__is_code_successful(response.status_code) returned false.')
 
         if response_definitions:
             exception_metadata = [d for d in response_definitions if d.status_code == response.status_code]
@@ -109,7 +120,11 @@ class BaseServiceClient(object):
                 raise ServiceException(
                     message=exception_metadata.message, status_code=exception_metadata.status_code,
                     headers=response.headers, body=exception_body)
-
+        print('*-> ANAND: No response_definitions were passed into this method... raising a ServiceException')
+        print('*-> ANAND: ServiceException message: Unknown Error')
+        print('*-> ANAND: ServiceException status_code: {}'.format(response.status_code))
+        print('*-> ANAND: ServiceException headers: {}'.format(response.headers))
+        print('*-> ANAND: ServiceException body: {}'.format(response.body))
         raise ServiceException(
             message="Unknown error", status_code=response.status_code, headers=response.headers, body=response.body)
 
