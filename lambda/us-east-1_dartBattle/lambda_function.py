@@ -519,8 +519,7 @@ class ProductShopHandler(AbstractRequestHandler):
             ask_sdk_model.response.Response: Response for this intent and device.
 
         """
-        print("@@@@@\n{}\n@@@@@".format(handler_input.request_envelope.to_dict()))
-        userSession = session.DartBattleSession(handler_input)
+
         productName = userSession.request.slots["ProductName"]["value"]
         if productName and userSession.request.slots["ProductName"]["status"] == StatusCode.ER_SUCCESS_MATCH:
             return BuyHandler().handle(handler_input)

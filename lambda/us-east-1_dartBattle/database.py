@@ -5,12 +5,10 @@ import logging
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
 
-logger.info('Attempting import DB.')
 from botocore.exceptions import ClientError
 import boto3
 DB_ACTIVE = True
 # DB_ACTIVE = False #THIS DISABLES DB WHILE IT IS UNSTABLE. COMMENT FOR TESTING.
-logger.info('DB Import successful')
 
 """
 try:
