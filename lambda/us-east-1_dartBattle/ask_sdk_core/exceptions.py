@@ -15,16 +15,8 @@
 # specific language governing permissions and limitations under the
 # License.
 #
-
-
-class AskSdkException(Exception):
-    """Base class for exceptions raised by the SDK."""
-    pass
-
-
-class DispatchException(AskSdkException):
-    """Class for exceptions raised during dispatch logic."""
-    pass
+from ask_sdk_runtime.exceptions import (
+    AskSdkException, DispatchException, SkillBuilderException)
 
 
 class AttributesManagerException(AskSdkException):
@@ -36,11 +28,6 @@ class SerializationException(AskSdkException):
     """Class for exceptions raised during
     serialization/deserialization.
     """
-    pass
-
-
-class SkillBuilderException(AskSdkException):
-    """Base exception class for Skill Builder exceptions."""
     pass
 
 

@@ -6,10 +6,13 @@ import random
 import protocols
 import rank
 
-def GetRankPromotionFile(rank):
-    rank = int(rank)
+from ask_sdk_model.services.monetization import EntitledState
+
+
+def GetRankPromotionFile(userRank):
+    userRank = int(userRank)
     rankFile = 'https://s3.amazonaws.com/dart-battle-resources/common/common_Any_{:02d}_RankPromotion_Any_00.mp3'
-    rankFile = rankFile.format(rank)
+    rankFile = rankFile.format(userRank)
     return rankFile
 
 
@@ -160,22 +163,22 @@ class Playlist(object):
     # -------------------------------------------------------------------------
     # PUBLIC METHODS
     # -------------------------------------------------------------------------
-    def getEventsForRank(self, rank):
+    def getEventsForRank(self, userRank):
         allEvents = []
         for event in self._events:
-            allEvents.append(event.format(int(rank)))
+            allEvents.append(event.format(int(userRank)))
         return allEvents
 
     @staticmethod
-    def getIntro(rank=None, variant=None):
+    def getIntro(userRank=None, variant=None):
         intros = {
             "A": "",
         }
         if not variant:
             randKey = random.choice(list(intros.keys()))
-            randTrack = intros[randKey].format(int(rank))
+            randTrack = intros[randKey].format(int(userRank))
             return randKey, randTrack
-        return variant, intros[variant].format(int(rank))
+        return variant, intros[variant].format(int(userRank))
 
     def _getEventsWithCategory(self, eventCategory, tracks=None):
         tracks = tracks or self.getEventsForRank('00')
@@ -198,10 +201,10 @@ class Playlist(object):
         matches = [x for x in tracks if eventTitle in x]
         return matches
 
-    def getEventWithProperties(self, rank=None, eventCategory=None, eventTitle=None, teamToken=None, roles=None):
-        rank = rank or '00'
-        def filterTracksWithRank(rank):
-            rankTracks = self.getEventsForRank(rank)
+    def getEventWithProperties(self, userRank=None, eventCategory=None, eventTitle=None, teamToken=None, roles=None):
+        userRank = userRank or '00'
+        def filterTracksWithRank(userRank):
+            rankTracks = self.getEventsForRank(userRank)
 
             eventTracks = self._getEventsWithCategory(eventCategory, tracks=rankTracks)
             if not eventTracks:
@@ -224,14 +227,14 @@ class Playlist(object):
                 return None
 
             return finalSelections
-        selections = filterTracksWithRank(rank)
+        selections = filterTracksWithRank(userRank)
         if not selections:
             selections = filterTracksWithRank('00')
         if not selections:
             return None
         if len(selections) > 1:
             print("WARNING! More than one track matched getEventWithProperties:")
-            print("Properties: rank, {}; eventCategory, {}; eventTitle, {}; teamToken, {}; roles, {}".format(rank, eventCategory, eventTitle, teamToken, roles))
+            print("Properties: userRank, {}; eventCategory, {}; eventTitle, {}; teamToken, {}; roles, {}".format(userRank, eventCategory, eventTitle, teamToken, roles))
             print("Tracks: {}".format(selections))
             print("Using first one found.")
         selection = selections[0]
@@ -376,16 +379,16 @@ class Arctic(Playlist):
     # PUBLIC METHODS
     # -------------------------------------------------------------------------
     @staticmethod
-    def getIntro(rank=None, variant=None):
+    def getIntro(userRank=None, variant=None):
         intros = {
             "A": "https://s3.amazonaws.com/dart-battle-resources/scenarios/arctic/intros/intro_arctic_A_{:02d}_Any.mp3",
             "B": "https://s3.amazonaws.com/dart-battle-resources/scenarios/arctic/intros/intro_arctic_B_{:02d}_Any.mp3"
         }
         if not variant:
             randKey = random.choice(list(intros.keys()))
-            randTrack = intros[randKey].format(int(rank))
+            randTrack = intros[randKey].format(int(userRank))
             return randKey, randTrack
-        return variant, intros[variant].format(int(rank))
+        return variant, intros[variant].format(int(userRank))
 
 
 class NoEvents01(Playlist):
@@ -406,11 +409,11 @@ class NoEvents01(Playlist):
     # -------------------------------------------------------------------------
     # PUBLIC METHODS
     # -------------------------------------------------------------------------
-    def getEventsForRank(self, rank):
+    def getEventsForRank(self, userRank):
         return None
 
     @staticmethod
-    def getIntro(rank=None, variant=None):
+    def getIntro(userRank=None, variant=None):
         return None, None
 
     @staticmethod
@@ -667,15 +670,27 @@ class Prospector(Playlist):
         self.prettyName = "Prospector's Predicament"
 
     @staticmethod
-    def getIntro(rank=None, variant=None):
-        rank = rank or '00'
+    def getIntro(userRank=None, variant=None):
+        userRank = userRank or '00'
         intros = {
             "A": "https://s3.amazonaws.com/dart-battle-resources/scenarios/prospector/intros/intro_Prospectors_00_IntroA_Any_00.mp3"
         }
         if not variant:
             randKey = random.choice(list(intros.keys()))
-            randTrack = intros[randKey].format(int(rank))
+            randTrack = intros[randKey].format(int(userRank))
             return randKey, randTrack
-        return variant, intros[variant].format(int(rank))
+        return variant, intros[variant].format(int(userRank))
+
+    def isActive(self, userSession):
+        usingEvents = userSession.usingEvents
+        if not usingEvents == "True":
+            return False
+        entitlement = [x for x in userSession.monetizationData.in_skill_products if x.name == self.prettyName]
+        if entitlement:
+            if entitlement[0].entitled == EntitledState.ENTITLED:
+                print("$$ Looks like Prospector's Predicament HAS been purchased by this user!")
+                return True
+            print("Looks like Prospector's Predicament has not been purchased by this user.")
+        return False
 
 # TODO: Handle SFX, Music preferences, rank

@@ -31,6 +31,7 @@ from ask_sdk_core.dispatch_components import (
     AbstractRequestInterceptor, AbstractResponseInterceptor)
 from ask_sdk_core.api_client import DefaultApiClient
 from ask_sdk.standard import StandardSkillBuilder
+from ask_sdk_model.interfaces.connections import SendRequestDirective
 
 #sb = SkillBuilder()
 sb = StandardSkillBuilder()
@@ -519,10 +520,14 @@ class ProductShopHandler(AbstractRequestHandler):
             ask_sdk_model.response.Response: Response for this intent and device.
 
         """
-
+        logger.info("In ProductShopHandler")
+        userSession = session.DartBattleSession(handler_input)
         productName = userSession.request.slots["ProductName"]["value"]
-        if productName and userSession.request.slots["ProductName"]["status"] == StatusCode.ER_SUCCESS_MATCH:
-            return BuyHandler().handle(handler_input)
+        if productName and userSession.request.slots["ProductName"]["status"] in [StatusCode.ER_SUCCESS_MATCH, "StatusCode.ER_SUCCESS_MATCH"]:
+            print("BUY MATCH: {}".format(userSession.request.slots))
+            return BuyHandler().handle(handler_input, userSession=userSession)
+        else:
+            print("BUY NO MATCH: {}".format(userSession.request.slots))
 
         inSkillResponse = userSession.monetizationData
 
@@ -546,8 +551,8 @@ class ProductShopHandler(AbstractRequestHandler):
                       "to tell me more about Prospector's Predicament. ")
         else:
             owned = [x for x in inSkillResponse.in_skill_products
-                     if x.entitled == EntitledState.NOT_ENTITLED]
-            if len(owned) == len (list(inSkillResponse.in_skill_products)):
+                     if x.entitled == EntitledState.ENTITLED]
+            if len(owned) == len(list(inSkillResponse.in_skill_products)):
                 speech = ("Impressive, soldier. It appears as if you already own all "
                           "of the Dart Battle premium content scenarios. What else "
                           "can I help you with?")
@@ -576,7 +581,7 @@ class UpsellResponseHandler(AbstractRequestHandler):
                 return handler_input.response_builder.speak(speech).ask(
                     reprompt).response
         else:
-            logger.log("Connections.Response indicated failure. "
+            logger.info("Connections.Response indicated failure. "
                        "Error: {}".format(
                         handler_input.request_envelope.request.status.message))
             return handler_input.response_builder.speak(
@@ -605,10 +610,10 @@ class ProductDetailHandler(AbstractRequestHandler):
             return handler_input.response_builder.speak(speech).ask(
                 reprompt).response
 
-        print("inSkillResponse: {}".format(inSkillResponse))
+        logger.info("inSkillResponse: {}".format(inSkillResponse))
         productName = userSession.request.slots["ProductName"]["value"]
         productName = productName.replace(" ", "_").replace("'", "")
-        print("Product Name passed in: {}".format(productName))
+        logger.info("Product Name passed in: {}".format(productName))
 
         # No entity resolution match
         if productName is None:
@@ -645,30 +650,28 @@ class BuyHandler(AbstractRequestHandler):
         # type: (HandlerInput) -> bool
         return is_intent_name("BuyIntent")(handler_input)
 
-    def handle(self, handler_input):
+    def handle(self, handler_input, userSession=None):
         # type: (HandlerInput) -> Response
         logger.info("In BuyHandler")
+        if not userSession:
+            userSession = session.DartBattleSession(handler_input)
 
         # Inform the user about what products are available for purchase
-        in_skill_response = in_skill_product_response(handler_input)
-        if in_skill_response:
-            product_category = get_resolved_value(
-                handler_input.request_envelope.request, "productCategory")
+        inSkillResponse = userSession.monetizationData
+        if inSkillResponse:
+            product = [l for l in inSkillResponse.in_skill_products
+                       if l.reference_name]
+            print("PRODUCT: {}".format(product))
+            productId = product[0].product_id
 
-            # No entity resolution match
-            if product_category is None:
-                product_category = "all_access"
-            else:
-                product_category += "_pack"
-
-            product = [l for l in in_skill_response.in_skill_products
-                       if l.reference_name == product_category]
+            #productId = userSession.request.slots["ProductName"]["id"]
+            logger.info("Sending Buy directive for product id '{}'".format(productId))
             return handler_input.response_builder.add_directive(
                 SendRequestDirective(
                     name="Buy",
                     payload={
                         "InSkillProduct": {
-                            "productId": product[0].product_id
+                            "productId": productId
                         }
                     },
                     token="correlationToken")
@@ -685,12 +688,16 @@ class BuyResponseHandler(AbstractRequestHandler):
     def handle(self, handler_input):
         # type: (HandlerInput) -> Response
         logger.info("In BuyResponseHandler")
-        in_skill_response = in_skill_product_response(handler_input)
+        userSession = session.DartBattleSession(handler_input)
+        inSkillResponse = userSession.monetizationData
+        print("PAYLOAD: {}".format(handler_input.request_envelope.request.payload))
         product_id = handler_input.request_envelope.request.payload.get(
             "productId")
+        print("PRODUCT_ID: {}".format(product_id))
 
-        if in_skill_response:
-            product = [l for l in in_skill_response.in_skill_products
+        if inSkillResponse:
+            print("IN_SKILL_PRODUCTS: {}".format(inSkillResponse.in_skill_products))
+            product = [l for l in inSkillResponse.in_skill_products
                        if l.product_id == product_id]
             logger.info("Product = {}".format(str(product)))
             if handler_input.request_envelope.request.status.code == "200":
@@ -699,32 +706,21 @@ class BuyResponseHandler(AbstractRequestHandler):
                 purchase_result = handler_input.request_envelope.request.payload.get(
                     "purchaseResult")
                 if purchase_result == PurchaseResult.ACCEPTED.value:
-                    category_facts = all_facts
-                    if product[0].reference_name != "all_access":
-                        category_facts = [l for l in all_facts if
-                                          l.get("type") ==
-                                          product[0].reference_name.replace(
-                                              "_pack", "")]
-                    speech = ("You have unlocked the {}.  Here is your {} "
-                              "fact: {}  {}").format(
-                        product[0].name,
-                        product[0].reference_name.replace(
-                            "_pack", "").replace("all_access", ""),
-                        get_random_from_list(category_facts),
-                        get_random_yes_no_question())
-                    reprompt = get_random_yes_no_question()
+                    speech = ("Congratulations. {} has been added "
+                              "to the random rotation of scenarios from which to choose when you start a battle. "
+                              "What next?  Start a battle? Exit? ").format(product[0].name)
+                    reprompt = "What next?  Start a battle? Exit? "
                 elif purchase_result in (
                         PurchaseResult.DECLINED.value,
                         PurchaseResult.ERROR.value,
                         PurchaseResult.NOT_ENTITLED.value):
                     speech = ("Thanks for your interest in {}.  "
-                              "Would you like another random fact?".format(
-                        product[0].name))
-                    reprompt = "Would you like another random fact?"
+                              "What next?  Start a battle? Exit? ".format(product[0].name))
+                    reprompt = "What next?  Start a battle? Exit? "
                 elif purchase_result == PurchaseResult.ALREADY_PURCHASED.value:
                     logger.info("Already purchased product")
-                    speech = " Do you want to hear a fact?"
-                    reprompt = "What can I help you with?"
+                    speech = " What next?  Start a battle? Exit? "
+                    reprompt = "What next?  Start a battle? Exit? "
                 else:
                     # Invalid purchase result value
                     logger.info("Purchase result: {}".format(purchase_result))
@@ -733,13 +729,12 @@ class BuyResponseHandler(AbstractRequestHandler):
                 return handler_input.response_builder.speak(speech).ask(
                     reprompt).response
             else:
-                logger.log("Connections.Response indicated failure. "
-                           "Error: {}".format(
-                    handler_input.request_envelope.request.status.message))
+                logger.info("Connections.Response (code {}) indicated failure. ".format(handler_input.request_envelope.request.status.code) +
+                            "Error: {}".format(handler_input.request_envelope.request.status.message))
 
                 return handler_input.response_builder.speak(
                     "There was an error handling your purchase request. "
-                    "Please try again or contact us for help").response
+                    "Please try again or contact us for help by emailing support at dart battle dot fun. ").response
 
 
 class FallbackIntentHandler(AbstractRequestHandler):
@@ -1420,8 +1415,8 @@ sb.add_request_handler(VictoriesRecordHandler())
 sb.add_request_handler(ProductShopHandler())
 sb.add_request_handler(UpsellResponseHandler())
 sb.add_request_handler(ProductDetailHandler())
-#sb.add_request_handler(BuyHandler())
-#sb.add_request_handler(BuyResponseHandler())
+sb.add_request_handler(BuyHandler())
+sb.add_request_handler(BuyResponseHandler())
 
 sb.add_global_request_interceptor(RequestLogger())
 sb.add_global_response_interceptor(ResponseLogger())

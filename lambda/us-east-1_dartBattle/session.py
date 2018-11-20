@@ -8,7 +8,6 @@ from ask_sdk_model.services.service_exception import ServiceException
 
 class DartBattleSession(object):
     def __init__(self, handler_input):
-        print('-> ANAND: Initializing custom session object DartBattleSession...')
         self._handler_input = handler_input
         self._sessionAttributes = self.populateAttrs()
         self._monetizationData = None
@@ -75,12 +74,8 @@ class DartBattleSession(object):
 
     @property
     def monetizationData(self):
-        print('-> ANAND: DartBattleSession object returning property self.monetizationData')
         if self._monetizationData:
             return self._monetizationData
-        print('-> ANAND (!!!): DartBattleSession object recognizing that self.monetizationData is'
-              ' empty! Calling self.populateMonetizationData one more time in case we can achieve '
-              'success; returning the result either way.')
         return self.populateMonetizationData()
 
     @property
@@ -186,7 +181,7 @@ class DartBattleSession(object):
     @property
     def userId(self):
         if not self.attributes.get("userId"):
-            self._sessionAttributes["userId"] = ['context']['System']['user']['userId']
+            self._sessionAttributes["userId"] = self._sessionAttributes['context']['System']['user']['userId']
         return self._sessionAttributes["userId"]
 
     @userId.setter
@@ -225,43 +220,28 @@ class DartBattleSession(object):
         self._sessionAttributes["victories"] = value
 
     def populateAttrs(self):
-        print('-> ANAND: Populating custom session attributes from entry in DynamoDB matching user_id of user...')
-        print('-> ANAND: (NOTE: This method can be bypassed, and the problem still exists, so this method should'
-              'not be interfering with monetization call. Still, including it for the sake of being thorough.')
         self._sessionAttributes = self._handler_input.attributes_manager.request_attributes
         self._sessionAttributes["userId"] = self._handler_input.request_envelope.context.system.user.user_id
         dbAttrs = database.getSessionFromDB(self)
         for attrName in dbAttrs:
             if not self._sessionAttributes.get(attrName):
-                print("--> Setting attribute {}...".format(attrName))
                 self._sessionAttributes[attrName] = dbAttrs[attrName]
         if self._handler_input.request_envelope.session:
-            print('-> ANAND (Important!): replacing handler_input.attributes_manager.session_attributes '
-                  'with attributes dictionary created by adding any attrs found in DynamoDB...')
             self._handler_input.attributes_manager.session_attributes = self._sessionAttributes
         else:
             # This is a non-session request; almost certainly triggered by an audio event. Update token to current:
-            print("-> ANAND: handler_input.request_envelope had no valid session data. This request must have"
-                  " originated outside of a session...")
             self.currentToken = self._handler_input.request_envelope.request.token
-            print("@@@ {}".format(self._handler_input.request_envelope.to_dict()))
-        print("-> ANAND: session attributes have been set.")
         return self._sessionAttributes
 
     def populateMonetizationData(self):
-        print('-> ANAND: populating monetization data for the user...')
         try:
-            print('-> ANAND: Attempting to reach the monetization service...')
             locale = self._handler_input.request_envelope.request.locale
-            print('--> ANAND: locale is {}'.format(locale))
             ms = self._handler_input.service_client_factory.get_monetization_service()
-            print('--> ANAND: monetization service client retrieved from client factory: {}'.format(ms))
-            print('-> ANAND: attempting to ms.get_in_skill_products(locale)')
             self._monetizationData = ms.get_in_skill_products(locale)
-            print("- Monetization service success!")
+            print("Monetization service success!")
             return self._monetizationData
         except ServiceException as e:
-            print("-> ANAND (!!!): ServiceException received from Monetization Service: {}".format(e))
+            print("(!!!): ServiceException received from Monetization Service: {}".format(e.message))
 
     def setAudioState(self, currentToken, offsetInMilliseconds):
         if currentToken:
@@ -295,5 +275,9 @@ class DartBattleRequest(object):
                 slots[slotName]['status'] = str(filledSlots[slotName].resolutions.resolutions_per_authority[0].status.code)
             except (TypeError, AttributeError) as e:
                 slots[slotName]['status'] = "Empty"
+            try:
+                slots[slotName]['id'] = str(filledSlots[slotName].resolutions.resolutions_per_authority[0].values[0].value.id)
+            except (TypeError, AttributeError) as e:
+                slots[slotName]['id'] = "None"
             # dict_keys(['confirmation_status', 'name', 'resolutions', 'value', 'status'])
         self.slots = slots
