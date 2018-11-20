@@ -5,7 +5,12 @@ import logging
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
 
-logger.info('Attempting import DB.')
+from botocore.exceptions import ClientError
+import boto3
+DB_ACTIVE = True
+# DB_ACTIVE = False #THIS DISABLES DB WHILE IT IS UNSTABLE. COMMENT FOR TESTING.
+
+"""
 try:
     from boto3.dynamodb.conditions import Key, Attr
     from botocore.exceptions import ClientError
@@ -13,22 +18,23 @@ try:
     DB_ACTIVE = True
     # DB_ACTIVE = False #THIS DISABLES DB WHILE IT IS UNSTABLE. COMMENT FOR TESTING.
     logger.info('DB Import successful')
-except ImportError:
+except ImportError as e:
+    logger.info(e.message + "\n" + e.args)
     logger.info("DB Import failed. Falling back to defaults.")
     DB_ACTIVE = False
-
+"""
 
 def isActive():
     return DB_ACTIVE
 
 
-def clearRecordVictory(sessionAttributes, victor=None):
+def clearRecordVictory(userSession, victor=None):
     dynamodb = boto3.resource(
         'dynamodb',
         region_name='us-east-1',
         endpoint_url="http://dynamodb.us-east-1.amazonaws.com"
     )
-    myId = sessionAttributes['userId']
+    myId = userSession.userId
     table = dynamodb.Table('DartBattle')
     logger.info("Attempting to update victories attr for user ID {}.".format(myId))
     if victor:
@@ -94,7 +100,7 @@ def getSessionFromDB(session):
             region_name='us-east-1',
             endpoint_url="http://dynamodb.us-east-1.amazonaws.com"
         )
-        myId = session['user']['userId']
+        myId = session.userId
         table = dynamodb.Table('DartBattle')
         logger.info("Attempting to retrieve item for user ID {}.".format(myId))
         item = None
@@ -164,17 +170,16 @@ def getSessionFromDB(session):
                 "usingEvents": usingEvents,
                 "usingTeams": usingTeams
             }
-        session["attributes"] = sessionAttributes
-        return session
+        return sessionAttributes
 
 
-def getVictoriesFromDB(sessionAttributes):
+def getVictoriesFromDB(userSession):
     dynamodb = boto3.resource(
         'dynamodb',
         region_name='us-east-1',
         endpoint_url="http://dynamodb.us-east-1.amazonaws.com"
     )
-    myId = sessionAttributes['userId']
+    myId = userSession.userId
     table = dynamodb.Table('DartBattle')
     logger.info("Attempting to get victories attr for user ID {}.".format(myId))
     try:
@@ -194,14 +199,14 @@ def getVictoriesFromDB(sessionAttributes):
     return victories
 
 
-def updateRecordProtocol(sessionAttributes):
+def updateRecordProtocol(userSession):
     dynamodb = boto3.resource(
         'dynamodb',
         region_name='us-east-1',
         endpoint_url="http://dynamodb.us-east-1.amazonaws.com"
     )
-    myId = sessionAttributes['userId']
-    protocolCodes = sessionAttributes.get('protocolCodes', {})
+    myId = userSession.userId
+    protocolCodes = userSession.protocolCodes
 
     table = dynamodb.Table('DartBattle')
     logger.info("Attempting to update protocol attr for user ID {}.".format(myId))
@@ -222,13 +227,13 @@ def updateRecordProtocol(sessionAttributes):
         return False
 
 
-def updateRecordDuration(sessionAttributes):
+def updateRecordDuration(userSession):
     dynamodb = boto3.resource(
         'dynamodb',
         region_name='us-east-1',
         endpoint_url="http://dynamodb.us-east-1.amazonaws.com"
     )
-    myId = sessionAttributes['userId']
+    myId = userSession.userId
     table = dynamodb.Table('DartBattle')
     logger.info("Attempting to update battleDuration attr for user ID {}.".format(myId))
     try:
@@ -237,7 +242,7 @@ def updateRecordDuration(sessionAttributes):
             Key={'userId': myId},
             UpdateExpression="set battleDuration=:d",
             ExpressionAttributeValues={
-                ':d': sessionAttributes['battleDuration']
+                ':d': userSession.battleDuration
             },
             ReturnValues="UPDATED_NEW"
         )
@@ -248,13 +253,13 @@ def updateRecordDuration(sessionAttributes):
         return False
 
 
-def updateRecordTeams(sessionAttributes):
+def updateRecordTeams(userSession):
     dynamodb = boto3.resource(
         'dynamodb',
         region_name='us-east-1',
         endpoint_url="http://dynamodb.us-east-1.amazonaws.com"
     )
-    myId = sessionAttributes['userId']
+    myId = userSession.userId
     table = dynamodb.Table('DartBattle')
     logger.info("Attempting to update teams attr for user ID {}.".format(myId))
     try:
@@ -263,9 +268,9 @@ def updateRecordTeams(sessionAttributes):
             Key={'userId': myId},
             UpdateExpression="set playerRoles=:r, teams=:t, usingTeams=:u",
             ExpressionAttributeValues={
-                ':r': sessionAttributes['playerRoles'],
-                ':t': sessionAttributes['teams'],
-                ':u': sessionAttributes['usingTeams']
+                ':r': userSession.playerRoles,
+                ':t': userSession.teams,
+                ':u': userSession.usingTeams
             },
             ReturnValues="UPDATED_NEW"
         )
@@ -276,27 +281,22 @@ def updateRecordTeams(sessionAttributes):
         return False
 
 
-def updateRecordToken(sessionAttributes):
-    if 'offsetInMilliseconds' in sessionAttributes:
-        offsetInMilliseconds = str(sessionAttributes['offsetInMilliseconds'])
-    else:
-        offsetInMilliseconds = "0"
+def updateRecordToken(userSession):
     dynamodb = boto3.resource(
         'dynamodb',
         region_name='us-east-1',
         endpoint_url="http://dynamodb.us-east-1.amazonaws.com"
     )
-    myId = sessionAttributes['userId']
     table = dynamodb.Table('DartBattle')
-    logger.info("Attempting to update currentToken attr for user ID {}.".format(myId))
+    logger.info("Attempting to update currentToken attr for user ID {}.".format(userSession.userId))
     try:
         table.update_item(
             TableName="DartBattle",
-            Key={'userId': myId},
+            Key={'userId': userSession.userId},
             UpdateExpression="set currentToken=:t, offsetInMilliseconds=:o",
             ExpressionAttributeValues={
-                ':t': sessionAttributes['currentToken'],
-                ':o': offsetInMilliseconds
+                ':t': userSession.currentToken,
+                ':o': userSession.offsetInMilliseconds
             },
             ReturnValues="UPDATED_NEW"
         )
@@ -307,13 +307,13 @@ def updateRecordToken(sessionAttributes):
         return False
 
 
-def updateRecordVictory(sessionAttributes, victor):
+def updateRecordVictory(userSession, victor):
     dynamodb = boto3.resource(
         'dynamodb',
         region_name='us-east-1',
         endpoint_url="http://dynamodb.us-east-1.amazonaws.com"
     )
-    myId = sessionAttributes['userId']
+    myId = userSession.userId
     table = dynamodb.Table('DartBattle')
     logger.info("Attempting to update victories attr for user ID {}.".format(myId))
     try:
@@ -357,21 +357,21 @@ def updateRecordVictory(sessionAttributes, victor):
         return False, None, None
 
 
-def updateRecord(sessionAttributes):
+def updateRecord(session):
     dynamodb = boto3.resource(
         'dynamodb',
         region_name='us-east-1',
         endpoint_url="http://dynamodb.us-east-1.amazonaws.com"
     )
-    myId = sessionAttributes['userId']
+    myId = session.userId
     table = dynamodb.Table('DartBattle')
     logger.info("Attempting to update item for user ID {}.".format(myId))
     updateCmd = "SET"
     updateVals = {}
     lastRun = datetime.datetime.now().strftime("%Y.%m.%d %H:%M:%S")
-    for i, attr in enumerate(sessionAttributes.keys()):
+    for i, attr in enumerate(session.attributes):
         updateCmd += " {} = :val{}".format(attr, i)
-        updateVals[":val{}".format(i)] = sessionAttributes[attr]
+        updateVals[":val{}".format(i)] = session.attributes[attr]
 
     try:
         table.update_item(
@@ -379,9 +379,9 @@ def updateRecord(sessionAttributes):
             Key={'userId': myId},
             UpdateExpression="set numBattles=:n, lastRun=:r, playerRank=:k",
             ExpressionAttributeValues={
-                ':n': sessionAttributes['numBattles'],
+                ':n': session.attributes['numBattles'],
                 ':r': lastRun,
-                ':k': sessionAttributes['playerRank']
+                ':k': session.attributes['playerRank']
             },
             ReturnValues="UPDATED_NEW"
         )
@@ -392,18 +392,15 @@ def updateRecord(sessionAttributes):
         return False
 
 
-def updateToggleEvents(sessionAttributes, enabled):
-    if enabled:
-        enabled = "True"
-    else:
-        enabled = "False"
+def updateToggleEvents(userSession):
+    enabled = userSession.usingEvents
 
     dynamodb = boto3.resource(
         'dynamodb',
         region_name='us-east-1',
         endpoint_url="http://dynamodb.us-east-1.amazonaws.com"
     )
-    myId = sessionAttributes['userId']
+    myId = userSession.userId
     table = dynamodb.Table('DartBattle')
     logger.info("Attempting to update usingEvents attr for user ID {} to {}.".format(myId, enabled))
     try:

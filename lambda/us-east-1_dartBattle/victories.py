@@ -2,52 +2,34 @@
 import datetime
 import os
 
+# Amazon Imports:
+from ask_sdk_model.ui.image import Image
+
 # DartBattle imports:
 import database
-import responses
 
 
-def clearVictoryIntent(request, session):
+def clearVictoryIntent(userSession):
     speech = ""
-    sessionAttributes = session['attributes']
-
-    dialogState = request['dialogState']
-    if dialogState in ["STARTED", "IN_PROGRESS"]:
-        return responses.continueDialog(sessionAttributes)
-    elif dialogState == 'COMPLETED':
-        sessionAttributes = session['attributes']
-    playerName = request['intent']['slots']['PLAYER']['value']
+    playerName = userSession.request.slots["PLAYER"]["value"]
     if playerName.lower() in ["no", "stop", "cancel", "nope"]:
         speech += "Ok, canceling the request to clear all victories. "
     elif playerName.lower() in ["yes", "please", "continue", "proceed"]:
-        database.clearRecordVictory(sessionAttributes)
+        database.clearRecordVictory(userSession)
         speech += "All victories have been cleared for all players. "
     else:
-        database.clearRecordVictory(sessionAttributes, victor=playerName)
+        database.clearRecordVictory(userSession, victor=playerName)
         speech += "Victories for player {} have been cleared. ".format(playerName)
     text = speech
     speech += "How else may I assist? Start a battle? More options? Exit? "
     title = "Clear Victories"
-    return {
-        "version": os.environ['VERSION'],
-        "sessionAttributes": sessionAttributes,
-        "response": {
-            "outputSpeech": {
-                "type": "SSML",
-                "ssml": "<speak>" + speech + "</speak>"
-            },
-            "card": {
-                "type": "Standard",
-                "title": title,
-                "text": text,
-                "image": {
-                    "smallImageUrl": "https://s3.amazonaws.com/dart-battle-resources/dartBattle_victory_720x480.jpg",
-                    "largeImageUrl": "https://s3.amazonaws.com/dart-battle-resources/dartBattle_victory_1200x800.jpg"
-                }
-            },
-            "shouldEndSession": False
-        }
-    }
+    reprompt = "Try saying: Start Battle, Setup Teams, or More Options."
+    speech = "<audio src=\"https://s3.amazonaws.com/dart-battle-resources/choiceMusic.mp3\" />" + speech
+    cardImage = Image(
+        small_image_url="https://s3.amazonaws.com/dart-battle-resources/dartBattle_victory_720x480.jpg",
+        large_image_url="https://s3.amazonaws.com/dart-battle-resources/dartBattle_victory_1200x800.jpg"
+    )
+    return speech, reprompt, title, text, cardImage
 
 
 def countVictories(victories):
@@ -71,9 +53,8 @@ def countVictories(victories):
     return todayVix, lifeVix
 
 
-def reciteVictoriesIntent(session):  # TODO: Support single player request (place, numVix)
-    sessionAttributes = session['attributes']
-    victories = database.getVictoriesFromDB(sessionAttributes)
+def reciteVictoriesIntent(userSession):  # TODO: Support single player request (place, numVix)
+    victories = database.getVictoriesFromDB(userSession)
     (today, lifetime) = countVictories(victories)
     speech = ""
     text = ""
@@ -128,44 +109,23 @@ def reciteVictoriesIntent(session):  # TODO: Support single player request (plac
 
     speech += "What next? Start a battle? More options? Exit? "
     title = "Victories"
-
-    return {
-        "version": os.environ['VERSION'],
-        "sessionAttributes": sessionAttributes,
-        "response": {
-            "outputSpeech": {
-                "type": "SSML",
-                "ssml": "<speak>" + speech + "</speak>"
-            },
-            "card": {
-                "type": "Standard",
-                "title": title,
-                "text": text,
-                "image": {
-                    "smallImageUrl": "https://s3.amazonaws.com/dart-battle-resources/dartBattle_victory_720x480.jpg",
-                    "largeImageUrl": "https://s3.amazonaws.com/dart-battle-resources/dartBattle_victory_1200x800.jpg"
-                }
-            },
-            "shouldEndSession": False
-        }
-    }
+    reprompt = "Try saying: Start Battle, Setup Teams, or More Options."
+    speech = "<audio src=\"https://s3.amazonaws.com/dart-battle-resources/choiceMusic.mp3\" />" + speech
+    cardImage = Image(
+        small_image_url="https://s3.amazonaws.com/dart-battle-resources/dartBattle_victory_720x480.jpg",
+        large_image_url="https://s3.amazonaws.com/dart-battle-resources/dartBattle_victory_1200x800.jpg"
+    )
+    return speech, reprompt, title, text, cardImage
 
 
-def recordVictoryIntent(request, session):
+def recordVictoryIntent(userSession):
     speech = ""
-    sessionAttributes = session['attributes']
-
-    dialogState = request['dialogState']
-    if dialogState in ["STARTED", "IN_PROGRESS"]:
-        return responses.continueDialog(sessionAttributes)
-    elif dialogState == 'COMPLETED':
-        sessionAttributes = session['attributes']
-    if sessionAttributes['numBattles'] == "0":
+    if userSession.numBattles == "0":
         speech += "You must first complete a battle in order to record a victory. "
         text = "Victories come after hard-fought battles."
     else:
-        victorName = request['intent']['slots']['VICTOR']['value']
-        (success, vicToday, vicTotal) = database.updateRecordVictory(sessionAttributes, victorName)
+        victorName = userSession.request.slots["VICTOR"]["value"]
+        (success, vicToday, vicTotal) = database.updateRecordVictory(userSession, victorName)
         speech += "Okay. Recorded a victory for {}. ".format(victorName)
         if vicToday == 1:
             vicToday = "1 victory"
@@ -179,26 +139,11 @@ def recordVictoryIntent(request, session):
         text = "Victory recorded for {}.\n".format(victorName.title())
         text += "{} has {} today, and {}. ".format(victorName.title(), vicToday, vicTotal)
     speech += "What next? Start a battle? More options? "
-
     title = "Record a Victory"
-
-    return {
-        "version": os.environ['VERSION'],
-        "sessionAttributes": sessionAttributes,
-        "response": {
-            "outputSpeech": {
-                "type": "SSML",
-                "ssml": "<speak>" + speech + "</speak>"
-            },
-            "card": {
-                "type": "Standard",
-                "title": title,
-                "text": text,
-                "image": {
-                    "smallImageUrl": "https://s3.amazonaws.com/dart-battle-resources/dartBattle_victory_720x480.jpg",
-                    "largeImageUrl": "https://s3.amazonaws.com/dart-battle-resources/dartBattle_victory_1200x800.jpg"
-                }
-            },
-            "shouldEndSession": False
-        }
-    }
+    reprompt = "Try saying: Start Battle, Setup Teams, or More Options."
+    speech = "<audio src=\"https://s3.amazonaws.com/dart-battle-resources/choiceMusic.mp3\" />" + speech
+    cardImage = Image(
+        small_image_url="https://s3.amazonaws.com/dart-battle-resources/dartBattle_victory_720x480.jpg",
+        large_image_url="https://s3.amazonaws.com/dart-battle-resources/dartBattle_victory_1200x800.jpg"
+    )
+    return speech, reprompt, title, text, cardImage
