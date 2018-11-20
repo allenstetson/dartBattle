@@ -27,11 +27,11 @@ if typing.TYPE_CHECKING:
 
 class ErrorCode(Enum):
     """
-    A more precise error code. Some of these codes may not apply to some APIs.   - INVALID_KEY: the setting key is not supported   - INVALID_VALUE: the setting value is not valid   - INVALID_TOKEN: the token is invalid   - INVALID_URI: the uri is invalid   - DEVICE_UNREACHABLE: the device is offline   - UNKNOWN_ERROR: internal service error 
+    A more precise error code. Some of these codes may not apply to some APIs. - INVALID_KEY: the setting key is not supported - INVALID_VALUE: the setting value is not valid - INVALID_TOKEN: the token is invalid - INVALID_URI: the uri is invalid - DEVICE_UNREACHABLE: the device is offline - UNKNOWN_ERROR: internal service error
 
 
 
-    Allowed enum values: [INVALID_KEY, INVALID_VALUE, INVALID_TOKEN, INVALID_URI, DEVICE_UNREACHABLE, UNKNOWN_ERROR, ]
+    Allowed enum values: [INVALID_KEY, INVALID_VALUE, INVALID_TOKEN, INVALID_URI, DEVICE_UNREACHABLE, UNKNOWN_ERROR]
     """
     INVALID_KEY = "INVALID_KEY"
     INVALID_VALUE = "INVALID_VALUE"
@@ -39,7 +39,6 @@ class ErrorCode(Enum):
     INVALID_URI = "INVALID_URI"
     DEVICE_UNREACHABLE = "DEVICE_UNREACHABLE"
     UNKNOWN_ERROR = "UNKNOWN_ERROR"
-
     def to_dict(self):
         # type: () -> Dict[str, object]
         """Returns the model properties as a dict"""

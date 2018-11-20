@@ -541,9 +541,9 @@ class Scenario(object):
 
     def getIntro(self, variant=None):
         print("playlist: {}".format(self.playlist))
-        variant, intro = self.playlist.getIntro(rank=self.playerRank, variant=variant)
+        variant, intro = self.playlist.getIntro(userRank=self.playerRank, variant=variant)
         print("variant: {}, intro: {}".format(variant, intro))
-        return self.playlist.getIntro(rank=self.playerRank, variant=variant)
+        return self.playlist.getIntro(userRank=self.playerRank, variant=variant)
 
     def getNextFromToken(self, token):
         """Given a string token, determine the next track to play.
@@ -703,7 +703,7 @@ class Scenario(object):
         roles = currentTrack.split(".")[3:]
         roles = ".".join(roles)
         kwargs = {
-            "rank": playerRank,
+            "userRank": playerRank,
             "eventCategory": [x.name for x in EventCategories if x.value == int(trackType)][0],
             "eventTitle": currentTrack.split(".")[2],
             "teamToken": teamToken,

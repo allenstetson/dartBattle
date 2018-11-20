@@ -189,8 +189,6 @@ def reciteTeamRoles(teams):
 def setupTeamsIntent(userSession):
     allPlayers = {}
     speech = ""
-    text = ""
-    title = ""
 
     numTeams = int(userSession.request.slots["TEAMNUM"]["value"])
     numPlayers = int(userSession.request.slots["PLAYERNUM"]["value"])

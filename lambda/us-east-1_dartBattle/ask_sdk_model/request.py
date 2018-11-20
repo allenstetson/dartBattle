@@ -37,8 +37,6 @@ class Request(object):
     :type request_id: (optional) str
     :param timestamp: Provides the date and time when Alexa sent the request as an ISO 8601 formatted string. Used to verify the request when hosting your skill as a web service.
     :type timestamp: (optional) datetime
-    :param locale: A string indicating the user’s locale. For example: en-US.
-    :type locale: (optional) str
 
     .. note::
 
@@ -50,6 +48,8 @@ class Request(object):
         | AlexaSkillEvent.SkillEnabled: :py:class:`ask_sdk_model.events.skillevents.skill_enabled_request.SkillEnabledRequest`,
         |
         | AlexaHouseholdListEvent.ListUpdated: :py:class:`ask_sdk_model.services.list_management.list_updated_event_request.ListUpdatedEventRequest`,
+        |
+        | Alexa.Presentation.APL.UserEvent: :py:class:`ask_sdk_model.interfaces.alexa.presentation.apl.user_event.UserEvent`,
         |
         | AlexaSkillEvent.SkillDisabled: :py:class:`ask_sdk_model.events.skillevents.skill_disabled_request.SkillDisabledRequest`,
         |
@@ -64,6 +64,8 @@ class Request(object):
         | IntentRequest: :py:class:`ask_sdk_model.intent_request.IntentRequest`,
         |
         | AudioPlayer.PlaybackFailed: :py:class:`ask_sdk_model.interfaces.audioplayer.playback_failed_request.PlaybackFailedRequest`,
+        |
+        | CanFulfillIntentRequest: :py:class:`ask_sdk_model.canfulfill.can_fulfill_intent_request.CanFulfillIntentRequest`,
         |
         | LaunchRequest: :py:class:`ask_sdk_model.launch_request.LaunchRequest`,
         |
@@ -107,21 +109,20 @@ class Request(object):
     deserialized_types = {
         'object_type': 'str',
         'request_id': 'str',
-        'timestamp': 'datetime',
-        'locale': 'str'
+        'timestamp': 'datetime'
     }
 
     attribute_map = {
         'object_type': 'type',
         'request_id': 'requestId',
-        'timestamp': 'timestamp',
-        'locale': 'locale'
+        'timestamp': 'timestamp'
     }
 
     discriminator_value_class_map = {
         'AudioPlayer.PlaybackFinished': 'ask_sdk_model.interfaces.audioplayer.playback_finished_request.PlaybackFinishedRequest',
         'AlexaSkillEvent.SkillEnabled': 'ask_sdk_model.events.skillevents.skill_enabled_request.SkillEnabledRequest',
         'AlexaHouseholdListEvent.ListUpdated': 'ask_sdk_model.services.list_management.list_updated_event_request.ListUpdatedEventRequest',
+        'Alexa.Presentation.APL.UserEvent': 'ask_sdk_model.interfaces.alexa.presentation.apl.user_event.UserEvent',
         'AlexaSkillEvent.SkillDisabled': 'ask_sdk_model.events.skillevents.skill_disabled_request.SkillDisabledRequest',
         'Display.ElementSelected': 'ask_sdk_model.interfaces.display.element_selected_request.ElementSelectedRequest',
         'AlexaSkillEvent.SkillPermissionChanged': 'ask_sdk_model.events.skillevents.permission_changed_request.PermissionChangedRequest',
@@ -129,6 +130,7 @@ class Request(object):
         'SessionEndedRequest': 'ask_sdk_model.session_ended_request.SessionEndedRequest',
         'IntentRequest': 'ask_sdk_model.intent_request.IntentRequest',
         'AudioPlayer.PlaybackFailed': 'ask_sdk_model.interfaces.audioplayer.playback_failed_request.PlaybackFailedRequest',
+        'CanFulfillIntentRequest': 'ask_sdk_model.canfulfill.can_fulfill_intent_request.CanFulfillIntentRequest',
         'LaunchRequest': 'ask_sdk_model.launch_request.LaunchRequest',
         'AudioPlayer.PlaybackStopped': 'ask_sdk_model.interfaces.audioplayer.playback_stopped_request.PlaybackStoppedRequest',
         'PlaybackController.PreviousCommandIssued': 'ask_sdk_model.interfaces.playbackcontroller.previous_command_issued_request.PreviousCommandIssuedRequest',
@@ -155,8 +157,8 @@ class Request(object):
     __metaclass__ = ABCMeta
 
     @abstractmethod
-    def __init__(self, object_type=None, request_id=None, timestamp=None, locale=None):
-        # type: (Optional[str], Optional[str], Optional[datetime], Optional[str]) -> None
+    def __init__(self, object_type=None, request_id=None, timestamp=None):
+        # type: (Optional[str], Optional[str], Optional[datetime]) -> None
         """A request object that provides the details of the user’s request. The request body contains the parameters necessary for the service to perform its logic and generate a response.
 
         :param object_type: Describes the type of the request.
@@ -165,15 +167,12 @@ class Request(object):
         :type request_id: (optional) str
         :param timestamp: Provides the date and time when Alexa sent the request as an ISO 8601 formatted string. Used to verify the request when hosting your skill as a web service.
         :type timestamp: (optional) datetime
-        :param locale: A string indicating the user’s locale. For example: en-US.
-        :type locale: (optional) str
         """
         self.__discriminator_value = None
 
         self.object_type = object_type
         self.request_id = request_id
         self.timestamp = timestamp
-        self.locale = locale
 
     @classmethod
     def get_real_child_model(cls, data):

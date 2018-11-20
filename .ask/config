@@ -9,7 +9,7 @@
         },
         "interactionModel": {
           "en-US": {
-            "eTag": "da61efcd5d0aa9868d84138994d9eb1d"
+            "eTag": "173213bf67b8960f897c5fae3ec43d88"
           }
         },
         "lambda": [
@@ -20,7 +20,7 @@
             "alexaUsage": [
               "custom/default"
             ],
-            "revisionId": "004a2715-f28f-4f65-932d-df07f57521fb"
+            "revisionId": "74d4035d-8aa8-42c0-a2ea-a9cdabdd9bf8"
           }
         ]
       },
@@ -47,7 +47,7 @@
           "deploy_status": "Update",
           "filePath": "isps\\entitlement\\Prospectors_Predicament.json",
           "productId": "amzn1.adg.product.029ec28b-6301-4f7e-a24e-e7d231eebe36",
-          "eTag": "8d671bb2e880300f813ca313fa6717c1"
+          "eTag": "55be1fba938bf3fd9aff64cae8fc1c1c"
         }
       ]
     }

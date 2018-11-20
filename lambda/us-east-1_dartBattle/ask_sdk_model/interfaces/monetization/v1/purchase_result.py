@@ -27,18 +27,17 @@ if typing.TYPE_CHECKING:
 
 class PurchaseResult(Enum):
     """
-    Response from purchase directives:   * ACCEPTED - User have accepted the offer to purchase the product   * DECLINED - User have declined the offer to purchase the product   * NOT_ENTITLED - User tries to cancel/return a product he/she is  not entitled to.    * ALREADY_PURCHASED - User has already purchased the product   * ERROR - An internal error occurred 
+    Response from purchase directives:   * ACCEPTED - User have accepted the offer to purchase the product   * DECLINED - User have declined the offer to purchase the product   * NOT_ENTITLED - User tries to cancel/return a product he/she is  not entitled to.   * ALREADY_PURCHASED - User has already purchased the product   * ERROR - An internal error occurred 
 
 
 
-    Allowed enum values: [ACCEPTED, DECLINED, NOT_ENTITLED, ERROR, ALREADY_PURCHASED, ]
+    Allowed enum values: [ACCEPTED, DECLINED, NOT_ENTITLED, ERROR, ALREADY_PURCHASED]
     """
     ACCEPTED = "ACCEPTED"
     DECLINED = "DECLINED"
     NOT_ENTITLED = "NOT_ENTITLED"
     ERROR = "ERROR"
     ALREADY_PURCHASED = "ALREADY_PURCHASED"
-
     def to_dict(self):
         # type: () -> Dict[str, object]
         """Returns the model properties as a dict"""

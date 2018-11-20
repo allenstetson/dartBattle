@@ -1,7 +1,7 @@
 {
   "version": "1.0",
   "type": "ENTITLEMENT",
-  "referenceName": "Prospectors_Predicament",
+  "referenceName": "prospectors_predicament",
   "publishingInformation": {
     "locales": {
       "en-US": {
@@ -45,7 +45,7 @@
   "privacyAndCompliance": {
     "locales": {
       "en-US": {
-        "privacyPolicyUrl": "http://dartbattle.fun/#popup1"
+        "privacyPolicyUrl": "http://dartbattle.fun"
       }
     }
   },
