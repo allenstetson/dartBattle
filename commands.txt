@@ -4,3 +4,7 @@ ask deploy --target lambda --force
 
 powershell.exe -ExecutionPolicy Unrestricted
 .\skill_env\Scripts\activate
+
+
+# Prospectors:
+ask api reset-isp-entitlement --isp-id amzn1.adg.product.029ec28b-6301-4f7e-a24e-e7d231eebe36

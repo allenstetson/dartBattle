@@ -628,8 +628,11 @@ class ProductDetailHandler(AbstractRequestHandler):
             product = [l for l in inSkillResponse.in_skill_products
                        if l.reference_name.lower() == productName.lower()]
             if product:
-                speech = ("{}.  To buy it, say Buy {}".format(
-                    product[0].summary, product[0].name))
+                advertisement = "https://s3.amazonaws.com/dart-battle-resources/ad_Prospectors_01.mp3"
+                speech = ("<audio src=\"{}\" />  To buy it, say Buy {}".format(
+                    advertisement,
+                    product[0].name)
+                )
                 reprompt = (
                     "I didn't catch that. To buy {}, say Buy {}".format(
                         product[0].name, product[0].name))
@@ -1094,7 +1097,6 @@ class TeamSetupHandler(AbstractRequestHandler):
 
         """
         userSession = session.DartBattleSession(handler_input)
-
         speech, reprompt, cardTitle, cardText, cardImage = teams.setupTeamsIntent(userSession)
         handler_input.response_builder.speak(speech).ask(reprompt).set_card(
             StandardCard(title=cardTitle, text=cardText, image=cardImage)

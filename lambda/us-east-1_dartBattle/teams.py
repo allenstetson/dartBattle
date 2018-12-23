@@ -76,7 +76,6 @@ class PlayerRanks(enum.Enum):
 
 
 def assignTeamsAndRoles(numTeams, availablePlayers, userSession):
-    # TODO: Look at session attrs to determine if special roles are unlocked.
     numPlayers = len(availablePlayers)
     playersPerTeam = int(numPlayers / numTeams)
     teams = {}
@@ -177,6 +176,7 @@ def reciteTeamsIntent(session):
 
 
 def reciteTeamRoles(teams):
+    print("in reciteTeamRoles")
     speech = ""
     for teamNum in teams.keys():
         speech += "Team {}. ".format(teamNum)
@@ -218,7 +218,7 @@ def setupTeamsIntent(userSession):
         speech += "Ok {} teams across {} players. ".format(numTeams, numPlayers)
 
     # PLAYERS
-    missingPlayers = False
+    missingPlayers = 0
     playerOne = userSession.request.slots["PLAYERONE"]["value"]
     allPlayers['one'] = {"name": playerOne}
     for num, keyname in enumerate(['PLAYERTWO', 'PLAYERTHREE', 'PLAYERFOUR', 'PLAYERFIVE',
@@ -226,16 +226,25 @@ def setupTeamsIntent(userSession):
                                    'PLAYERTEN', 'PLAYERELEVEN', 'PLAYERTWELVE']):
         if num + 2 > numPlayers:
             break
-        if userSession.request.slots["PLAYERONE"]["status"] == "Empty":
+        if userSession.request.slots[keyname]["status"] == "Empty":
             allPlayers[num + 2] = {'name': "player {}".format(num + 2)}
-            missingPlayers = True
+            missingPlayers += 1
         else:
             playerNum = keyname[6:].lower()
             playerName = userSession.request.slots[keyname]["value"]
             allPlayers[playerNum] = {"name": playerName}
     if missingPlayers:
-        speech += "I think I missed a player name or two. No worries, I'll use " + \
-                  "their player number. "
+        if missingPlayers == (numPlayers - 1) and allPlayers["one"]["name"] in ["one", "1", 1]:
+            allPlayers["one"]["name"] = "player 1"
+            speech += "Using player numbers. "
+        else:
+            if missingPlayers == 1:
+                first = ["I missed a player name. ", "I missed one name. "]
+            else:
+                first = ["I think I missed some player names. ", "I missed some player names. "]
+            last = ["No worries, I'll use their player number. ", "I'll use their player numbers instead. "]
+            speech +=  random.choice(first) + random.choice(last)
+    print(allPlayers)
 
     # BUILD
     speech += "Now building teams. "
