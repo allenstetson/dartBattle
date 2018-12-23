@@ -200,6 +200,7 @@ class ProtocolSilverSparrow(DartBattleProtocol):
         database.updateRecord(self.session)
 
         # Report Success
+        self.speech += "Thank you for helping to spread the word about Dart Battle. "
         self.speech += "5 battles have been added to your total, getting you closer to the next rank promotion. "
         self.title += "Protocol: enabled"
         self.text += "+5 battles toward rank advancement"

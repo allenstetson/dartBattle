@@ -20,7 +20,7 @@
             "alexaUsage": [
               "custom/default"
             ],
-            "revisionId": "74d4035d-8aa8-42c0-a2ea-a9cdabdd9bf8"
+            "revisionId": "b71ca491-bbf5-41f1-81f3-d1ad8f05563a"
           }
         ]
       },
@@ -47,7 +47,7 @@
           "deploy_status": "Update",
           "filePath": "isps\\entitlement\\Prospectors_Predicament.json",
           "productId": "amzn1.adg.product.029ec28b-6301-4f7e-a24e-e7d231eebe36",
-          "eTag": "55be1fba938bf3fd9aff64cae8fc1c1c"
+          "eTag": "de0954e835280f98701a9d299520c8fd"
         }
       ]
     }

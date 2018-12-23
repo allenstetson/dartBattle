@@ -33,7 +33,7 @@ def getRankResponse(userSession):
     nextRankName = teams.PlayerRanks(int(playerRank)+1).name.replace("_", " ")
     # TODO: Account for General, where there is no next rank!
     numBattles = userSession.numBattles
-    speech = "<audio src=\"https://s3.amazonaws.com/dart-battle-resources/introMusic.mp3\" />"
+    speech = "<audio src=\"https://s3.amazonaws.com/dart-battle-resources/choiceMusic.mp3\" />"
     text = "Rank: {}, {} battles.\n".format(playerRankName.title(), numBattles)
     if numBattles:
         battlesRemaining = rankRequirements[int(playerRank)+1] - int(numBattles)
