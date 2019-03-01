@@ -329,7 +329,7 @@ class Scenario(object):
         token = "{}.{}.{}".format(
             "{:02d}".format(EventCategories[category].value),
             title,
-            "".join(roles)
+            ".".join(roles)
         )
 
         # Ensure Unique

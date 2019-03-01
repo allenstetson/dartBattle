@@ -203,8 +203,9 @@ class Playlist(object):
 
     def getEventWithProperties(self, userRank=None, eventCategory=None, eventTitle=None, teamToken=None, roles=None):
         userRank = userRank or '00'
-        def filterTracksWithRank(userRank):
-            rankTracks = self.getEventsForRank(userRank)
+
+        def filterTracksWithRank(uRank):
+            rankTracks = self.getEventsForRank(uRank)
 
             eventTracks = self._getEventsWithCategory(eventCategory, tracks=rankTracks)
             if not eventTracks:
