@@ -1,8 +1,21 @@
+###############################################################################
+# Copyright (c) 2019 Allen Stetson, allen.stetson@gmail.com
+# All rights reserved. No duplication allowed.
+#
+# This file is part of DartBattle.
+#
+# DartBattle may not be copied and/or distributed without the express
+# permission of Allen Stetson.
+###############################################################################
 """
-battle.py
+battle.py - Battle Intents and Configurations
 
-Battle Intents and Configurations
 """
+
+
+# =============================================================================
+# Imports
+# =============================================================================
 # Std Lib imports
 import os
 import enum
@@ -21,10 +34,23 @@ import database
 import playlists
 import teams
 
-logger = logging.getLogger()
-logger.setLevel(logging.INFO)
+__all__ = [
+    "EventCategories",
+    "Scenarios",
+    "Scenario",
+]
 
 
+# =============================================================================
+# Globals
+# =============================================================================
+LOGGER = logging.getLogger()
+LOGGER.setLevel(logging.INFO)
+
+
+# =============================================================================
+# Classes
+# =============================================================================
 class EventCategories(enum.Enum):
     """The category types for soundtrack events, used for tokens."""
     Intro = 0
@@ -74,15 +100,17 @@ class Scenarios(enum.Enum):
 
 class Scenario(object):
     """
-    Obj representing playlist for battle scenes with logic to determine the
-    pattern for given durations, and for choosing appropriate events based on
-    sceneAttributes.
+    Object for working with battle scenarios.
+
+    Provides access to and manipulation of playlist for battle scenes with
+    logic to determine the pattern for given durations, and for choosing
+    appropriate events based on sceneAttributes.
 
     Args:
-        userSession: (session.DartBattleSession)
-            The session object derived from incoming Alexa data.
-        name: (str)
-            The name of the scene to be built (arctic, jungle, urban, etc)
+        userSession (session.DartBattleSession): The session object derived
+            from incoming Alexa data.
+        name (str): Optional. the name of the scene to be built ("arctic",
+            "jungle", "urban", etc).
 
     Raises:
         N/A
@@ -97,7 +125,8 @@ class Scenario(object):
             self._playlist = playlist
         else:
             self.name = name
-            self._playlist = [x[1] for x in self.availablePlaylists if x[0] == name][0]
+            self._playlist = [x[1] for x in self.availablePlaylists 
+                              if x[0] == name][0]
 
         self._randomEvents = []
         self.eventsChosen = {}
@@ -106,15 +135,14 @@ class Scenario(object):
         self._playerRank = None
         self.useSfx = 1
         self.useSoundtrack = 1
-        self.variant = "standard"
 
     # -------------------------------------------------------------------------
     # Properties
     # -------------------------------------------------------------------------
     @property
     def availableEvents(self):
-        """Determines and returns the events appropriate for the Scenario,
-        team status, and roles.
+        """Determines and returns the events appropriate for the Scenario, team
+        status, and roles.
 
         Args:
             N/A
@@ -123,7 +151,7 @@ class Scenario(object):
             N/A
 
         Returns:
-            list
+            [str]
                 The list of appropriate event track URLs.
 
         """
@@ -131,9 +159,11 @@ class Scenario(object):
         if self._availableEvents:
             return self._availableEvents
 
-        # Determine valid list
-        tracklist = self.playlist.getEventsForRank(self.playerRank)  # FIXME: This breaks when usingEvents is False
+        # Get the entire list of events for this rank
+        # FIXME: This breaks when usingEvents is False:
+        tracklist = self.playlist.getEventsForRank(self.playerRank)
 
+        # Now filter that list based on team and player role
         # TODO: Think about moving this logic into the Playlist
         available = []
         try:
@@ -167,7 +197,7 @@ class Scenario(object):
             N/A
 
         Returns:
-            list
+            [str]
                 String names of distilled category names.
 
         """
@@ -180,12 +210,14 @@ class Scenario(object):
 
     @property
     def availablePlaylists(self):
+        """Playlists available to the player at this time."""
         allPlaylists = {
             "Arctic": playlists.Arctic(),
             "NoEvents01": playlists.NoEvents01(),
             "Prospector": playlists.Prospector()
         }
-        return [(x, allPlaylists[x]) for x in allPlaylists.keys() if allPlaylists[x].isActive(self.userSession)]
+        return [(x, allPlaylists[x]) for x in allPlaylists.keys()
+                if allPlaylists[x].isActive(self.userSession)]
 
     @property
     def intro(self):
@@ -205,12 +237,12 @@ class Scenario(object):
 
     @property
     def inCountdown(self):
-        """The countdown to the start of the battle; second track."""
+        """The countdown track to the start of the battle."""
         return self.playlist.inCount
 
     @property
     def outCountdown(self):
-        """The countdown to the end of the battle. "Battle ends in 3, 2, 1." """
+        """The countdown to the end of the battle. 'Battle ends in 3, 2, 1.'"""
         return self.playlist.outCount
 
     @property
@@ -237,6 +269,7 @@ class Scenario(object):
 
     @property
     def playlist(self):
+        """The current playlist."""
         if self._playlist:
             return self._playlist
         match = [x[1] for x in self.availablePlaylists if x[0] == self.name]
@@ -247,11 +280,12 @@ class Scenario(object):
 
     @property
     def prettyName(self):
+        """The pretty printable name of the current playlist."""
         return self.playlist.prettyName
 
     @property
     def promo(self):
-        """The countdown to the start of the battle; second track."""
+        """Promotional track before the start of the battle."""
         return self.playlist.promo
 
     @property
@@ -293,9 +327,10 @@ class Scenario(object):
     # -------------------------------------------------------------------------
     def _chooseEvent(self):
         """
-        Randomly select event track, ensure a unique choice, ensure
-        compatibility with session, keep track of events chosen, generate token
-        of [category.title.roles].
+        Randomly select event track.
+        
+        Ensure a unique choice, ensure compatibility with session, keep track
+        of events chosen, generate token of [category.title.roles].
 
         Track should be named
         event_[Scene]_[Rank]_[Category]_[Title]_[Team]_[Roles].mp3
@@ -335,13 +370,14 @@ class Scenario(object):
         # Ensure Unique
         if category in self.eventsChosen:
             # We've already used this category.
-            if not len(self.eventsChosen.keys()) == len(self.availableEventCategories):
+            if not len(self.eventsChosen.keys()) ==
+                   len(self.availableEventCategories):
                 # There are still more options, pick a new one
                 token = self._chooseEvent()
                 return token
             else:
-                # Nuts we ran out of categories. Are there other tracks within
-                # this category that we can use?
+                # Nuts, we ran out of categories. Are there other tracks within
+                #  this category that we can use?
                 if token in self.eventsChosen[category]:
                     token = self._chooseEvent()
                     return token
@@ -373,10 +409,11 @@ class Scenario(object):
         numAvailableEvents = len(self.availableEvents)
         if not self.usingEvents:
             numAvailableEvents = 0
-        # Events are 30s so that should be subtracted from the duration,
-        # and then divided by the number of events to achieve the optimal num.
+        # Events are ~30 sec, so that should be subtracted from the duration,
+        #  and then divided by the number of events to achieve the optimal num.
         if numAvailableEvents:
-            while (duration - (30 * numAvailableEvents)) / numAvailableEvents < (numAvailableEvents * 30):
+            while (duration - (30 * numAvailableEvents)) /
+                   numAvailableEvents < (numAvailableEvents * 30):
                 numAvailableEvents -= 1
         # Now we have the proper num of availableEvents.
         durationWithoutEvents = duration - (30 * numAvailableEvents)
@@ -410,8 +447,8 @@ class Scenario(object):
         """Given a duration, this builds a playlist string token.
 
         Args:
-            duration : (int)
-                The duration of the battle that the playlist should take.
+            duration (int): The duration of the battle that the playlist
+                should take.
 
         Raises:
             N/A
@@ -420,11 +457,11 @@ class Scenario(object):
             str
                 Token representing the playlist.
                 ("session_02.01.1.1_track_01_playlist_01.00_02.02.90_03.14_04.02.30_05.22",
-                rank02, arctic01, sfx1, sndtrk1, current track01, 1:intro, 2:sndtrk90s,
-                3:event14, 4:sndtrk30s, 5:outtro)
+                    rank02, arctic01, sfx1, sndtrk1, current track01, 1:intro,
+                    2:sndtrk90s, 3:event14, 4:sndtrk30s, 5:outtro)
 
         """
-        # print("------------ building {} ---------------".format(self.name))
+        LOGGER.debug("--- building playlist {} ---".format(self.name))
         numEventsChosen = 0
         trackNum = 1
 
@@ -469,7 +506,7 @@ class Scenario(object):
 
         # -- SNDTRK & EVENT --
         pattern = self._getPatternForDuration(duration)
-        print("Pattern: {}".format(pattern))
+        LOGGER.debug("Pattern: {}".format(pattern))
         for item in pattern:
             if item == 'e':
                 # --- event ---
@@ -503,6 +540,7 @@ class Scenario(object):
                 trackNum,
                 EventCategories.Tail.value
             )
+        LOGGER.info("Generated playlist token: {}".format(newToken))
 
         return newToken
 
@@ -510,22 +548,18 @@ class Scenario(object):
         """Given a string token, determine the first track to play.
 
         Args:
-            token : (str)
-                The token to parse.
+            token (str): The token to parse.
                 ("session_02.01.1.1_track_01_playlist_01.00_02.02.90_03.14_04.02.30_05.22",
-                rank02, arctic01, sfx1, sndtrk1, current track01, 1:intro, 2:sndtrk90s,
-                3:event14, 4:sndtrk30s, 5:outtro)
+                rank02, arctic01, sfx1, sndtrk1, current track01, 1:intro,
+                2:sndtrk90s, 3:event14, 4:sndtrk30s, 5:outtro)
 
 
         Raises:
             N/A
 
         Returns:
-            str
-                The token that was passed in.
-
-            str
-                The URL to the first track.
+            (str, str)
+                The token set to indicate 1st track, URL to the 1st track.
 
         """
         head = "_".join(token.split("_")[:3])
@@ -540,31 +574,41 @@ class Scenario(object):
         return newToken, filename
 
     def getIntro(self, variant=None):
-        print("playlist: {}".format(self.playlist))
-        variant, intro = self.playlist.getIntro(userRank=self.playerRank, variant=variant)
-        print("variant: {}, intro: {}".format(variant, intro))
-        return self.playlist.getIntro(userRank=self.playerRank, variant=variant)
-
-    def getNextFromToken(self, token):
-        """Given a string token, determine the next track to play.
+        """Get the introductory track from the current playlist.
 
         Args:
-            token : (str)
-                The token to parse.
-                ("session_02.01.1.1_track_01_playlist_01.00_02.02.90_03.14_04.02.30_05.22",
-                rank02, arctic01, sfx1, sndtrk1, current track01, 1:intro, 2:sndtrk90s,
-                3:event14, 4:sndtrk30s, 5:outtro)
-
+            variant (str): Optional variant name (ex: "A", "B")
 
         Raises:
             N/A
 
         Returns:
             str
-                Token indicating that next track is now current track.
+                URL to the intro track for the variant and for the user's rank
+                    from the current playlist.
 
-            str
-                The URL to the next track.
+        """
+        LOGGER.debug("playlist: {}".format(self.playlist))
+        variant, intro = self.playlist.getIntro(userRank=self.playerRank, variant=variant)
+        LOGGER.debug("variant: {}, intro: {}".format(variant, intro))
+        return self.playlist.getIntro(userRank=self.playerRank, variant=variant)
+
+    def getNextFromToken(self, token):
+        """Given a string token, determine the next track to play.
+
+        Args:
+            token (str): The token to parse.
+                ("session_02.01.1.1_track_01_playlist_01.00_02.02.90_03.14_04.02.30_05.22",
+                    rank02, arctic01, sfx1, sndtrk1, current track01, 1:intro,
+                    2:sndtrk90s, 3:event14, 4:sndtrk30s, 5:outtro)
+
+        Raises:
+            N/A
+
+        Returns:
+            (str, str)
+                Token indicating that next track is now current track, URL to
+                    the next track.
 
         """
         head = "_".join(token.split("_")[:3])
@@ -583,27 +627,23 @@ class Scenario(object):
         """Given a string token, determine the previous track.
 
         Args:
-            token : (str)
-                The token to parse.
+            token (str): The token to parse.
                 ("session_02.01.1.1_track_01_playlist_01.00_02.02.90_03.14_04.02.30_05.22",
-                rank02, arctic01, sfx1, sndtrk1, current track01, 1:intro, 2:sndtrk90s,
-                3:event14, 4:sndtrk30s, 5:outtro)
+                    rank02, arctic01, sfx1, sndtrk1, current track01, 1:intro,
+                    2:sndtrk90s, 3:event14, 4:sndtrk30s, 5:outtro)
 
-            double : (bool)
-                In SDK 1.0, the reported token is always the next one in the queue, meaning it is one track ahead
-                of the actual current track. In order to fetch previous track, we must subtrack TWO
-                from the current token, not just one.
-
+            double (bool): In SDK 1.0, the reported token is always the next
+                one in the queue, meaning it is one track ahead of the actual
+                current track. In order to fetch previous track, we must
+                subtract TWO from the current token, not just one.
 
         Raises:
             N/A
 
         Returns:
-            str
-                Token indicating that previous track is now current track.
-
-            str
-                The URL to the previous track.
+            (str, str)
+                Token indicating that previous track is now current track, URL
+                    to the previous track.
 
         """
         head = "_".join(token.split("_")[:3])
@@ -621,7 +661,8 @@ class Scenario(object):
         if trackNum == 0:
             (newToken, filename) = self.getFirstTrackFromToken(newToken)
         else:
-            print("Fetching track for previous token: {}".format(newToken))
+            msg = "Fetching track for previous token: {}".format(newToken)
+            LOGGER.info(msg)
             filename = self.getTrackFromToken(newToken)
         if not filename:
             filename = self.getTrackFromToken(token)
@@ -629,13 +670,10 @@ class Scenario(object):
         return newToken, filename
 
     def getTrackFromToken(self, token):
-        """Given a token like
-        "session_10.1.1_track_01_playlist_01.00.A_02.02.120_03.05.Avalanche.00_04.02.120_05.03.IceBreak.00_06.02.120_07.02.120_0",
-        retrieve track like 'https://s3.amazonaws.com/dart-battle-resources/event_Arctic_10_OneToOne_Intel_Team_07.mp3'
+        """Given a token, retrieve the URL to a track.
 
         Args:
-            token : (str)
-                The token to parse.
+            token (str): The token to parse.
 
         Raises:
             N/A
@@ -645,10 +683,11 @@ class Scenario(object):
                 URL to the requested track.
 
         """
+        LOGGER.info("Getting track from token")
         sessionInfo = token.split("_")[1]
         trackNum = token.split("_")[3]
         playlist = token.split("_")[5:]
-        print("Token is {}".format(token))
+        LOGGER.debug("Token is {}".format(token))
         # print("Session Info is {}".format(sessionInfo))
         # print("Track Info is {}".format(trackNum))
         # print("Playlist is {}".format(playlist))
@@ -661,14 +700,14 @@ class Scenario(object):
             self.userSession.usingTeams = 'True'
         else:
             self.userSession.usingTeams = 'False'
-        print("Current track is {}".format(trackNum))
+        LOGGER.debug("Current track is {}".format(trackNum))
         currentTrack = None
         for track in playlist:
             if track.startswith(trackNum):
                 currentTrack = track
                 break
         if not currentTrack:
-            print("No current track determined.")
+            LOGGER.warning("No current track determined.")
             return None
         trackType = currentTrack.split(".")[1]
         if int(trackType) == EventCategories.Promo.value:
@@ -683,7 +722,7 @@ class Scenario(object):
         elif int(trackType) == EventCategories.Outtro.value:
             return self.outtro
         elif int(trackType) == EventCategories.Tail.value:
-            print("Returning Tail of {}".format(self.tail))
+            LOGGER.debug("Returning Tail of {}".format(self.tail))
             return self.tail
         elif int(trackType) == EventCategories.Soundtrack.value:
             path = self.playlist.soundtrack
@@ -696,6 +735,7 @@ class Scenario(object):
             return path
 
         # Looks like we have an event
+        LOGGER.debug("Event-type discovered.")
         if teams == '1':
             teamToken = 'Team'
         else:
@@ -704,13 +744,15 @@ class Scenario(object):
         roles = ".".join(roles)
         kwargs = {
             "userRank": playerRank,
-            "eventCategory": [x.name for x in EventCategories if x.value == int(trackType)][0],
+            "eventCategory": [x.name for x in EventCategories
+                              if x.value == int(trackType)][0],
             "eventTitle": currentTrack.split(".")[2],
             "teamToken": teamToken,
             "roles": roles
         }
         track = self.playlist.getEventWithProperties(**kwargs)
         if not track:
+            LOGGER.warning("Track resolution failed. Returning error track.")
             return "https://s3.amazonaws.com/dart-battle-resources/errorBattle_01.mp3"
 
         return track
