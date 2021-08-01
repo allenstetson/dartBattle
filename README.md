@@ -15,7 +15,8 @@ Amazon Alexa skill for augmented play with foam-based weaponry.
   * [Rank](#rank)
   * [Victories](#victories)
   * [Rules](#rules)
-  * []()
+  * [To Do](#to-do)
+* [Technical Documentation](#technical-documentation)
 
 ### Summary
 Dart Battle is a fully featured game companion built for Amazon Alexa, which provides players using foam-based projectile weapons with features such as timed battles, soundtracks, vivid scenarios with dialog and sound effects, rules, score keeping, premium DLC, team building, team role assignments, rank advancement, and random events mid-game with a variety of objectives.
@@ -44,6 +45,7 @@ Commands available to the user are:
 * VICTORIES
   * "Record a victory"
   * "Tell me the victories"
+  * "Tell me the victories for _", where the user specifies the name of the team or player for which to list victories
   * "Clear all victories"
   * "Clear victories for _", where the user specifies the name of the team or player for which to clear victories
 * PROTOCOLS
@@ -142,8 +144,40 @@ Events provide interruptions during battle, issuing new objectives to players, t
 Events can be turned off, if players prefer just music while they play, without any dialog, sound effects, or random events. To do this, players simply ask Dart Battle to "disable events". They can be re-enabled by asking Dart Battle to "enable events".
 
 #### Rank
+Dart Battle rewards loyal players! It keeps track of the number of battles that a user has invoked, and increases the user's rank based on the number of battles played. Rank advancement is as follows:
 
+* 1: Private
+* 5: Corporal
+* 15: Sergeant
+* 30: Lieutenant
+* 60: Captain
+* 100: Lieutenant Colonel
+* 140: Colonel
+* 175: Brigadier General
+* 200: Major General
+* 250: Lieutenant General
+* 300: General
+
+As users advance in rank, they are addressed by the appropriate rank whenever Dart Battle is started up, and throughout certain interactions with Dart Battle. Upon earning a promotion, when Dart Battle starts up, a congratulatory message is played for the user.  Upon achieving Lieutenant Colonel, special greetings reserved for high-ranking officers are played when starting Dart Battle and during certain interactions with Dart Battle.
+
+A user can check their current rank and how many battles are left before promotion by asking Dart Battle "What's my rank?".
 
 #### Victories
+Dart Battle can keep track of the victories for teams or individuals. This information is stored in a database and persists between sessions.
+
+Upon asking Dart Battle to "record a victory", the victor's name is prompted. The user may provide a team name or the name of an individual, and a record is created for that player if it does not already exist. If it exists, the number of victories is incremented.
+
+Upon asking Dart Battle to "tell me the victories", if any victories were recorded for the current day, the response begins with the top player of the day, and then lists victories from highest to lowest for the day. The response then includes lifetime victories, starting with the top player of all time and then listing the three top lifetime players along with their scores.  The user may ask Dart Battle to "tell me the victories for _" where they specify a name. In that case, today's total and the lifetime total victories for that individual or team is reported.
+
+If the user wishes to reset victories for everyone across the lifetime of the skill, they may ask Dart Battle to "Clear All Victories". If they wish to clear all victories for a specific team or player, they can specify the name, asking Dart Battle to "Clear victories for _" and specifying the desired name.
+
 #### Rules
+The rules can be accessed by asking Dart Battle "How do I play", and provide a generic framework for gameplay and safety that players can leverage to settle disputes or to get started. In reality, any gameplay rules can be specified by players amongst themselves, and they can still use Dart Battle to supplement their gameplay. Rules specify scoring points by hitting opposing players with foam-based projectiles, being careful to point out that headshots do not count. It specifies a cooldown after getting hit of 5 seconds before a player can rejoin the battle. It prompts users to be courteous and use good sportsmanship to settle disputes, to wear eye protection, and to have fun.
+
+#### To Do
+[] "Clear All Victories for Today" - allowing players to clear today's victories without affecting lifetime stats.
+
+### Technical Documentation
+
+tech docs go here.
 
