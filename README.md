@@ -107,39 +107,39 @@ Events provide interruptions during battle, issuing new objectives to players, t
 * Drop And Roll
   * For scenarios including fire, this forces players to drop and roll, or else suffer negative points. This forces people in strategic nests to leave their cover momentarily, giving opponents a chance to hit them.
 * Duel
- * This scenario pits two opposing team members against one another, allowing one to be a hero by scoring bonus points for their team.
+  * This scenario pits two opposing team members against one another, allowing one to be a hero by scoring bonus points for their team.
 * Exclusive Shot
- * For the remainder of the event, this event gives one and only one player the ability to fire, while all others are restricted from discharging their weapon under penalty of negative points.
+  * For the remainder of the event, this event gives one and only one player the ability to fire, while all others are restricted from discharging their weapon under penalty of negative points.
 * Hold On
- * For scenarios including earthquakes, large explosives, etc., this event forces players to run to a fixed object and hold on for the duration of the event. This might draw some opponents out of hiding.
+  * For scenarios including earthquakes, large explosives, etc., this event forces players to run to a fixed object and hold on for the duration of the event. This might draw some opponents out of hiding.
 * Lay Down
- * All players must lay prone on the ground for the remainder of the event. This may render opponents more or less vulnerable, depending on their position.
+  * All players must lay prone on the ground for the remainder of the event. This may render opponents more or less vulnerable, depending on their position.
 * Pair Up
- * For team play, this event forces teams to find a buddy with whom to pair before the end of the event, or risk suffering negative points.
+  * For team play, this event forces teams to find a buddy with whom to pair before the end of the event, or risk suffering negative points.
 * Protect
- * For team play, this event forces members of a team to protect one specified member. The team suffers negative points if the specified member is hit.
+  * For team play, this event forces members of a team to protect one specified member. The team suffers negative points if the specified member is hit.
 * Reset
- * This event forces players to return to their starting locations, and it wipes out the score thus far in battle. This can be a real game changer, allowing an underdog team the chance at a surprise victory.
+  * This event forces players to return to their starting locations, and it wipes out the score thus far in battle. This can be a real game changer, allowing an underdog team the chance at a surprise victory.
 * Resupply
- * This event restricts any discharge of weapons until a player has acquired the specified number of additional foam projectiles. This gives teams a chance to reload weapons without fear of being hit.
+  * This event restricts any discharge of weapons until a player has acquired the specified number of additional foam projectiles. This gives teams a chance to reload weapons without fear of being hit.
 * Retreat
- * This event forces teams to regroup behind their lines, and may significantly change the battlefield during battle.
+  * This event forces teams to regroup behind their lines, and may significantly change the battlefield during battle.
 * Specific Target
- * This event specifies a single opposing team member that must be hit before the end of the event. Teams have the chance to score bonus points if that specified member is hit.
+  * This event specifies a single opposing team member that must be hit before the end of the event. Teams have the chance to score bonus points if that specified member is hit.
 * Shelter
- * This event forces players to find an enclosed space or a space that provides cover from above until the end of the event.
+  * This event forces players to find an enclosed space or a space that provides cover from above until the end of the event.
 * Split Up
- * This event forces team members to maintain a minimum distance between friendly team members until the conclusion of the event, potentially breaking up strategic nests or partnerships for a time.
+  * This event forces team members to maintain a minimum distance between friendly team members until the conclusion of the event, potentially breaking up strategic nests or partnerships for a time.
 * Tag Feature
- * This event requires team members to reach a specified target before the conclusion of the event. This target might be a light, a door, a plant, etc. This has the potential to break up teams and close the distance with opponents.
+  * This event requires team members to reach a specified target before the conclusion of the event. This target might be a light, a door, a plant, etc. This has the potential to break up teams and close the distance with opponents.
 * Tag In Order
- * This event specifies multiple targets that must be reached in a particular order. These targets are likely team members from youngest to oldest, shortest hair to longest, etc. This has the potential to introduce confusion, chatter, and hopefully laughter in the midst of battle.
+  * This event specifies multiple targets that must be reached in a particular order. These targets are likely team members from youngest to oldest, shortest hair to longest, etc. This has the potential to introduce confusion, chatter, and hopefully laughter in the midst of battle.
 * Tag Many To One
- * This event forces team members to tag one specific team member before the conclusion of the event. For instance, everyone must reach the team captain under penalty of negative points.
+  * This event forces team members to tag one specific team member before the conclusion of the event. For instance, everyone must reach the team captain under penalty of negative points.
 * Tag One To Many
- * This event forces one team member to reach as many friendly team members as possible before the conclusion of the event. For instance, the medic must reach as many team mates as possible, with bonus points for each one reached.
+  * This event forces one team member to reach as many friendly team members as possible before the conclusion of the event. For instance, the medic must reach as many team mates as possible, with bonus points for each one reached.
 * Zero Eliminations
- * This rare event rewards teams who have protected at least one team member from any eliminations by allowing the team to halve all points against them at the end of the battle.
+  * This rare event rewards teams who have protected at least one team member from any eliminations by allowing the team to halve all points against them at the end of the battle.
 
 Events can be turned off, if players prefer just music while they play, without any dialog, sound effects, or random events. To do this, players simply ask Dart Battle to "disable events". They can be re-enabled by asking Dart Battle to "enable events".
 
@@ -175,7 +175,7 @@ If the user wishes to reset victories for everyone across the lifetime of the sk
 The rules can be accessed by asking Dart Battle "How do I play", and provide a generic framework for gameplay and safety that players can leverage to settle disputes or to get started. In reality, any gameplay rules can be specified by players amongst themselves, and they can still use Dart Battle to supplement their gameplay. Rules specify scoring points by hitting opposing players with foam-based projectiles, being careful to point out that headshots do not count. It specifies a cooldown after getting hit of 5 seconds before a player can rejoin the battle. It prompts users to be courteous and use good sportsmanship to settle disputes, to wear eye protection, and to have fun.
 
 #### To Do
-[] "Clear All Victories for Today" - allowing players to clear today's victories without affecting lifetime stats.
+[ ] "Clear All Victories for Today" - allowing players to clear today's victories without affecting lifetime stats.
 
 ### Technical Documentation
 
