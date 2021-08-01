@@ -18,17 +18,17 @@ Amazon Alexa skill for augmented play with foam-based weaponry.
   * [To Do](#to-do)
 * [Technical Documentation](#technical-documentation)
 
-### Summary
+## Summary
 Dart Battle is a fully featured game companion built for Amazon Alexa, which provides players using foam-based projectile weapons with features such as timed battles, soundtracks, vivid scenarios with dialog and sound effects, rules, score keeping, premium DLC, team building, team role assignments, rank advancement, and random events mid-game with a variety of objectives.
 
-### Features
+## Features
 
-#### Introduction & Help
+### Introduction & Help
 Dart Battle utilizes Amazon's DynamoDB to maintain an awareness of a user's history with the game, and is therefore capable of detecting when a user is new to Dart Battle. Upon a user's first visit, they will be greeted with a special message from the "Commander" and given the option to listen to the help information.
 
 The help information is available at any time to anyone by invoking Alexa's standard Help Intent ("Alexa, help" or similar). This feature playsa short audio clip from the Commander asking your "Tactical Computer" to list available commands. Following that, Alexa's voice simulator walks the user through the numerous available commands.
 
-#### Commands
+### Commands
 Commands available to the user are:
 * TEAMS
   * "Setup teams"
@@ -58,10 +58,10 @@ Commands available to the user are:
   * "How do I play"
   * "More Options"
 
-#### Rich Media
+### Rich Media
 Dart Battle supports Alexa devices with screens, and will display cards with images and text whenever a response is provided. During the battle, Amazon's audio player is displayed along with the Dart Battle artwork and standard playback controls.
 
-#### Teams
+### Teams
 Dart Battle supports the creation of two or more teams, randomly assigning individuals to teams, designating a captain, and assigning random combat roles to other team members. When forming a team, Dart Battle asks for the number of players, and then for each player's name (optionally, a user may provide player numbers or nicknames). That list is divided by the number of teams desired, ensuring that team sizes are as consistent as possible (the code contains checks to prevent a user asking for more teams than there are available players). The result is then read aloud to the user.
 
 At any point, the user may ask for Dart Battle to "Tell me the teams" at which place the existing teams and roles are read aloud to the user.
@@ -72,7 +72,7 @@ The user may elect to "Clear the teams" returning Dart Battle to an individual, 
 
 Some random events are only applicable to teams. Therefore, playing Dart Battle in team mode will result in a more unpredictable battle with the potential for more varied objectives. Roles are only applicable to team play.
 
-#### Roles
+### Roles
 Players who join teams will be assigned roles to enrich their imaginative gameplay and to potentially give them exclusive tasks through events.  Each team needs a captain, so one member of the team will receive that role always. Additional roles are:
 * Communication Specialist (available through a secret code, aka. "protocol", provided to users who complete challenges on https://dartbattle.fun)
 * Computer Specialist
@@ -90,7 +90,7 @@ Players who join teams will be assigned roles to enrich their imaginative gamepl
 
 Roles not only give players some imaginative prompts to help them play out fantasies on the battlefield, but may also enable specific members of the team to earn points for their team by completing objectives exclusive to their role through random [events](#events).
 
-#### Battles
+### Battles
 Battles provide players with a framework within which to carry out their competitive gameplay at home. They provide a clear beginning and end to the battle, helping to reduce conflict between players, and provide rich imaginative play through music, characters, and dialog which are themed to different locations, conditions, and eras in history. Battles are comprised of sections of music which can be as short as 30 seconds and as long as 2 minutes. By specifying a duration for a battle, the user causes the code to divide the user's requested number of minutes into smaller chunks, allowing the insertion of one or more events, and using the available sections of music to form a battle of the desired length.  The default battle length is 5 minutes which allows for two events during the battle.
 
 Once the battle is formed, an introduction unique to the randomly-chosen scenario is prepended, along with a clear countdown until the start of battle. This allows players to get into their starting positions, behind cover or in strategic positions, before battle begins.
@@ -99,7 +99,7 @@ Once the battle concludes, a reminder is issued for the user to record the victo
 
 Due to limitations imposed by Amazon on apps that trigger audio playback using the Audio Directives, the skill exits after a battle, and the user is free to start Dart Battle again or to reinvoke Dart Battle by saying "Alexa, tell Dart Battle to _", such as "record a victory" or "start a battle".
 
-#### Events
+### Events
 Events provide interruptions during battle, issuing new objectives to players, thereby changing the dynamics of gameplay for players and using dialog and sound effects to reinforce the theme of the chosen scenario.  Each scenario has unique events with unique dialog and sound effects, but they all fall into the following categories:
 
 * Cease Fire
@@ -143,7 +143,7 @@ Events provide interruptions during battle, issuing new objectives to players, t
 
 Events can be turned off, if players prefer just music while they play, without any dialog, sound effects, or random events. To do this, players simply ask Dart Battle to "disable events". They can be re-enabled by asking Dart Battle to "enable events".
 
-#### Rank
+### Rank
 Dart Battle rewards loyal players! It keeps track of the number of battles that a user has invoked, and increases the user's rank based on the number of battles played. Rank advancement is as follows:
 
 * 1: Private
@@ -162,7 +162,7 @@ As users advance in rank, they are addressed by the appropriate rank whenever Da
 
 A user can check their current rank and how many battles are left before promotion by asking Dart Battle "What's my rank?".
 
-#### Victories
+### Victories
 Dart Battle can keep track of the victories for teams or individuals. This information is stored in a database and persists between sessions.
 
 Upon asking Dart Battle to "record a victory", the victor's name is prompted. The user may provide a team name or the name of an individual, and a record is created for that player if it does not already exist. If it exists, the number of victories is incremented.
@@ -171,13 +171,13 @@ Upon asking Dart Battle to "tell me the victories", if any victories were record
 
 If the user wishes to reset victories for everyone across the lifetime of the skill, they may ask Dart Battle to "Clear All Victories". If they wish to clear all victories for a specific team or player, they can specify the name, asking Dart Battle to "Clear victories for _" and specifying the desired name.
 
-#### Rules
+### Rules
 The rules can be accessed by asking Dart Battle "How do I play", and provide a generic framework for gameplay and safety that players can leverage to settle disputes or to get started. In reality, any gameplay rules can be specified by players amongst themselves, and they can still use Dart Battle to supplement their gameplay. Rules specify scoring points by hitting opposing players with foam-based projectiles, being careful to point out that headshots do not count. It specifies a cooldown after getting hit of 5 seconds before a player can rejoin the battle. It prompts users to be courteous and use good sportsmanship to settle disputes, to wear eye protection, and to have fun.
 
-#### To Do
+### To Do
 [ ] "Clear All Victories for Today" - allowing players to clear today's victories without affecting lifetime stats.
 
-### Technical Documentation
+## Technical Documentation
 
 tech docs go here.
 
