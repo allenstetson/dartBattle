@@ -36,8 +36,8 @@ import rank
 import teams
 
 
-logger = logging.getLogger()
-logger.setLevel(logging.INFO)
+LOGGER = logging.getLogger()
+LOGGER.setLevel(logging.INFO)
 
 
 # =============================================================================
@@ -202,7 +202,7 @@ def getWelcomeResponse(session):
     if isNewRank:
         promotionFile = playlists.GetRankPromotionFile(rankNum)
         msg = "Received a promotion track to play: {}".format(promotionFile)
-        logger.info(msg)
+        LOGGER.info(msg)
         promotion += "<audio src=\"{}\" />".format(promotionFile)
         session.playerRank = rankNum
         title = "Congratulations!"
