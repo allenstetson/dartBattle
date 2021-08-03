@@ -1618,17 +1618,51 @@ class VictoriesRecordHandler(AbstractRequestHandler):
 # Request and Response Loggers
 # =============================================================================
 class RequestLogger(AbstractRequestInterceptor):
-    """Log the request envelope."""
+    """Log the request envelope.
+    
+    The request envelope contains all information from the session including
+    user ID, slots and values, etc.
+
+    This is a request interceptor, allowing the interception of logging data
+    which can be scraped and sent to CloudWatch through `logger`.
+
+    """
     def process(self, handler_input):
-        # type: (HandlerInput) -> None
+        """Pull the request envelope from the handler and log it to CloudWatch.
+
+        Args:
+            handler_input (ask_sdk_core.handler_input.HandlerInput): The input
+                from Alexa.
+
+        Returns:
+            None
+
+        """
         logger.info("Request Envelope: {}".format(
             handler_input.request_envelope))
 
 
 class ResponseLogger(AbstractResponseInterceptor):
-    """Log the response envelope."""
+    """Log the response envelope.
+    
+    Handlers return responses which are interpreted by the Amazon device. This
+    object intercepts the passing of that response, allowing us to log the
+    response to CloudWatch.
+
+    Returns:
+        None
+
+    """
     def process(self, handler_input, response):
-        # type: (HandlerInput, Response) -> None
+        """Pass the response on to the logger.
+
+        Args:
+            handler_input (ask_sdk_core.handler_input.HandlerInput): The input
+                from Alexa.
+
+            response (ask_sdk_model.Response): The response to Alexa.
+
+        """
         logger.info("Response: {}".format(response))
 
 
@@ -1676,5 +1710,3 @@ sb.add_request_handler(BuyResponseHandler())
 sb.add_global_request_interceptor(RequestLogger())
 sb.add_global_response_interceptor(ResponseLogger())
 handler = sb.lambda_handler()
-
-# {'version': '1.0', 'session': {'new': True, 'session_id': 'amzn1.echo-api.session.103a01a9-09b2-4223-a97c-d54c298efc82', 'user': {'user_id': 'amzn1.ask.account.AHQ53A7TTH5ELGE4FJB6RLVARNQ6DCN6EMDSUXCL5VDY4SDYTJGIC2A5EGNQMZNGF2HCOQJ242OVAEEZFQOIE3I246UXWKZGEOTXAVZWNVPJOCOHKSGFOKYG2KYWZI7CIPIEK2IHSGMANP3HX36MPPZKIS4A7KVEFRXLZNFXXOAFARCXOL3IIFBRUT5C67KDO27HH7HCF24IG7I', 'access_token': None, 'permissions': None}, 'attributes': None, 'application': {'application_id': 'amzn1.ask.skill.d1311184-0f57-46e8-ab59-879027130a28'}}, 'context': {'system': {'application': {'application_id': 'amzn1.ask.skill.d1311184-0f57-46e8-ab59-879027130a28'}, 'user': {'user_id': 'amzn1.ask.account.AHQ53A7TTH5ELGE4FJB6RLVARNQ6DCN6EMDSUXCL5VDY4SDYTJGIC2A5EGNQMZNGF2HCOQJ242OVAEEZFQOIE3I246UXWKZGEOTXAVZWNVPJOCOHKSGFOKYG2KYWZI7CIPIEK2IHSGMANP3HX36MPPZKIS4A7KVEFRXLZNFXXOAFARCXOL3IIFBRUT5C67KDO27HH7HCF24IG7I', 'access_token': None, 'permissions': None}, 'device': {'device_id': 'amzn1.ask.device.AES4DYXDO3B5ZTCVMKGUESOVSANNWHO3V7N3DP2RWW4LXYSCB3DIY6HR524ZVFNOOKQJAKGCCSR5YURCYK4UCQVX6KVB6WMV4VYEE23ND3MFK7IQWOD724XDPA7I6PBUZCXTQ4GKV4FFUFQSD3G4VORXTHXQ', 'supported_interfaces': {'audio_player': {}, 'display': None, 'video_app': None}}, 'api_endpoint': 'https://api.amazonalexa.com', 'api_access_token': 'eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiIsImtpZCI6IjEifQ.eyJhdWQiOiJodHRwczovL2FwaS5hbWF6b25hbGV4YS5jb20iLCJpc3MiOiJBbGV4YVNraWxsS2l0Iiwic3ViIjoiYW16bjEuYXNrLnNraWxsLmQxMzExMTg0LTBmNTctNDZlOC1hYjU5LTg3OTAyNzEzMGEyOCIsImV4cCI6MTUzNzUwOTQ3OSwiaWF0IjoxNTM3NTA1ODc5LCJuYmYiOjE1Mzc1MDU4NzksInByaXZhdGVDbGFpbXMiOnsiY29uc2VudFRva2VuIjpudWxsLCJkZXZpY2VJZCI6ImFtem4xLmFzay5kZXZpY2UuQUVTNERZWERPM0I1WlRDVk1LR1VFU09WU0FOTldITzNWN04zRFAyUldXNExYWVNDQjNESVk2SFI1MjRaVkZOT09LUUpBS0dDQ1NSNVlVUkNZSzRVQ1FWWDZLVkI2V01WNFZZRUUyM05EM01GSzdJUVdPRDcyNFhEUEE3STZQQlVaQ1hUUTRHS1Y0RkZVRlFTRDNHNFZPUlhUSFhRIiwidXNlcklkIjoiYW16bjEuYXNrLmFjY291bnQuQUhRNTNBN1RUSDVFTEdFNEZKQjZSTFZBUk5RNkRDTjZFTURTVVhDTDVWRFk0U0RZVEpHSUMyQTVFR05RTVpOR0YySENPUUoyNDJPVkFFRVpGUU9JRTNJMjQ2VVhXS1pHRU9UWEFWWldOVlBKT0NPSEtTR0ZPS1lHMktZV1pJN0NJUElFSzJJSFNHTUFOUDNIWDM2TVBQWktJUzRBN0tWRUZSWExaTkZYWE9BRkFSQ1hPTDNJSUZCUlVUNUM2N0tETzI3SEg3SENGMjRJRzdJIn19.G16Z8BEynj3TX9TEILQL-rGjCClSQZR2oW59iJB0ClR2d5fvrtHSWpjYny9xVdx36PvgQIoL_jlUgHlClNciKAwomsBg8YvH4yTBSTGfvxZohsr4Feui-oY7I79-vd3WT1H0tg-HOcmnXjv_k_PfGzdrYE49ZIhJqMRNy0epTKMo9edTmhWweMB2PldmNMC27BJg2jXaxsp2HxBVig3gY-SsYsUI7QqxfQsN9GhYxFxEu7Cvdv3r4685LPIpAsqDpuDRCi_TL47hA9HLjdjX5qpyN3lt2cfpj8D22wQXUlTt_9JCubDPGADdcB-ByvMzLgcLoDthKtNdvxoX4v5ddw'}, 'audio_player': {'offset_in_milliseconds': None, 'token': None, 'player_activity': 'IDLE'}, 'display': None}, 'request': {'object_type': 'LaunchRequest', 'request_id': 'amzn1.echo-api.request.c75e2ea9-a482-4bfa-9d62-14dad9ca87ef', 'timestamp': datetime.datetime(2018, 9, 21, 4, 57, 59, tzinfo=tzlocal()), 'locale': 'en-US'}}
