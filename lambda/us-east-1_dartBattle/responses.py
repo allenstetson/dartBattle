@@ -1,3 +1,12 @@
+###############################################################################
+# Copyright (c) 2019 Allen Stetson, allen.stetson@gmail.com
+# All rights reserved. No duplication allowed.
+#
+# This file is part of DartBattle.
+#
+# DartBattle may not be copied and/or distributed without the express
+# permission of Allen Stetson.
+###############################################################################
 """
 responses.py
 Contains the responses to intents that pertain to the main skill menu.
