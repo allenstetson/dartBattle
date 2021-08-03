@@ -72,8 +72,8 @@ import victories
 
 sb = StandardSkillBuilder()
 
-logger = logging.getLogger()
-logger.setLevel(logging.INFO)
+LOGGER = logging.getLogger()
+LOGGER.setLevel(logging.INFO)
 
 
 # =============================================================================
@@ -606,7 +606,7 @@ class ProductShopHandler(AbstractRequestHandler):
             ask_sdk_model.response.Response: Response for this intent & device.
 
         """
-        logger.info("In ProductShopHandler")
+        LOGGER.info("In ProductShopHandler")
         userSession = session.DartBattleSession(handler_input)
         productName = userSession.request.slots["ProductName"]["value"]
         if productName and userSession.request.slots["ProductName"]["status"] \
@@ -659,7 +659,7 @@ class UpsellResponseHandler(AbstractRequestHandler):
                 handler_input.request_envelope.request.name == "Upsell")
 
     def handle(self, handler_input):
-        logger.info("In UpsellResponseHandler")
+        LOGGER.info("In UpsellResponseHandler")
 
         if handler_input.request_envelope.request.status.code == "200":
             if handler_input.request_envelope.request.payload.get(
@@ -671,7 +671,7 @@ class UpsellResponseHandler(AbstractRequestHandler):
         else:
             msg = "Connections.Response indicated failure. Error: {}"
             msg = msg.format(handler_input.request_envelope.request.status.message)
-            logger.info(msg)
+            LOGGER.info(msg)
             return handler_input.response_builder.speak(
                 "There was an error handling your Upsell request. "
                 "Please try again or contact us for help.").response
@@ -710,7 +710,7 @@ class ProductDetailHandler(AbstractRequestHandler):
             ask_sdk_model.response.Response: Response for this intent & device.
 
         """
-        logger.info("In ProductDetailHandler")
+        LOGGER.info("In ProductDetailHandler")
         userSession = session.DartBattleSession(handler_input)
         inSkillResponse = userSession.monetizationData
 
@@ -721,10 +721,10 @@ class ProductDetailHandler(AbstractRequestHandler):
             return handler_input.response_builder.speak(speech).ask(
                 reprompt).response
 
-        logger.info("inSkillResponse: {}".format(inSkillResponse))
+        LOGGER.info("inSkillResponse: {}".format(inSkillResponse))
         productName = userSession.request.slots["ProductName"]["value"]
         productName = productName.replace(" ", "_").replace("'", "")
-        logger.info("Product Name passed in: {}".format(productName))
+        LOGGER.info("Product Name passed in: {}".format(productName))
 
         # No entity resolution match
         if productName is None:
@@ -786,7 +786,7 @@ class BuyHandler(AbstractRequestHandler):
             ask_sdk_model.response.Response: Response for this intent & device.
 
         """
-        logger.info("In BuyHandler")
+        LOGGER.info("In BuyHandler")
         if not userSession:
             userSession = session.DartBattleSession(handler_input)
 
@@ -800,7 +800,7 @@ class BuyHandler(AbstractRequestHandler):
 
             #productId = userSession.request.slots["ProductName"]["id"]
             msg = "Sending Buy directive for product id '{}'"
-            logger.info(msg, productId)
+            LOGGER.info(msg, productId)
             return handler_input.response_builder.add_directive(
                 SendRequestDirective(
                     name="Buy",
@@ -841,7 +841,7 @@ class BuyResponseHandler(AbstractRequestHandler):
             ask_sdk_model.response.Response: Response for this intent & device.
 
         """
-        logger.info("In BuyResponseHandler")
+        LOGGER.info("In BuyResponseHandler")
         userSession = session.DartBattleSession(handler_input)
         inSkillResponse = userSession.monetizationData
         print("PAYLOAD: {}".format(handler_input.request_envelope.request.payload))
@@ -853,7 +853,7 @@ class BuyResponseHandler(AbstractRequestHandler):
             print("IN_SKILL_PRODUCTS: {}".format(inSkillResponse.in_skill_products))
             product = [l for l in inSkillResponse.in_skill_products
                        if l.product_id == productId]
-            logger.info("Product = {}".format(str(product)))
+            LOGGER.info("Product = {}".format(str(product)))
             if handler_input.request_envelope.request.status.code == "200":
                 speech = None
                 reprompt = None
@@ -873,19 +873,19 @@ class BuyResponseHandler(AbstractRequestHandler):
                               "Start a battle? Exit? ".format(product[0].name))
                     reprompt = "What next?  Start a battle? Exit? "
                 elif purchaseResult == PurchaseResult.ALREADY_PURCHASED.value:
-                    logger.info("Already purchased product")
+                    LOGGER.info("Already purchased product")
                     speech = " What next?  Start a battle? Exit? "
                     reprompt = "What next?  Start a battle? Exit? "
                 else:
                     # Invalid purchase result value
-                    logger.info("Purchase result: {}".format(purchaseResult))
+                    LOGGER.info("Purchase result: {}".format(purchaseResult))
                     return FallbackIntentHandler().handle(handler_input)
 
                 return handler_input.response_builder.speak(speech).ask(
                     reprompt).response
             else:
                 msg = "Connections.Response (code {}) indicated failure. "
-                logger.info(
+                LOGGER.info(
                     msg.format(
                         handler_input.request_envelope.request.status.code
                     ) + "Error: {}".format(
@@ -926,7 +926,7 @@ class FallbackIntentHandler(AbstractRequestHandler):
             ask_sdk_model.response.Response: Response for this intent & device.
 
         """
-        logger.info("In FallbackIntentHandler")
+        LOGGER.info("In FallbackIntentHandler")
         speech = (
             "Sorry. I cannot help with that. "
             "For help, say , 'Help me'... Now, what can I do for you?"
@@ -1659,7 +1659,7 @@ class RequestLogger(AbstractRequestInterceptor):
             None
 
         """
-        logger.info("Request Envelope: {}".format(
+        LOGGER.info("Request Envelope: {}".format(
             handler_input.request_envelope))
 
 
@@ -1684,7 +1684,7 @@ class ResponseLogger(AbstractResponseInterceptor):
             response (ask_sdk_model.Response): The response to Alexa.
 
         """
-        logger.info("Response: {}".format(response))
+        LOGGER.info("Response: {}".format(response))
 
 
 # =============================================================================
