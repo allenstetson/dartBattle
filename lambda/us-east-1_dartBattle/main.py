@@ -3,7 +3,7 @@ Dart Battle
 
 This is the main entry point for Dart Battle, configured as such in `AWS
 Lambda`.  At its core is Amazon Alexa's `StandardSkillBuilder` which
-empowers Alexa to interact with the code through request handlers, 
+empowers Alexa to interact with the code through request handlers,
 defined throughout the module, and registered at the bottom of the
 module. Handlers include all required standard handlers as well as all
 custom handlers, and Audio Directive handlers, as defined by Amazon.
@@ -29,41 +29,31 @@ from the python import path, and are therefore imported directly.
 
 # Std Lib imports:
 import logging
-import os
 import random
 
 # Amazon imports
-from ask_sdk_core.dispatch_components import AbstractRequestHandler
+from ask_sdk_core.dispatch_components import (
+    AbstractRequestHandler,
+    AbstractRequestInterceptor, AbstractResponseInterceptor)
 from ask_sdk_core.utils import is_request_type, is_intent_name
+from ask_sdk_model import DialogState
+from ask_sdk_model.dialog import DelegateDirective
 from ask_sdk_model.interfaces import audioplayer
 from ask_sdk_model.interfaces.audioplayer.audio_player_state import AudioPlayerState
-from ask_sdk_model.ui import SimpleCard, StandardCard
-from ask_sdk_core.skill_builder import SkillBuilder
 from ask_sdk_model.interfaces.audioplayer import (
     PlayDirective, PlayBehavior, AudioItem, Stream, AudioItemMetadata,
-    StopDirective, PlaybackNearlyFinishedRequest)
-from ask_sdk_model.services.monetization import (
-    EntitledState, PurchasableState, InSkillProductsResponse)
-from ask_sdk_model import (
-    Response, IntentRequest, DialogState, SlotConfirmationStatus, Slot)
-from ask_sdk_model.dialog import (
-    ElicitSlotDirective, DelegateDirective)
+    StopDirective)
 from ask_sdk_model.interfaces import display
-from ask_sdk_model.interfaces.monetization.v1 import PurchaseResult
-from ask_sdk_model.slu.entityresolution import StatusCode
-from ask_sdk_core.dispatch_components import (
-    AbstractRequestHandler, AbstractExceptionHandler,
-    AbstractRequestInterceptor, AbstractResponseInterceptor)
-from ask_sdk_core.api_client import DefaultApiClient
-from ask_sdk.standard import StandardSkillBuilder
 from ask_sdk_model.interfaces.connections import SendRequestDirective
-
-# The skill builder must be initiated prior to local module import:
-sb = StandardSkillBuilder()
+from ask_sdk_model.interfaces.monetization.v1 import PurchaseResult
+from ask_sdk_model.services.monetization import (
+    EntitledState, PurchasableState)
+from ask_sdk_model.slu.entityresolution import StatusCode
+from ask_sdk_model.ui import StandardCard
+from ask_sdk.standard import StandardSkillBuilder
 
 # DartBattle imports:
 import battle
-import database
 import protocols
 import rank
 import responses
@@ -71,15 +61,22 @@ import session
 import teams
 import victories
 
+sb = StandardSkillBuilder()
 
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
 
 
 # =============================================================================
+# GLOBALS
+# =============================================================================
+DBS3_URL = "https://s3.amazonaws.com/dart-battle-resources/"
+
+# =============================================================================
 # MAIN HANDLER
 # =============================================================================
 class LaunchRequestHandler(AbstractRequestHandler):
+    """Handler called when the skill is first initiated."""
     def can_handle(self, handler_input):
         """Inform the request handler of what intents are handled by this obj.
 
@@ -357,12 +354,12 @@ class AudioResumeHandler(AbstractRequestHandler):
         token = userSession.currentToken
         offsetInMilliseconds = int(userSession.offsetInMilliseconds)
         sessionInfo = token.split("_")[1]
-        (playerRank, scenarioEnum, teams, sfx, soundtrack) = sessionInfo.split(".")
+        scenarioEnum = sessionInfo.split(".")[1]
         scenarioName = battle.Scenarios(int(scenarioEnum)).name
 
         playlist = battle.Scenario(userSession, name=scenarioName)
         track = playlist.getTrackFromToken(token)
-        largeImg = "https://s3.amazonaws.com/dart-battle-resources/dartBattle_SB_1200x800.jpg"
+        largeImg = DBS3_URL + "dartBattle_SB_1200x800.jpg"
 
         directive = PlayDirective(
             play_behavior=PlayBehavior.REPLACE_ALL,
@@ -449,7 +446,7 @@ class AudioStopIntentHandler(AbstractRequestHandler):
         return (is_intent_name("AMAZON.CancelIntent")(handler_input) or
                 is_intent_name("AMAZON.StopIntent")(handler_input) or
                 is_intent_name("AMAZON.PauseIntent")(handler_input)
-                )
+               )
 
     def handle(self, handler_input):
         """Handle the launch request; fetch & serve the appropriate response.
@@ -485,7 +482,7 @@ class AudioUnsupported(AbstractRequestHandler):
                 is_intent_name("AMAZON.RepeatIntent")(handler_input) or
                 is_intent_name("AMAZON.ShuffleOffIntent")(handler_input) or
                 is_intent_name("AMAZON.ShuffleOnIntent")(handler_input)
-                )
+               )
 
     def handle(self, handler_input):
         """Handle the launch request; fetch & serve the appropriate response.
@@ -532,8 +529,10 @@ class BattleDurationStartHandler(AbstractRequestHandler):
         speech, cardTitle, cardText, cardImage, directive = \
                 battle.startBattleDurationIntent(userSession)
         card = StandardCard(title=cardTitle, text=cardText, image=cardImage)
-        handler_input.response_builder.speak(speech).set_card(card).add_directive(directive).set_should_end_session(True)
-        return handler_input.response_builder.response
+        responseBuilder = handler_input.response_builder
+        responseBuilder.speak(speech).set_card(card)
+        responseBuilder.add_directive(directive).set_should_end_session(True)
+        return responseBuilder.response
 
 
 class BattleStandardStartHandler(AbstractRequestHandler):
@@ -566,8 +565,10 @@ class BattleStandardStartHandler(AbstractRequestHandler):
         speech, cardTitle, cardText, cardImage, directive = \
                 battle.startBattleStandardIntent(userSession)
         card = StandardCard(title=cardTitle, text=cardText, image=cardImage)
-        handler_input.response_builder.speak(speech).set_card(card).add_directive(directive).set_should_end_session(True)
-        return handler_input.response_builder.response
+        responseBuilder = handler_input.response_builder
+        responseBuilder.speak(speech).set_card(card)
+        responseBuilder.add_directive(directive).set_should_end_session(True)
+        return responseBuilder.response
 
 
 class ProductShopHandler(AbstractRequestHandler):
@@ -659,12 +660,13 @@ class UpsellResponseHandler(AbstractRequestHandler):
                 return handler_input.response_builder.speak(speech).ask(
                     reprompt).response
         else:
-            logger.info("Connections.Response indicated failure. "
-                       "Error: {}".format(
-                        handler_input.request_envelope.request.status.message))
+            msg = "Connections.Response indicated failure. Error: {}"
+            msg = msg.format(handler_input.request_envelope.request.status.message)
+            logger.info(msg)
             return handler_input.response_builder.speak(
                 "There was an error handling your Upsell request. "
                 "Please try again or contact us for help.").response
+        return None
 
 
 class ProductDetailHandler(AbstractRequestHandler):
@@ -728,11 +730,11 @@ class ProductDetailHandler(AbstractRequestHandler):
             product = [l for l in inSkillResponse.in_skill_products
                        if l.reference_name.lower() == productName.lower()]
             if product:
-                advertisement = "https://s3.amazonaws.com/dart-battle-resources/ad_Prospectors_01.mp3"
+                advertisement = DBS3_URL + "ad_Prospectors_01.mp3"
                 speech = ("<audio src=\"{}\" />  To buy it, say Buy {}".format(
                     advertisement,
                     product[0].name)
-                )
+                         )
                 reprompt = (
                     "I didn't catch that. To buy {}, say Buy {}".format(
                         product[0].name, product[0].name))
@@ -789,7 +791,7 @@ class BuyHandler(AbstractRequestHandler):
 
             #productId = userSession.request.slots["ProductName"]["id"]
             msg = "Sending Buy directive for product id '{}'"
-            logger.info(msg.format(productId))
+            logger.info(msg, productId)
             return handler_input.response_builder.add_directive(
                 SendRequestDirective(
                     name="Buy",
@@ -800,6 +802,7 @@ class BuyHandler(AbstractRequestHandler):
                     },
                     token="correlationToken")
             ).response
+        return None
 
 
 class BuyResponseHandler(AbstractRequestHandler):
@@ -833,40 +836,40 @@ class BuyResponseHandler(AbstractRequestHandler):
         userSession = session.DartBattleSession(handler_input)
         inSkillResponse = userSession.monetizationData
         print("PAYLOAD: {}".format(handler_input.request_envelope.request.payload))
-        product_id = handler_input.request_envelope.request.payload.get(
+        productId = handler_input.request_envelope.request.payload.get(
             "productId")
-        print("PRODUCT_ID: {}".format(product_id))
+        print("PRODUCT_ID: {}".format(productId))
 
         if inSkillResponse:
             print("IN_SKILL_PRODUCTS: {}".format(inSkillResponse.in_skill_products))
             product = [l for l in inSkillResponse.in_skill_products
-                       if l.product_id == product_id]
+                       if l.product_id == productId]
             logger.info("Product = {}".format(str(product)))
             if handler_input.request_envelope.request.status.code == "200":
                 speech = None
                 reprompt = None
-                purchase_result = handler_input.request_envelope.request.payload.get(
+                purchaseResult = handler_input.request_envelope.request.payload.get(
                     "purchaseResult")
-                if purchase_result == PurchaseResult.ACCEPTED.value:
+                if purchaseResult == PurchaseResult.ACCEPTED.value:
                     speech = ("Congratulations. {} has been added to the "
                               "random rotation of scenarios from which to "
                               "choose when you start a battle. What next?  "
                               "Start a battle? Exit? ").format(product[0].name)
                     reprompt = "What next?  Start a battle? Exit? "
-                elif purchase_result in (
+                elif purchaseResult in (
                         PurchaseResult.DECLINED.value,
                         PurchaseResult.ERROR.value,
                         PurchaseResult.NOT_ENTITLED.value):
                     speech = ("Thanks for your interest in {}.  What next?  "
                               "Start a battle? Exit? ".format(product[0].name))
                     reprompt = "What next?  Start a battle? Exit? "
-                elif purchase_result == PurchaseResult.ALREADY_PURCHASED.value:
+                elif purchaseResult == PurchaseResult.ALREADY_PURCHASED.value:
                     logger.info("Already purchased product")
                     speech = " What next?  Start a battle? Exit? "
                     reprompt = "What next?  Start a battle? Exit? "
                 else:
                     # Invalid purchase result value
-                    logger.info("Purchase result: {}".format(purchase_result))
+                    logger.info("Purchase result: {}".format(purchaseResult))
                     return FallbackIntentHandler().handle(handler_input)
 
                 return handler_input.response_builder.speak(speech).ask(
@@ -885,6 +888,7 @@ class BuyResponseHandler(AbstractRequestHandler):
                     "There was an error handling your purchase request. "
                     "Please try again or contact us for help by emailing "
                     "support at dart battle dot fun. ").response
+        return None
 
 
 class FallbackIntentHandler(AbstractRequestHandler):
@@ -915,8 +919,8 @@ class FallbackIntentHandler(AbstractRequestHandler):
         """
         logger.info("In FallbackIntentHandler")
         speech = (
-                "Sorry. I cannot help with that. "
-                "For help, say , 'Help me'... Now, what can I do for you?"
+            "Sorry. I cannot help with that. "
+            "For help, say , 'Help me'... Now, what can I do for you?"
             )
         reprompt = "I didn't catch that. What can I help you with?"
 
@@ -937,8 +941,11 @@ class CancelAndStopIntentHandler(AbstractRequestHandler):
             bool: Whether or not the current intent can be handled by this obj.
 
         """
-        return not (not is_intent_name("AMAZON.CancelIntent")(handler_input) and not is_intent_name(
-            "AMAZON.StopIntent")(handler_input) and not is_intent_name("AMAZON.PauseIntent")(handler_input))
+        return not (
+            not is_intent_name("AMAZON.CancelIntent")(handler_input)
+            and not is_intent_name("AMAZON.StopIntent")(handler_input)
+            and not is_intent_name("AMAZON.PauseIntent")(handler_input)
+            )
 
     def handle(self, handler_input):
         """ Handle the launch request; fetch & serve the appropriate response.
@@ -1036,15 +1043,18 @@ class HowToPlayHandler(AbstractRequestHandler):
             ask_sdk_model.response.Response: Response for this intent & device.
 
         """
-        speech, reprompt, cardTitle, cardText, cardImage, directive = responses.howToPlayResponse()
+        speech, reprompt, cardTitle, cardText, cardImage, directive = \
+                responses.howToPlayResponse()
         card = StandardCard(title=cardTitle, text=cardText, image=cardImage)
-        handler_input.response_builder.speak(speech).set_card(card).add_directive(directive).set_should_end_session(True)
+        responseBuilder = handler_input.response_builder
+        responseBuilder.speak(speech).set_card(card)
+        responseBuilder.add_directive(directive).set_should_end_session(True)
         return handler_input.response_builder.response
 
 
 class ProtocolToggleInProgressHandler(AbstractRequestHandler):
     """Handler: user asks 'enable'/'disable' a protocol, without specifying.
-    
+
     This uses a DelegateDirective to continue the prompt to the user for more
     information about which specific protocol to enable/disable.  Protocols are
     what Dart Battle calls secret codes to unlock special in-game content.
@@ -1075,10 +1085,10 @@ class ProtocolToggleInProgressHandler(AbstractRequestHandler):
             ask_sdk_model.response.Response: Response for this intent & device.
 
         """
-        current_intent = handler_input.request_envelope.request.intent
+        currentIntent = handler_input.request_envelope.request.intent
         return handler_input.response_builder.add_directive(
             DelegateDirective(
-                updated_intent=current_intent
+                updated_intent=currentIntent
             )).response
 
 
@@ -1249,10 +1259,10 @@ class TeamClearHandler(AbstractRequestHandler):
 
 class TeamSetupInProgressHandler(AbstractRequestHandler):
     """Handler called when user wants to form teams; prompts for more info.
-    
+
     Uses the DelegateDirective to prompt the user for number of players,
     number of teams, and player names.
-    
+
     """
     def can_handle(self, handler_input):
         """Inform the request of what intents/requests are handled by this obj.
@@ -1279,10 +1289,10 @@ class TeamSetupInProgressHandler(AbstractRequestHandler):
             ask_sdk_model.response.Response: Response for this intent & device.
 
         """
-        current_intent = handler_input.request_envelope.request.intent
+        currentIntent = handler_input.request_envelope.request.intent
         return handler_input.response_builder.add_directive(
             DelegateDirective(
-                updated_intent=current_intent
+                updated_intent=currentIntent
             )).response
 
 
@@ -1464,10 +1474,10 @@ class VictoriesClearInProgressHandler(AbstractRequestHandler):
             ask_sdk_model.response.Response: Response for this intent & device.
 
         """
-        current_intent = handler_input.request_envelope.request.intent
+        currentIntent = handler_input.request_envelope.request.intent
         return handler_input.response_builder.add_directive(
             DelegateDirective(
-                updated_intent=current_intent
+                updated_intent=currentIntent
             )).response
 
 
@@ -1534,7 +1544,8 @@ class VictoriesReciteHandler(AbstractRequestHandler):
 
         """
         userSession = session.DartBattleSession(handler_input)
-        speech, reprompt, cardTitle, cardText, cardImage = victories.reciteVictoriesIntent(userSession)
+        speech, reprompt, cardTitle, cardText, cardImage = \
+                victories.reciteVictoriesIntent(userSession)
         handler_input.response_builder.speak(speech).ask(reprompt).set_card(
             StandardCard(title=cardTitle, text=cardText, image=cardImage)
         ).set_should_end_session(False)
@@ -1571,10 +1582,10 @@ class VictoriesRecordInProgressHandler(AbstractRequestHandler):
             ask_sdk_model.response.Response: Response for this intent and device.
 
         """
-        current_intent = handler_input.request_envelope.request.intent
+        currentIntent = handler_input.request_envelope.request.intent
         return handler_input.response_builder.add_directive(
             DelegateDirective(
-                updated_intent=current_intent
+                updated_intent=currentIntent
             )).response
 
 
@@ -1607,7 +1618,8 @@ class VictoriesRecordHandler(AbstractRequestHandler):
         """
         userSession = session.DartBattleSession(handler_input)
 
-        speech, reprompt, cardTitle, cardText, cardImage = victories.recordVictoryIntent(userSession)
+        speech, reprompt, cardTitle, cardText, cardImage = \
+                victories.recordVictoryIntent(userSession)
         handler_input.response_builder.speak(speech).ask(reprompt).set_card(
             StandardCard(title=cardTitle, text=cardText, image=cardImage)
         ).set_should_end_session(False)
@@ -1619,7 +1631,7 @@ class VictoriesRecordHandler(AbstractRequestHandler):
 # =============================================================================
 class RequestLogger(AbstractRequestInterceptor):
     """Log the request envelope.
-    
+
     The request envelope contains all information from the session including
     user ID, slots and values, etc.
 
@@ -1644,7 +1656,7 @@ class RequestLogger(AbstractRequestInterceptor):
 
 class ResponseLogger(AbstractResponseInterceptor):
     """Log the response envelope.
-    
+
     Handlers return responses which are interpreted by the Amazon device. This
     object intercepts the passing of that response, allowing us to log the
     response to CloudWatch.
