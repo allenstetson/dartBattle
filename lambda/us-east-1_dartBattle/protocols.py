@@ -20,6 +20,7 @@ application of new greetings, new player roles, or similar.
 import datetime
 import logging
 
+# Amazon imports
 from ask_sdk_model.ui.image import Image
 
 # DartBattle imports:
@@ -201,7 +202,10 @@ class DartBattleProtocol(object):
             )
         self.protocolCodes[self.name] = value
         self.session.protocolCodes = self.protocolCodes
-        database.updateRecordProtocol(self.session)
+        database.updateRecordAttr(
+            self.session,
+            "protocolCodes",
+            self.session.protocolCodes)
 
     @property
     def isActive(self):
@@ -307,7 +311,7 @@ class ProtocolAboutFace(DartBattleProtocol):
         numBattles = int(self.session.numBattles)
         numBattles += 10
         self.session.numBattles = str(numBattles)
-        database.updateRecord(self.session)
+        database.updateRecordAttr(self.session, "numBattles", str(numBattles))
 
         # Report Success
         self.speech = ("Thank you for taking the time to provide us with "
@@ -489,7 +493,7 @@ class ProtocolSilverSparrow(DartBattleProtocol):
         numBattles = int(self.session.numBattles)
         numBattles += 5
         self.session.numBattles = str(numBattles)
-        database.updateRecord(self.session)
+        database.updateRecordAttr(self.session, "numBattles", str(numBattles))
 
         # Report Success
         self.speech = ("Thank you for helping to spread the word about Dart "
@@ -553,7 +557,7 @@ class ProtocolStingray(DartBattleProtocol):
         numBattles = int(self.session.numBattles)
         numBattles += 10
         self.session.numBattles = str(numBattles)
-        database.updateRecord(self.session)
+        database.updateRecordAttr(self.session, "numBattles", str(numBattles))
 
         # Report Success
         self.speech = ("Thank you for helping to spread the word about Dart "
