@@ -119,7 +119,7 @@ class DartBattleSession(object):
     @battleDuration.setter
     def battleDuration(self, value):
         self._sessionAttributes["battleDuration"] = value
-        database.updateRecordDuration(self)
+        database.updateRecordAttr(self.session, "battleDuration", value)
 
     @property
     def dateCreated(self):
@@ -301,7 +301,7 @@ class DartBattleSession(object):
             if self._sessionAttributes.get("playerRank") == value:
                 return
             self._sessionAttributes["playerRank"] = value
-            database.updateRecord(self)
+            database.updateRecordAttr(self.session, "playerRank", value)
             return
         self._sessionAttributes["playerRank"] = value
 
