@@ -1266,6 +1266,41 @@ class TeamClearHandler(AbstractRequestHandler):
         return handler_input.response_builder.response
 
 
+class TeamReciteHandler(AbstractRequestHandler):
+    """Handler called when the user requests to "tell me the teams"."""
+    def can_handle(self, handler_input):
+        """Inform the request of what intents/requests are handled by this obj.
+
+        Args:
+            handler_input (ask_sdk_core.handler_input.HandlerInput): The input
+                from Alexa.
+
+        Returns:
+            bool: Whether or not the current intent can be handled by this obj.
+
+        """
+        return is_intent_name("ReciteTeamsIntent")(handler_input)
+
+    def handle(self, handler_input):
+        """Handle the launch request; fetch & serve the appropriate response.
+
+        Args:
+            handler_input (ask_sdk_core.handler_input.HandlerInput): The input
+                from Alexa.
+
+        Returns:
+            ask_sdk_model.response.Response: Response for this intent & device.
+
+        """
+        userSession = session.DartBattleSession(handler_input)
+        speech, reprompt, cardTitle, cardText, cardImage = \
+                teams.reciteTeamsIntent(userSession)
+        handler_input.response_builder.speak(speech).ask(reprompt).set_card(
+            StandardCard(title=cardTitle, text=cardText, image=cardImage)
+        ).set_should_end_session(False)
+        return handler_input.response_builder.response
+
+
 class TeamSetupInProgressHandler(AbstractRequestHandler):
     """Handler called when user wants to form teams; prompts for more info.
 
