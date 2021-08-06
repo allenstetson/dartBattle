@@ -1,16 +1,42 @@
+###############################################################################
+# Copyright (c) 2019 Allen Stetson, allen.stetson@gmail.com
+# All rights reserved. No duplication allowed.
+#
+# This file is part of DartBattle.
+#
+# DartBattle may not be copied and/or distributed without the express
+# permission of Allen Stetson.
+###############################################################################
+"""
+rank.py
+Contains logic for dealing with ranks, including checking for a promotion, and
+reporting the status of the user's current rank.
+
+"""
 # Std lib imports:
 import logging
-import os
 
 from ask_sdk_model.ui.image import Image
 
 # DartBattle imports:
 import teams
 
-logger = logging.getLogger()
-logger.setLevel(logging.INFO)
 
-rankRequirements = {
+__all__ = [
+    "checkForPromotion",
+    "getRankResponse"
+]
+
+
+# =============================================================================
+# GLOBALS
+# =============================================================================
+DBS3_URL = "https://s3.amazonaws.com/dart-battle-resources/"
+
+LOGGER = logging.getLogger()
+LOGGER.setLevel(logging.INFO)
+
+RANK_REQUIREMENTS = {  #pylint: disable=invalid-name
     0: 0,
     1: 1,
     2: 5,
@@ -26,17 +52,63 @@ rankRequirements = {
 }
 
 
+# =============================================================================
+# FUNCTIONS
+# =============================================================================
+def checkForPromotion(userSession):
+    """Determines whether or not the user is due for a rank promotion.
+
+    Checks the total number of battles that the user has participated in over
+    their history of using Dart Battle. Compares that total against their
+    current rank to see if the number of battles warrants a rank promotion.
+
+    Args:
+        userSession (session.DartBattleSession): an object with properties
+            representing all slots, values, and information from the user's
+            session, including user ID, Audio Directive state, etc.
+
+    Returns:
+        bool, int: True if a promotion is warranted, False otherwise. The
+            integer representing the warranted rank of the user at this time.
+
+    """
+    LOGGER.info("Checking for promotion.")
+    # TODO: centralize this:
+    currentRank = int(userSession.playerRank)
+    if int(userSession.numBattles) > RANK_REQUIREMENTS[currentRank] and \
+            int(userSession.numBattles) >= RANK_REQUIREMENTS[currentRank + 1]:
+        userSession.playerRank = "{:02d}".format(currentRank + 1)
+
+        LOGGER.info("Promotion to rank {} is earned!".format(currentRank + 1))
+        return True, currentRank + 1
+    return False, currentRank
+
+
 def getRankResponse(userSession):
-    global rankRequirements
+    """Reports the current rank of the user and requirements for promotion.
+
+    Args:
+        userSession (session.DartBattleSession): an object with properties
+            representing all slots, values, and information from the user's
+            session, including user ID, Audio Directive state, etc.
+
+    Returns:
+        str: the speech to speak to the user
+        str: reprompt speech if the user fails to reply
+        str: the title to display on the response card
+        str: text to display on the response card
+        ask_sdk_model.ui.image.Image: image to display on the response card
+
+    """
     playerRank = userSession.playerRank
-    playerRankName = teams.PlayerRanks(int(playerRank)).name.replace("_", " ")
-    nextRankName = teams.PlayerRanks(int(playerRank)+1).name.replace("_", " ")
+    playerRankName = PlayerRanks(int(playerRank)).name.replace("_", " ")
+    nextRankName = PlayerRanks(int(playerRank)+1).name.replace("_", " ")
     # TODO: Account for General, where there is no next rank!
     numBattles = userSession.numBattles
-    speech = "<audio src=\"https://s3.amazonaws.com/dart-battle-resources/choiceMusic.mp3\" />"
+    speech = "<audio src=\"" + DBS3_URL + "choiceMusic.mp3\" />"
     text = "Rank: {}, {} battles.\n".format(playerRankName.title(), numBattles)
     if numBattles:
-        battlesRemaining = rankRequirements[int(playerRank)+1] - int(numBattles)
+        battlesRemaining = RANK_REQUIREMENTS[int(playerRank)+1] - int(numBattles)
         speech += "You have battled {} times, ".format(numBattles)
         speech += "and your current rank is {}. ".format(playerRankName)
         speech += "You have {} battles remaining ".format(battlesRemaining)
@@ -49,21 +121,25 @@ def getRankResponse(userSession):
     reprompt = "Try saying: Start Battle, Setup Teams, or More Options."
     title = "What is my rank?"
     cardImage = Image(
-        small_image_url="https://s3.amazonaws.com/dart-battle-resources/dartBattle_HTP_720x480.jpg",
-        large_image_url="https://s3.amazonaws.com/dart-battle-resources/dartBattle_HTP_1200x800.jpg"
+        small_image_url=DBS3_URL + "dartBattle_HTP_720x480.jpg",
+        large_image_url=DBS3_URL + "dartBattle_HTP_1200x800.jpg"
     )
     return speech, reprompt, title, text, cardImage
 
 
-def checkForPromotion(userSession):
-    global rankRequirements
-    logger.info("Checking for promotion.")
-    # TODO: centralize this:
-    currentRank = int(userSession.playerRank)
-    if int(userSession.numBattles) > rankRequirements[currentRank] and \
-            int(userSession.numBattles) >= rankRequirements[currentRank + 1]:
-        userSession.playerRank = "{:02d}".format(currentRank + 1)
-
-        logger.info("Promotion to rank {} is earned!".format(currentRank + 1))
-        return True, currentRank + 1
-    return False, currentRank
+# =============================================================================
+# CLASSES
+# =============================================================================
+class PlayerRanks(enum.Enum):
+    newbie = 0
+    private = 1
+    corporal = 2
+    sergeant = 3
+    lieutenant = 4
+    captain = 5
+    lieutenant_colonel = 6
+    colonel = 7
+    brigadier_general = 8
+    major_general = 9
+    lieutenant_general = 10
+    general = 11
