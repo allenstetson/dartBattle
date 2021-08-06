@@ -256,7 +256,7 @@ class Playlist(object):
         """
         allEvents = []
         for event in self._events:
-            for i in range(len(rank.rankRequirements)):
+            for i in range(len(rank.RANK_REQUIREMENTS)):
                 allEvents.append(event.format(i))
         return allEvents
 
