@@ -34,14 +34,21 @@ import database
 import playlists
 import roles
 
+
 __all__ = [
+    "continueAudioPlayback",
+    "restartAudioPlayback",
+    "reverseAudioPlayback",
+    "skipToNextAudioPlayback",
+    "startBattleDurationIntent",
+    "startBattleStandardIntent",
     "Scenarios",
     "Scenario"
 ]
 
 
 # =============================================================================
-# Globals
+# GLOBALS
 # =============================================================================
 DBS3_URL = "https://s3.amazonaws.com/dart-battle-resources/"
 
@@ -50,7 +57,367 @@ LOGGER.setLevel(logging.INFO)
 
 
 # =============================================================================
-# Classes
+# FUNCTIONS
+# =============================================================================
+def continueAudioPlayback(userSession):
+    """Triggered by PlaybackNearlyFinished event, plays next track.
+
+    Args:
+        userSession : (session.DartBattleSession)
+            Session derived from incoming Alexa data.
+
+    Returns:
+        ask_sdk_model.interfaces.audioplayer.PlayDirective: Audio Directive
+            which plays the next track from the beginning.
+
+    """
+    prevToken = userSession.currentToken
+
+    sessionInfo = prevToken.split("_")[1]
+    scenarioEnum = sessionInfo.split(".")[1]
+    scenarioName = Scenarios(int(scenarioEnum)).name
+    (nextToken, nextTrack) = Scenario(userSession, name=scenarioName).getNextFromToken(prevToken)
+    userSession.currentToken = nextToken
+    if nextToken:
+        database.updateRecordToken(userSession)
+    largeImg = DBS3_URL + "dartBattle_SB_1200x800.jpg"
+
+    directive = PlayDirective(
+        play_behavior=PlayBehavior.ENQUEUE,
+        audio_item=AudioItem(
+            stream=Stream(
+                expected_previous_token=prevToken,
+                token=nextToken,
+                url=nextTrack,
+                offset_in_milliseconds=0
+            ),
+            metadata=AudioItemMetadata(
+                title=scenarioName,
+                subtitle="",
+                art=display.Image(
+                    content_description=scenarioName,
+                    sources=[
+                        display.ImageInstance(
+                            url=largeImg
+                        )
+                    ]
+                ),
+                background_image=display.Image(
+                    content_description=scenarioName,
+                    sources=[
+                        display.ImageInstance(
+                            url=largeImg
+                        )
+                    ]
+                )
+            )
+        )
+    )
+    return directive
+
+
+def restartAudioPlayback(userSession):
+    """Issues a directive to restart the current audio track from the start.
+
+    Args:
+        userSession : (session.DartBattleSession)
+            Session derived from incoming Alexa data.
+
+    Returns:
+        ask_sdk_model.interfaces.audioplayer.PlayDirective: Audio Directive
+            which plays the current track from the beginning.
+
+    """
+    currentToken = userSession.currentToken
+
+    sessionInfo = currentToken.split("_")[1]
+    scenarioEnum = sessionInfo.split(".")[1]
+    scenarioName = Scenarios(int(scenarioEnum)).name
+    scenario = Scenario(userSession, name=scenarioName)
+    (firstToken, firstTrack) = scenario.getFirstTrackFromToken(currentToken)
+    oim = 0
+    userSession.setAudioState(firstToken, oim)
+    largeImg = DBS3_URL + "dartBattle_SB_1200x800.jpg"
+    msg = "Restarting playback with token {}, track {}, and offset {}"
+    msg = msg.format(firstToken, firstTrack, oim)
+    LOGGER.info(msg)
+
+    directive = PlayDirective(
+        play_behavior=PlayBehavior.REPLACE_ALL,
+        audio_item=AudioItem(
+            stream=Stream(
+                expected_previous_token=None,
+                token=firstToken,
+                url=firstTrack,
+                offset_in_milliseconds=oim
+            ),
+            metadata=AudioItemMetadata(
+                title=scenarioName,
+                subtitle="",
+                art=display.Image(
+                    content_description=scenarioName,
+                    sources=[
+                        display.ImageInstance(
+                            url=largeImg
+                        )
+                    ]
+                ),
+                background_image=display.Image(
+                    content_description=scenarioName,
+                    sources=[
+                        display.ImageInstance(
+                            url=largeImg
+                        )
+                    ]
+                )
+            )
+        )
+    )
+    return directive
+
+
+def reverseAudioPlayback(userSession):
+    """Triggered when user asks for next track, plays previous.
+
+    Args:
+        userSession : (session.DartBattleSession)
+            Session derived from incoming Alexa data.
+
+    Returns:
+        ask_sdk_model.interfaces.audioplayer.PlayDirective: Audio Directive
+            which plays the previous track from the beginning.
+
+    """
+    # Request was triggered by a user asking for Previous track.
+    currentToken = userSession.currentToken
+
+    sessionInfo = currentToken.split("_")[1]
+    scenarioEnum = sessionInfo.split(".")[1]
+    scenarioName = Scenarios(int(scenarioEnum)).name
+    scenario = Scenario(userSession, name=scenarioName)
+    (previousToken, previousTrack) = scenario.getPrevFromToken(currentToken)
+
+    oim = 0
+    userSession.setAudioState(previousToken, oim)
+    largeImg = DBS3_URL + "dartBattle_SB_1200x800.jpg"
+    msg = "Skipping to previous track with token {}, track {}, and offset {}"
+    msg = msg.format(previousToken, previousTrack, oim)
+    LOGGER.info(msg)
+
+    directive = PlayDirective(
+        play_behavior=PlayBehavior.REPLACE_ALL,
+        audio_item=AudioItem(
+            stream=Stream(
+                expected_previous_token=None,
+                token=previousToken,
+                url=previousTrack,
+                offset_in_milliseconds=oim
+            ),
+            metadata=AudioItemMetadata(
+                title=scenarioName,
+                subtitle="",
+                art=display.Image(
+                    content_description=scenarioName,
+                    sources=[
+                        display.ImageInstance(
+                            url=largeImg
+                        )
+                    ]
+                ),
+                background_image=display.Image(
+                    content_description=scenarioName,
+                    sources=[
+                        display.ImageInstance(
+                            url=largeImg
+                        )
+                    ]
+                )
+            )
+        )
+    )
+    return directive
+
+
+def skipToNextAudioPlayback(userSession):
+    """Triggered when user asks for next track, plays next.
+
+    Args:
+        userSession : (session.DartBattleSession)
+            Session derived from incoming Alexa data.
+
+    Returns:
+        ask_sdk_model.interfaces.audioplayer.PlayDirective: Audio Directive
+            which plays the next track in the playlist..
+
+    """
+    # Request was triggered by a user asking for Next track.
+    # currentToken is always one ahead of the one that's playing,
+    # courtesy of playbackNearlyFinished; just return the recorded token:
+    currentToken = userSession.currentToken
+    sessionInfo = currentToken.split("_")[1]
+    scenarioEnum = sessionInfo.split(".")[1]
+    scenarioName = Scenarios(int(scenarioEnum)).name
+    scenario = Scenario(userSession, name=scenarioName)
+    nextToken, nextTrack = scenario.getNextFromToken(currentToken)
+    oim = 0
+    userSession.setAudioState(nextToken, oim)
+    largeImg = DBS3_URL + "dartBattle_SB_1200x800.jpg"
+    msg = "Skipping to next track with token {}, track {}, and offset {}"
+    msg = msg.format(nextToken, nextTrack, oim)
+    LOGGER.info(msg)
+
+    directive = PlayDirective(
+        play_behavior=PlayBehavior.REPLACE_ALL,
+        audio_item=AudioItem(
+            stream=Stream(
+                expected_previous_token=None,
+                token=nextToken,
+                url=nextTrack,
+                offset_in_milliseconds=oim
+            ),
+            metadata=AudioItemMetadata(
+                title=scenarioName,
+                subtitle="",
+                art=display.Image(
+                    content_description=scenarioName,
+                    sources=[
+                        display.ImageInstance(
+                            url=largeImg
+                        )
+                    ]
+                ),
+                background_image=display.Image(
+                    content_description=scenarioName,
+                    sources=[
+                        display.ImageInstance(
+                            url=largeImg
+                        )
+                    ]
+                )
+            )
+        )
+    )
+    return directive
+
+
+def startBattleDurationIntent(userSession):
+    """Triggered when a user asks for a battle of a given duration, comply.
+
+    Args:
+        userSession : (session.DartBattleSession)
+            Session derived from incoming Alexa data.
+
+    Returns:
+        str, str, str, ask_sdk_model.ui.image.Image,
+            ask_sdk_model.interfaces.audioplayer.PlayDirective: Response data
+            to construct an Alexa response. (speech, title, text, cardImage,
+            directive)
+
+    """
+    duration = userSession.request.slots["DURATION"]["value"]
+    duration = int(duration) * 60
+    if duration < 120:
+        duration = 120
+    userSession.battleDuration = str(duration)
+    return startBattleStandardIntent(userSession)
+
+
+def startBattleStandardIntent(userSession):
+    """Triggered when a user asks for a battle, comply; may specify duration.
+
+    Args:
+        userSession : (dict)
+            Session data derived from incoming Alexa data.
+
+    Returns:
+        str, str, str, ask_sdk_model.ui.image.Image,
+            ask_sdk_model.interfaces.audioplayer.PlayDirective: Response data
+            to construct an Alexa response. (speech, title, text, cardImage,
+            directive)
+
+    """
+    speech = ""
+    duration = int(userSession.battleDuration)
+
+    isTeam = ""
+    if userSession.usingTeams == "True":
+        isTeam = "team"
+
+    playlist = Scenario(userSession)
+    token = playlist.buildPlaylist(duration)
+    track = playlist.getTrackFromToken(token)
+
+    durMin = int(duration/60)
+    sceneName = playlist.prettyName
+    numBattles = int(userSession.numBattles)
+    numBattles += 1
+    userSession.numBattles = str(numBattles)
+    userSession.currentToken = str(token)
+    userSession.offsetInMilliseconds = "0"
+
+    speech += "<audio src=\"" + DBS3_URL + "choiceMusic.mp3\" /> "
+
+    database.updateRecordBattle(userSession)
+
+    promo = playlist.promo
+    if promo:
+        speech += '<audio src="{}" /> '.format(promo)
+
+    if userSession.usingEvents == "False":
+        text = "{} minute {} battle commencing with no events. ".format(durMin, isTeam)
+        choice = random.randint(0, 5)
+        if choice == 0:
+            text += ("If you'd like to hear events and scenarios, "
+                     "ask Dart Battle to turn on events. ")
+        speech += text
+    else:
+        text = "{} minute {} {} battle commencing. ".format(durMin, sceneName, isTeam)
+        speech += text
+    title = "Start a Battle"
+    largeImg = DBS3_URL + "dartBattle_SB_1200x800.jpg"
+    smallImg = DBS3_URL + "dartBattle_SB_720x480.jpg"
+    cardImage = Image(
+        small_image_url=smallImg,
+        large_image_url=largeImg
+    )
+
+    directive = PlayDirective(
+        play_behavior=PlayBehavior.REPLACE_ALL,
+        audio_item=AudioItem(
+            stream=Stream(
+                expected_previous_token=None,
+                token=token,
+                url=track,
+                offset_in_milliseconds=0
+            ),
+            metadata=AudioItemMetadata(
+                title=title,
+                subtitle=text,
+                art=display.Image(
+                    content_description=title,
+                    sources=[
+                        display.ImageInstance(
+                            url=largeImg
+                        )
+                    ]
+                ),
+                background_image=display.Image(
+                    content_description=title,
+                    sources=[
+                        display.ImageInstance(
+                            url=largeImg
+                        )
+                    ]
+                )
+            )
+        )
+    )
+
+    return speech, title, text, cardImage, directive
+
+
+# =============================================================================
+# CLASSES
 # =============================================================================
 class Scenarios(enum.Enum):
     """The major scenarios available; used for tokens and playlist generation."""
@@ -677,359 +1044,3 @@ class Scenario(object):
 
         return track
 
-
-def startBattleDurationIntent(userSession):
-    """Triggered when a user asks for a battle of a given duration, comply.
-
-    Args:
-        userSession : (session.DartBattleSession)
-            Session derived from incoming Alexa data.
-
-    Returns:
-        str, str, str, ask_sdk_model.ui.image.Image,
-            ask_sdk_model.interfaces.audioplayer.PlayDirective: Response data
-            to construct an Alexa response. (speech, title, text, cardImage,
-            directive)
-
-    """
-    duration = userSession.request.slots["DURATION"]["value"]
-    duration = int(duration) * 60
-    if duration < 120:
-        duration = 120
-    userSession.battleDuration = str(duration)
-    return startBattleStandardIntent(userSession)
-
-
-def startBattleStandardIntent(userSession):
-    """Triggered when a user asks for a battle, comply; may specify duration.
-
-    Args:
-        userSession : (dict)
-            Session data derived from incoming Alexa data.
-
-    Returns:
-        str, str, str, ask_sdk_model.ui.image.Image,
-            ask_sdk_model.interfaces.audioplayer.PlayDirective: Response data
-            to construct an Alexa response. (speech, title, text, cardImage,
-            directive)
-
-    """
-    speech = ""
-    duration = int(userSession.battleDuration)
-
-    isTeam = ""
-    if userSession.usingTeams == "True":
-        isTeam = "team"
-
-    playlist = Scenario(userSession)
-    token = playlist.buildPlaylist(duration)
-    track = playlist.getTrackFromToken(token)
-
-    durMin = int(duration/60)
-    sceneName = playlist.prettyName
-    numBattles = int(userSession.numBattles)
-    numBattles += 1
-    userSession.numBattles = str(numBattles)
-    userSession.currentToken = str(token)
-    userSession.offsetInMilliseconds = "0"
-
-    speech += "<audio src=\"" + DBS3_URL + "choiceMusic.mp3\" /> "
-
-    database.updateRecordBattle(userSession)
-
-    promo = playlist.promo
-    if promo:
-        speech += '<audio src="{}" /> '.format(promo)
-
-    if userSession.usingEvents == "False":
-        text = "{} minute {} battle commencing with no events. ".format(durMin, isTeam)
-        choice = random.randint(0, 5)
-        if choice == 0:
-            text += ("If you'd like to hear events and scenarios, "
-                     "ask Dart Battle to turn on events. ")
-        speech += text
-    else:
-        text = "{} minute {} {} battle commencing. ".format(durMin, sceneName, isTeam)
-        speech += text
-    title = "Start a Battle"
-    largeImg = DBS3_URL + "dartBattle_SB_1200x800.jpg"
-    smallImg = DBS3_URL + "dartBattle_SB_720x480.jpg"
-    cardImage = Image(
-        small_image_url=smallImg,
-        large_image_url=largeImg
-    )
-
-    directive = PlayDirective(
-        play_behavior=PlayBehavior.REPLACE_ALL,
-        audio_item=AudioItem(
-            stream=Stream(
-                expected_previous_token=None,
-                token=token,
-                url=track,
-                offset_in_milliseconds=0
-            ),
-            metadata=AudioItemMetadata(
-                title=title,
-                subtitle=text,
-                art=display.Image(
-                    content_description=title,
-                    sources=[
-                        display.ImageInstance(
-                            url=largeImg
-                        )
-                    ]
-                ),
-                background_image=display.Image(
-                    content_description=title,
-                    sources=[
-                        display.ImageInstance(
-                            url=largeImg
-                        )
-                    ]
-                )
-            )
-        )
-    )
-
-    return speech, title, text, cardImage, directive
-
-
-def continueAudioPlayback(userSession):
-    """Triggered by PlaybackNearlyFinished event, plays next track.
-
-    Args:
-        userSession : (session.DartBattleSession)
-            Session derived from incoming Alexa data.
-
-    Returns:
-        ask_sdk_model.interfaces.audioplayer.PlayDirective: Audio Directive
-            which plays the next track from the beginning.
-
-    """
-    prevToken = userSession.currentToken
-
-    sessionInfo = prevToken.split("_")[1]
-    scenarioEnum = sessionInfo.split(".")[1]
-    scenarioName = Scenarios(int(scenarioEnum)).name
-    (nextToken, nextTrack) = Scenario(userSession, name=scenarioName).getNextFromToken(prevToken)
-    userSession.currentToken = nextToken
-    if nextToken:
-        database.updateRecordToken(userSession)
-    largeImg = DBS3_URL + "dartBattle_SB_1200x800.jpg"
-
-    directive = PlayDirective(
-        play_behavior=PlayBehavior.ENQUEUE,
-        audio_item=AudioItem(
-            stream=Stream(
-                expected_previous_token=prevToken,
-                token=nextToken,
-                url=nextTrack,
-                offset_in_milliseconds=0
-            ),
-            metadata=AudioItemMetadata(
-                title=scenarioName,
-                subtitle="",
-                art=display.Image(
-                    content_description=scenarioName,
-                    sources=[
-                        display.ImageInstance(
-                            url=largeImg
-                        )
-                    ]
-                ),
-                background_image=display.Image(
-                    content_description=scenarioName,
-                    sources=[
-                        display.ImageInstance(
-                            url=largeImg
-                        )
-                    ]
-                )
-            )
-        )
-    )
-    return directive
-
-
-def reverseAudioPlayback(userSession):
-    """Triggered when user asks for next track, plays previous.
-
-    Args:
-        userSession : (session.DartBattleSession)
-            Session derived from incoming Alexa data.
-
-    Returns:
-        ask_sdk_model.interfaces.audioplayer.PlayDirective: Audio Directive
-            which plays the previous track from the beginning.
-
-    """
-    # Request was triggered by a user asking for Previous track.
-    currentToken = userSession.currentToken
-
-    sessionInfo = currentToken.split("_")[1]
-    scenarioEnum = sessionInfo.split(".")[1]
-    scenarioName = Scenarios(int(scenarioEnum)).name
-    scenario = Scenario(userSession, name=scenarioName)
-    (previousToken, previousTrack) = scenario.getPrevFromToken(currentToken)
-
-    oim = 0
-    userSession.setAudioState(previousToken, oim)
-    largeImg = DBS3_URL + "dartBattle_SB_1200x800.jpg"
-    msg = "Skipping to previous track with token {}, track {}, and offset {}"
-    msg = msg.format(previousToken, previousTrack, oim)
-    LOGGER.info(msg)
-
-    directive = PlayDirective(
-        play_behavior=PlayBehavior.REPLACE_ALL,
-        audio_item=AudioItem(
-            stream=Stream(
-                expected_previous_token=None,
-                token=previousToken,
-                url=previousTrack,
-                offset_in_milliseconds=oim
-            ),
-            metadata=AudioItemMetadata(
-                title=scenarioName,
-                subtitle="",
-                art=display.Image(
-                    content_description=scenarioName,
-                    sources=[
-                        display.ImageInstance(
-                            url=largeImg
-                        )
-                    ]
-                ),
-                background_image=display.Image(
-                    content_description=scenarioName,
-                    sources=[
-                        display.ImageInstance(
-                            url=largeImg
-                        )
-                    ]
-                )
-            )
-        )
-    )
-    return directive
-
-
-def restartAudioPlayback(userSession):
-    """Issues a directive to restart the current audio track from the start.
-
-    Args:
-        userSession : (session.DartBattleSession)
-            Session derived from incoming Alexa data.
-
-    Returns:
-        ask_sdk_model.interfaces.audioplayer.PlayDirective: Audio Directive
-            which plays the current track from the beginning.
-
-    """
-    currentToken = userSession.currentToken
-
-    sessionInfo = currentToken.split("_")[1]
-    scenarioEnum = sessionInfo.split(".")[1]
-    scenarioName = Scenarios(int(scenarioEnum)).name
-    scenario = Scenario(userSession, name=scenarioName)
-    (firstToken, firstTrack) = scenario.getFirstTrackFromToken(currentToken)
-    oim = 0
-    userSession.setAudioState(firstToken, oim)
-    largeImg = DBS3_URL + "dartBattle_SB_1200x800.jpg"
-    msg = "Restarting playback with token {}, track {}, and offset {}"
-    msg = msg.format(firstToken, firstTrack, oim)
-    LOGGER.info(msg)
-
-    directive = PlayDirective(
-        play_behavior=PlayBehavior.REPLACE_ALL,
-        audio_item=AudioItem(
-            stream=Stream(
-                expected_previous_token=None,
-                token=firstToken,
-                url=firstTrack,
-                offset_in_milliseconds=oim
-            ),
-            metadata=AudioItemMetadata(
-                title=scenarioName,
-                subtitle="",
-                art=display.Image(
-                    content_description=scenarioName,
-                    sources=[
-                        display.ImageInstance(
-                            url=largeImg
-                        )
-                    ]
-                ),
-                background_image=display.Image(
-                    content_description=scenarioName,
-                    sources=[
-                        display.ImageInstance(
-                            url=largeImg
-                        )
-                    ]
-                )
-            )
-        )
-    )
-    return directive
-
-
-def skipToNextAudioPlayback(userSession):
-    """Triggered when user asks for next track, plays next.
-
-    Args:
-        userSession : (session.DartBattleSession)
-            Session derived from incoming Alexa data.
-
-    Returns:
-        ask_sdk_model.interfaces.audioplayer.PlayDirective: Audio Directive
-            which plays the next track in the playlist..
-
-    """
-    # Request was triggered by a user asking for Next track.
-    # currentToken is always one ahead of the one that's playing,
-    # courtesy of playbackNearlyFinished; just return the recorded token:
-    currentToken = userSession.currentToken
-    sessionInfo = currentToken.split("_")[1]
-    scenarioEnum = sessionInfo.split(".")[1]
-    scenarioName = Scenarios(int(scenarioEnum)).name
-    scenario = Scenario(userSession, name=scenarioName)
-    nextToken, nextTrack = scenario.getNextFromToken(currentToken)
-    oim = 0
-    userSession.setAudioState(nextToken, oim)
-    largeImg = DBS3_URL + "dartBattle_SB_1200x800.jpg"
-    msg = "Skipping to next track with token {}, track {}, and offset {}"
-    msg = msg.format(nextToken, nextTrack, oim)
-    LOGGER.info(msg)
-
-    directive = PlayDirective(
-        play_behavior=PlayBehavior.REPLACE_ALL,
-        audio_item=AudioItem(
-            stream=Stream(
-                expected_previous_token=None,
-                token=nextToken,
-                url=nextTrack,
-                offset_in_milliseconds=oim
-            ),
-            metadata=AudioItemMetadata(
-                title=scenarioName,
-                subtitle="",
-                art=display.Image(
-                    content_description=scenarioName,
-                    sources=[
-                        display.ImageInstance(
-                            url=largeImg
-                        )
-                    ]
-                ),
-                background_image=display.Image(
-                    content_description=scenarioName,
-                    sources=[
-                        display.ImageInstance(
-                            url=largeImg
-                        )
-                    ]
-                )
-            )
-        )
-    )
-    return directive
