@@ -182,5 +182,42 @@ The rules can be accessed by asking Dart Battle "How do I play", and provide a g
 
 ## Technical Documentation
 
-tech docs go here.
+The code in this repo is explicitly meant to be run from within an Amazon Lambda instance, invoked from a very specific Alexa skill which has been crafted through Amazon Developer Console, Alexa.  The skill will define "Intents" which inform the Machine Learning algorithms on how to match up incoming text-from-speech issued by a user with the handler that matches best the user's intent behind those words.
 
+Some of the intents will specify "slots" that need filling (essentially variables, or pieces of information that need definition by the user) prior to being able to handle the intent. This code will contain some DialogDirectives that prompt the user to fill any missing slots prior to executing the handler.
+
+Handlers are registered through Amazon's `skill_builder`, and define which handler is best to respond to which intents.
+
+Various categories of things that Dart Battle supports are typically broken out into their own modules, with the `responses.py` module being a good catch-all places for handlers that do not have a better home.
+
+This repo contains an insane amount of supporting code from Amazon that empowers the skill to interact with DynamoDB, Alexa (through the Software Development Kit), monetization, and other technologies. There are only a handful of modules specific to Dart Battle.
+
+Details of the Dart Battle modules follows:
+
+`lambda/us-east-1_dartBattle/`
+* `main.py`
+  * This module serves as the entry point for the skill. This is where the `skill_builder` is defined, and where all handlers live and are registered.  Intents in this module include not only all custom intents, but also required intents, audio and monetization intents that are defined by Amazon.
+* `battle.py`
+  * This module contains all logic for starting a battle and interacting with the Audio Player during a battle including logic that supports pausing, resuming, skipping, restarting audio tracks.  Scenario objects exist that define themed battle scenarios like Arctic and Old West, with plans for many more.
+* `database.py`
+  * This module handles all interaction with the DynamoDB database on behalf of Dart Battle. This allows for the updating, clearing, and setting of data records for the database. Persistent attributes that define the user's preferences and last-known state are stored in the database, as well as their usage history.
+* `events.py`
+  * While events are mostly manifest in battle.py and in playlists.py, this module serves as a place to record the supported event categories and their associated enums.  This module has potential to grow to serve random events to battles, but as for now, that logic is highly integrated in the battle setup process and is better housed in battle.py.
+* `playlists.py`
+  * This module provides mechanisms for organizing a huge number of available audio tracks from Amazon S3 into playlists that manage their eligability for choosing based on certain conditions, their organization into what the purpose of those audio tracks might be (introduction vs. sountrack vs. event audio vs. promotion vs. greeting), and the theme that they belong to (Arctic, Old West, etc).
+* `protocols.py`
+  * This module
+* `rank.py`
+  * This module
+* `responses.py`
+  * This module
+* `roles.py`
+  * This module
+* `session.py`
+  * This module
+* `teams.py`
+  * This module
+* `victories.py`
+  * This module
+* `test.py`
+  * This module
