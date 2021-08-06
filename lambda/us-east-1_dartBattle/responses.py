@@ -36,14 +36,25 @@ import rank
 import teams
 
 
-LOGGER = logging.getLogger()
-LOGGER.setLevel(logging.INFO)
+__all__ = [
+    "getTestResponse",
+    "getOptionsResponse",
+    "getWelcomeResponse",
+    "howToPlayResponse",
+    "toggleSettingsResponse",
+    "turnOffSettingsResponse",
+    "turnOnSettingsResponse"
+]
 
 
 # =============================================================================
 # GLOBALS
 # =============================================================================
 DBS3_URL = 'https://s3.amazonaws.com/dart-battle-resources/'
+
+LOGGER = logging.getLogger()
+LOGGER.setLevel(logging.INFO)
+
 
 # =============================================================================
 # TEST RESPONSES
@@ -94,7 +105,7 @@ def getOptionsResponse(session):
     if playerRank == '00':
         playerRankName = "soldier"
     else:
-        playerRankName = teams.PlayerRanks(int(playerRank)).name.replace("_", " ")
+        playerRankName = rank.PlayerRanks(int(playerRank)).name.replace("_", " ")
 
     speech = ("<audio src=\"" + DBS3_URL + "choiceMusic.mp3\" /> "
               "<audio src=\"" + DBS3_URL + "comsatTellWhatYouCanDo_01.mp3\" /> "
@@ -200,13 +211,13 @@ def getWelcomeResponse(session):
     # -------------------------------------------------------------------------
     promotion = ""
     if isNewRank:
-        promotionFile = playlists.GetRankPromotionFile(rankNum)
+        promotionFile = playlists.getRankPromotionFile(rankNum)
         msg = "Received a promotion track to play: {}".format(promotionFile)
         LOGGER.info(msg)
         promotion += "<audio src=\"{}\" />".format(promotionFile)
         session.playerRank = rankNum
         title = "Congratulations!"
-        playerRankName = teams.PlayerRanks(int(rankNum)).name.replace("_", " ")
+        playerRankName = rank.PlayerRanks(int(rankNum)).name.replace("_", " ")
         text = "You are hereby promoted to {}.".format(playerRankName.title())
         imgName = "victory"
 
