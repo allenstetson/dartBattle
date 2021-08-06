@@ -175,6 +175,8 @@ If the user wishes to reset victories for everyone across the lifetime of the sk
 The rules can be accessed by asking Dart Battle "How do I play", and provide a generic framework for gameplay and safety that players can leverage to settle disputes or to get started. In reality, any gameplay rules can be specified by players amongst themselves, and they can still use Dart Battle to supplement their gameplay. Rules specify scoring points by hitting opposing players with foam-based projectiles, being careful to point out that headshots do not count. It specifies a cooldown after getting hit of 5 seconds before a player can rejoin the battle. It prompts users to be courteous and use good sportsmanship to settle disputes, to wear eye protection, and to have fun.
 
 ### To Do
+- [ ] FIXME: Calling "Shuffle the teams" after having cleared teams returns an incorrect response.
+- [ ] FIXME: Building the tracklist for available events fails when events are disabled.
 - [ ] "Clear All Victories for Today" - allowing players to clear today's victories without affecting lifetime stats.
 - [ ] Capture the Flag, Infection, and other game modes.
 
