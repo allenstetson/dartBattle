@@ -22,6 +22,15 @@ earning them through the completion of tasks.
 import enum
 
 
+__all__ = [
+    "PlayerRoles",
+    "PlayerRolesSpecial",
+    "PlayerRolesStandard"
+]
+
+# =============================================================================
+# CLASSES
+# =============================================================================
 class PlayerRoles(enum.Enum):
     """The entire list of possible roles, including premium content."""
     none = 0
@@ -42,6 +51,11 @@ class PlayerRoles(enum.Enum):
     any = 99
 
 
+class PlayerRolesSpecial(enum.Enum):
+    """The list of premium content roles that a user may unlock."""
+    communications_specialist = 2
+
+
 class PlayerRolesStandard(enum.Enum):
     """The starting list of player roles, excluding premium content."""
     captain = 1
@@ -57,8 +71,3 @@ class PlayerRolesStandard(enum.Enum):
     scout = 12
     sniper = 13
     special_forces_operative = 14
-
-
-class PlayerRolesSpecial(enum.Enum):
-    """The list of premium content roles that a user may unlock."""
-    communications_specialist = 2

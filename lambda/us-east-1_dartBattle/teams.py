@@ -27,6 +27,16 @@ import rank
 import roles
 
 
+__all__ = [
+    "assignTeamsAndRoles",
+    "clearTeamsIntent",
+    "reciteTeamsIntent",
+    "reciteTeamRoles",
+    "setupTeamsIntent",
+    "shuffleTeamsIntent"
+]
+
+
 # =============================================================================
 # GLOBALS
 # =============================================================================
