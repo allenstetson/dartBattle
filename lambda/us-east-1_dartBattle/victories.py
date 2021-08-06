@@ -24,6 +24,14 @@ from ask_sdk_model.ui.image import Image
 import database
 
 
+__all__ = [
+    "clearVictoryIntent",
+    "countVictories",
+    "reciteVictoriesIntent",
+    "recordVictoryIntent"
+]
+
+
 # =============================================================================
 # Globals
 # =============================================================================

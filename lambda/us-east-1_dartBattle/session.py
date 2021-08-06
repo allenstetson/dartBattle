@@ -38,6 +38,12 @@ from ask_sdk_model.services.service_exception import ServiceException
 import database
 
 
+__all__ = [
+    "DartBattleRequest",
+    "DartBattleSession"
+]
+
+
 # =============================================================================
 # GLOBALS
 # =============================================================================
@@ -48,6 +54,84 @@ LOGGER.setLevel(logging.INFO)
 # =============================================================================
 # CLASSES
 # =============================================================================
+class DartBattleRequest(object):
+    """A convenience object for accessing things within the request envelope.
+
+    Slots are like variables expected by a specific intent by the recipe
+    defined for that intent at the AWS Developer Console. Accessing those
+    values requires nuance and can be confusing. This object makes accessing
+    those easier.
+
+    Slots are populated when the object is first created, and can be updated
+    upon request.
+
+    Args:
+        requestEnvelope (ask_sdk_core.handler_input.request_envelope): The
+            request envelope as provided by Amazon Alexa.
+
+    """
+    def __init__(self, requestEnvelope):
+        self._requestEnvelope = requestEnvelope
+        self.slots = {}
+        self.populateSlots()
+
+    @property
+    def isNew(self):
+        """Whether or not this session is considered a new session.
+
+        This property is read-only.
+
+        Returns:
+            bool: True if this is a new session, False otherwise.
+
+        """
+        return self._requestEnvelope.session.new
+
+    @property
+    def requestId(self):
+        """The ID of the incoming request, assigned by Amazon Alexa.
+
+        Each incoming request has an ID. This is a convenience object for
+        accessing that ID, should it become important.
+
+        Returns:
+            str: the ID of the request represented by this object.
+
+        """
+        return self._requestEnvelope.request_id
+
+    def populateSlots(self):
+        """Populates the slots of the request assigning logical values.
+
+        Slots can be difficult to access, and do not support the concept of
+        being empty, unassigned, NoneType, etc. which makes it hard to
+        test slots. This convenience method not only puts the slots in an
+        easy to reach spot for the user, but also populates a status for each
+        slot indicating whether it is filled or empty.
+
+        Returns:
+            dict: The dictionary of slots with their value and status.
+
+        """
+        filledSlots = self._requestEnvelope.request.intent.slots
+        slots = {}
+
+        for slotName in filledSlots:
+            slots[slotName] = filledSlots[slotName].to_dict()
+            try:
+                slots[slotName]['status'] = \
+                    str(filledSlots[slotName].resolutions.resolutions_per_authority[0].status.code)
+            except (TypeError, AttributeError):
+                slots[slotName]['status'] = "Empty"
+            try:
+                slots[slotName]['id'] = \
+                    str(filledSlots[slotName].resolutions.resolutions_per_authority[0].values[0].value.id)
+            except (TypeError, AttributeError):
+                slots[slotName]['id'] = "None"
+            # dict_keys(['confirmation_status', 'name', 'resolutions', 'value', 'status'])
+        self.slots = slots
+
+
 class DartBattleSession(object):
     """The Amazon Alexa session convenience object.
 
@@ -504,7 +588,8 @@ class DartBattleSession(object):
         return self._sessionAttributes["userId"]
 
     @userId.setter
-    def userId(self, value):
+    d
+    "DartBattleRequest",ef userId(self, value):
         self._sessionAttributes["userId"] = value
 
     @property
@@ -661,81 +746,3 @@ class DartBattleSession(object):
         if offsetInMilliseconds:
             self.offsetInMilliseconds = offsetInMilliseconds
         database.updateRecordToken(self)
-
-
-class DartBattleRequest(object):
-    """A convenience object for accessing things within the request envelope.
-
-    Slots are like variables expected by a specific intent by the recipe
-    defined for that intent at the AWS Developer Console. Accessing those
-    values requires nuance and can be confusing. This object makes accessing
-    those easier.
-
-    Slots are populated when the object is first created, and can be updated
-    upon request.
-
-    Args:
-        requestEnvelope (ask_sdk_core.handler_input.request_envelope): The
-            request envelope as provided by Amazon Alexa.
-
-    """
-    def __init__(self, requestEnvelope):
-        self._requestEnvelope = requestEnvelope
-        self.slots = {}
-        self.populateSlots()
-
-    @property
-    def isNew(self):
-        """Whether or not this session is considered a new session.
-
-        This property is read-only.
-
-        Returns:
-            bool: True if this is a new session, False otherwise.
-
-        """
-        return self._requestEnvelope.session.new
-
-    @property
-    def requestId(self):
-        """The ID of the incoming request, assigned by Amazon Alexa.
-
-        Each incoming request has an ID. This is a convenience object for
-        accessing that ID, should it become important.
-
-        Returns:
-            str: the ID of the request represented by this object.
-
-        """
-        return self._requestEnvelope.request_id
-
-    def populateSlots(self):
-        """Populates the slots of the request assigning logical values.
-
-        Slots can be difficult to access, and do not support the concept of
-        being empty, unassigned, NoneType, etc. which makes it hard to
-        test slots. This convenience method not only puts the slots in an
-        easy to reach spot for the user, but also populates a status for each
-        slot indicating whether it is filled or empty.
-
-        Returns:
-            dict: The dictionary of slots with their value and status.
-
-        """
-        filledSlots = self._requestEnvelope.request.intent.slots
-        slots = {}
-
-        for slotName in filledSlots:
-            slots[slotName] = filledSlots[slotName].to_dict()
-            try:
-                slots[slotName]['status'] = \
-                    str(filledSlots[slotName].resolutions.resolutions_per_authority[0].status.code)
-            except (TypeError, AttributeError):
-                slots[slotName]['status'] = "Empty"
-            try:
-                slots[slotName]['id'] = \
-                    str(filledSlots[slotName].resolutions.resolutions_per_authority[0].values[0].value.id)
-            except (TypeError, AttributeError):
-                slots[slotName]['id'] = "None"
-            # dict_keys(['confirmation_status', 'name', 'resolutions', 'value', 'status'])
-        self.slots = slots
