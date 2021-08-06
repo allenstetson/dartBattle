@@ -735,7 +735,7 @@ def startBattleStandardIntent(userSession):
 
     speech += "<audio src=\"" + DBS3_URL + "choiceMusic.mp3\" /> "
 
-    database.updateRecord(userSession)
+    database.updateRecordBattle(userSession)
 
     promo = playlist.promo
     if promo:
