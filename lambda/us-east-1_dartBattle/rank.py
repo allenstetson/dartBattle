@@ -101,8 +101,8 @@ def getRankResponse(userSession):
 
     """
     playerRank = userSession.playerRank
-    playerRankName = teams.PlayerRanks(int(playerRank)).name.replace("_", " ")
-    nextRankName = teams.PlayerRanks(int(playerRank)+1).name.replace("_", " ")
+    playerRankName = PlayerRanks(int(playerRank)).name.replace("_", " ")
+    nextRankName = PlayerRanks(int(playerRank)+1).name.replace("_", " ")
     # TODO: Account for General, where there is no next rank!
     numBattles = userSession.numBattles
     speech = "<audio src=\"" + DBS3_URL + "choiceMusic.mp3\" />"
@@ -125,3 +125,21 @@ def getRankResponse(userSession):
         large_image_url=DBS3_URL + "dartBattle_HTP_1200x800.jpg"
     )
     return speech, reprompt, title, text, cardImage
+
+
+# =============================================================================
+# CLASSES
+# =============================================================================
+class PlayerRanks(enum.Enum):
+    newbie = 0
+    private = 1
+    corporal = 2
+    sergeant = 3
+    lieutenant = 4
+    captain = 5
+    lieutenant_colonel = 6
+    colonel = 7
+    brigadier_general = 8
+    major_general = 9
+    lieutenant_general = 10
+    general = 11
