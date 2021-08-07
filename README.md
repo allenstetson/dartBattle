@@ -17,6 +17,19 @@ Amazon Alexa skill for augmented play with foam-based weaponry.
   * [Rules](#rules)
   * [To Do](#to-do)
 * [Technical Documentation](#technical-documentation)
+  * [main.py](#main.py)
+  * [battle.py](#battle.py)
+  * [database.py](#database.py)
+  * [events.py](#events.py)
+  * [playlists.py](#playlists.py)
+  * [protocols.py](#protocols.py)
+  * [rank.py](#rank.py)
+  * [responses.py](#responses.py)
+  * [roles.py](#roles.py)
+  * [session.py](#session.py)
+  * [teams.py](#teams.py)
+  * [victories.py](#victories.py)
+  * [test.py](#test.py)
 
 ## Summary
 Dart Battle is a fully featured game companion built for Amazon Alexa, which provides players using foam-based projectile weapons with features such as timed battles, soundtracks, vivid scenarios with dialog and sound effects, rules, score keeping, premium DLC, team building, team role assignments, rank advancement, and random events mid-game with a variety of objectives.
@@ -192,32 +205,42 @@ Various categories of things that Dart Battle supports are typically broken out 
 
 This repo contains an insane amount of supporting code from Amazon that empowers the skill to interact with DynamoDB, Alexa (through the Software Development Kit), monetization, and other technologies. There are only a handful of modules specific to Dart Battle.
 
-Details of the Dart Battle modules follows:
+Details of the Dart Battle modules, located in `lambda/us-east-1_dartBattle/`, follows.
 
-`lambda/us-east-1_dartBattle/`
-* `main.py`
-  * This module serves as the entry point for the skill. This is where the `skill_builder` is defined, and where all handlers live and are registered.  Intents in this module include not only all custom intents, but also required intents, audio and monetization intents that are defined by Amazon.
-* `battle.py`
-  * This module contains all logic for starting a battle and interacting with the Audio Player during a battle including logic that supports pausing, resuming, skipping, restarting audio tracks.  Scenario objects exist that define themed battle scenarios like Arctic and Old West, with plans for many more.
-* `database.py`
-  * This module handles all interaction with the DynamoDB database on behalf of Dart Battle. This allows for the updating, clearing, and setting of data records for the database. Persistent attributes that define the user's preferences and last-known state are stored in the database, as well as their usage history.
-* `events.py`
-  * While events are mostly manifest in battle.py and in playlists.py, this module serves as a place to record the supported event categories and their associated enums.  This module has potential to grow to serve random events to battles, but as for now, that logic is highly integrated in the battle setup process and is better housed in battle.py.
-* `playlists.py`
-  * This module provides mechanisms for organizing a huge number of available audio tracks from Amazon S3 into playlists that manage their eligability for choosing based on certain conditions, their organization into what the purpose of those audio tracks might be (introduction vs. sountrack vs. event audio vs. promotion vs. greeting), and the theme that they belong to (Arctic, Old West, etc).
-* `protocols.py`
-  * This module
-* `rank.py`
-  * This module
-* `responses.py`
-  * This module
-* `roles.py`
-  * This module
-* `session.py`
-  * This module
-* `teams.py`
-  * This module
-* `victories.py`
-  * This module
-* `test.py`
-  * This module
+### main.py
+This module serves as the entry point for the skill. This is where the `skill_builder` is defined, and where all handlers live and are registered.  Intents in this module include not only all custom intents, but also required intents, audio and monetization intents that are defined by Amazon.
+
+### battle.py
+This module contains all logic for starting a battle and interacting with the Audio Player during a battle including logic that supports pausing, resuming, skipping, restarting audio tracks.  Scenario objects exist that define themed battle scenarios like Arctic and Old West, with plans for many more.
+
+### database.py
+This module handles all interaction with the DynamoDB database on behalf of Dart Battle. This allows for the updating, clearing, and setting of data records for the database. Persistent attributes that define the user's preferences and last-known state are stored in the database, as well as their usage history.
+
+### events.py
+While events are mostly manifest in battle.py and in playlists.py, this module serves as a place to record the supported event categories and their associated enums.  This module has potential to grow to serve random events to battles, but as for now, that logic is highly integrated in the battle setup process and is better housed in battle.py.
+
+### playlists.py
+This module provides mechanisms for organizing a huge number of available audio tracks from Amazon S3 into playlists that manage their eligability for choosing based on certain conditions, their organization into what the purpose of those audio tracks might be (introduction vs. sountrack vs. event audio vs. promotion vs. greeting), and the theme that they belong to (Arctic, Old West, etc).
+
+### protocols.py
+This module contains all protocol definitions. "Protocol" is what Dart Battle calls secret codes that can unlock in-game content. Each protocol has a name, and a secret code that can be issued to players who participate in challenges, in surveys, or in marketing blasts.  Each protocol defines the actions to be taken when a protocol is enabled, and whether or not that protocol can be disabled.  Some protocols introduce new greetings for the user, and these protocols can be enabled, whereas protocols that unlock new player roles or grant battles toward rank promotion cannot be disabled.
+
+### rank.py
+This module defines player ranks, titles, and milestones that earn users a rank promotion. This contains a function for checking to see if the user needs to be promoted as well as a response generator for an intent that wishes to announce the player's current rank and number of battles remaining before the next promotion.
+
+### responses.py
+This module is a bit of a catch-all for intent responses that don't fit into another module. In here there are test responses that are used during the authoring of new handlers and intents, the help response, the rules of the game response, the welcome response, and the responses and functions used for toggling various settings on and off upon request.
+
+### roles.py
+This module contains all player roles, their titles and enums. Roles are modeled after various jobs such as pilot, medic, sniper, mechanic and more. They are assigned to players upon the formation of teams and are often referenced during random events during a battle. Therefore, they not only enrich the imaginative play but also functionally enrich gameplay by giving some players special tasks to perform.
+### session.py
+This is a helper module which makes interacting with the Amazon Alexa session easier. The object provided by Amazon can be difficult to work with, sometimes with complicated and unpredicable hierarchies of keys and values to navigate in order to derive desired information, and other times raising exceptions when a value is not set, as opposed to returning NoneTypes or empty sets.  The objects within this module make working with sessions easier by providing properties on an object to quickly derive desired information, and an object for handling request information including slots and their values, and statuses such as Empty.
+
+### teams.py
+This module deals with teams in Dart Battle -- setting up teams, reciting current teams, shuffling the teams around to form new teams, or clearing the teams to return to individual play mode. This module is responsible for assigning roles to team members as well.
+
+### victories.py
+This module handles victories. Victories are a score-keeping mechanism, independent of gameplay and optional for the user to leverage, which can keep track of daily and lifetime victories for a player or team name. This module allows for the recording of victories, the clearing of selected victories or all victories, and the recitation of victories from today and across the lifetime of the skill.  Victories are unique per user, meaning one user cannot find their global placement across all users, only those players that this particular user has recorded in the past.
+
+### test.py
+This module is used to test the interaction model programmatically. The top half of the module contains data definitions that mirror data being fed to handlers as well as the expected data from that handler. There is not a lot of coverage, but the module is useful to test some of the potentially fragile intents. This is designed to be run through the Alexa `ask cli` command line interface using the `ask run` command.
