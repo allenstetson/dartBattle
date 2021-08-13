@@ -21,7 +21,7 @@ slots simply do not exist and will throw an AttributeError if one tries to
 access it.
 
 The objects below help to make the experience easier by providing a session
-object containing properties for commonly-accessed information, normally
+object containing properties for commonly-accessed information, typically
 found in disparate locations and structures, all accessed through a simple
 mechanism.  Slots are populated as properties on the DartBattleRequest object
 and exist even if unset, allowing NoneType tests, etc.

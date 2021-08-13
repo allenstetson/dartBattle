@@ -350,7 +350,7 @@ class ProtocolCrowsNest(DartBattleProtocol):
     This protocol can be enabled to introduce "COMSAT Tactical Greetings",
     speech to be read by Alexa simulating a battle computer responding to
     military operations and battlefield conditions.  It can be disabled to
-    return Dart Battle to normal greetings.
+    return Dart Battle to typical greetings.
 
     This is awarded as a gift for spreading the word to friends about Dart
     Battle through a web form.
@@ -408,7 +408,7 @@ class ProtocolMadDog(DartBattleProtocol):
 
     This protocol can be enabled to introduce "Angry Drill Sergeant" greetings,
     audio files to be played by Alexa featuring an angry drill sergeant barking
-    orders.  It can be disabled to return Dart Battle to normal greetings.
+    orders.  It can be disabled to return Dart Battle to typical greetings.
 
     This is awarded as a gift for spreading the word to friends about Dart
     Battle through a web form.
